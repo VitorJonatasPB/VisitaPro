@@ -12,7 +12,7 @@ Para rodar este projeto na sua máquina, você vai precisar ter instalado:
 
 ## Como Rodar o Projeto (Manual)
 
-Se você estiver em um sistema que não usa os scripts `.bat` ou preferir fazer tudo pelo terminal, siga o passo a passo padrão:
+Siga o passo a passo padrão:
 
 **1. Clone o repositório:**
 ```bash
