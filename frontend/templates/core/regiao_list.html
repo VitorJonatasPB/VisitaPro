@@ -1,0 +1,69 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Regiões - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h4 fw-bold">Regiões</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'core:regiao_create' %}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus me-1"></i> Nova Região
+        </a>
+    </div>
+</div>
+
+<div class="card mb-3">
+    <div class="card-body py-2">
+        <form method="GET" class="row g-2 align-items-center">
+            <div class="col-md-5">
+                <input type="text" name="nome" class="form-control form-control-sm" placeholder="Buscar por Nome..." value="{{ request.GET.nome }}">
+            </div>
+            <div class="col-md-4">
+                <select name="secretaria" class="form-select form-select-sm">
+                    <option value="">Secretaria</option>
+                    {% for s in secretarias_list %}
+                    <option value="{{ s }}" {% if request.GET.secretaria == s %}selected{% endif %}>{{ s }}</option>
+                    {% endfor %}
+                </select>
+            </div>
+            <div class="col-md-1">
+                <button type="submit" class="btn btn-sm btn-primary w-100"><i class="fas fa-search"></i></button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<div class="card">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 text-nowrap">
+                <thead class="table-light">
+                    <tr>
+                        <th>Nome (CDE / DDZ)</th>
+                        <th>Secretaria</th>
+                        <th>Cidade</th>
+                        <th class="text-end">Ações</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for regiao in regioes %}
+                    <tr>
+                        <td title="{{ regiao.nome }}">{{ regiao.nome }}</td>
+                        <td title="{{ regiao.secretaria|default:'-' }}">{{ regiao.secretaria|default:"-" }}</td>
+                        <td title="{{ regiao.cidade|default:'-' }}">{{ regiao.cidade }}</td>
+                        <td class="text-end">
+                            <a href="{% url 'core:regiao_update' regiao.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'core:regiao_delete' regiao.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
+                        </td>
+                    </tr>
+                    {% empty %}
+                    <tr>
+                        <td colspan="3" class="text-center py-4">Nenhum CDE / DDZ cadastrado.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endblock %}

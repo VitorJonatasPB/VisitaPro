@@ -1,0 +1,26 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Excluir Pergunta{% endblock %}
+
+{% block content %}
+<div class="row justify-content-center">
+    <div class="col-md-6">
+        <div class="card shadow border-danger">
+            <div class="card-header bg-danger text-white">
+                <h4 class="mb-0"><i class="fas fa-exclamation-triangle"></i> Confirmar Exclusão</h4>
+            </div>
+            <div class="card-body text-center">
+                <h5>Tem certeza que deseja excluir esta pergunta?</h5>
+                <p class="text-muted mt-3 fs-5">"{{ object.texto }}"</p>
+                <p class="text-danger small"><i class="fas fa-info-circle"></i> Atenção: Isto pode apagar as respostas associadas a relatórios anteriores se configurado em cascata.</p>
+                
+                <form method="post" class="mt-4">
+                    {% csrf_token %}
+                    <a href="{% url 'core:pergunta_list' %}" class="btn btn-outline-secondary me-2">Cancelar</a>
+                    <button type="submit" class="btn btn-danger">Confirmar Exclusão</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

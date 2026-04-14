@@ -1,0 +1,70 @@
+# Ambientes Virtuais (Python)
+.venv/
+venv/
+env/
+ENV/
+
+# Arquivos de Compilação / Cache do Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.pytest_cache/
+htmlcov/
+.coverage
+
+# IDEs e Editores
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+
+# Configurações Locais e Variáveis de Ambiente
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Arquivos de Log
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Banco de Dados Local
+*.sqlite3
+db.sqlite3
+new_db.sqlite3
+
+# Frontend & Mobile (Node, React, Expo)
+node_modules/
+dist/
+build/
+.expo/
+web-build/
+.next/
+out/
+coverage/
+
+# Backend (Django/Media)
+# Ignora uploads de usuários locais
+media/
+/backend/media/
+
+# Scripts Temporários e Arquivos de Rascunho
+step_ok.txt
+move_script.py
+replace_h2.py
+update_h1.py
+runner_log.bat
+runner.bat
+migrar.bat
+migrate.bat
+setup.bat
+start.bat
+start_all.bat
+start_server.bat
+
+

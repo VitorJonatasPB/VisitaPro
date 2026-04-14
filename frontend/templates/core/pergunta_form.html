@@ -1,0 +1,123 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{% if object %}Editar Pergunta{% else %}Nova Pergunta{% endif %}{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+  <h1 class="h4 fw-bold">{% if object %}Editar Pergunta{% else %}Nova Pergunta do Formulário{% endif %}</h1>
+  <a href="{% url 'core:pergunta_list' %}" class="btn btn-sm btn-outline-secondary">
+    <i class="fas fa-arrow-left me-1"></i> Voltar
+  </a>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-8">
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-4">
+        <form method="post" novalidate>
+          {% csrf_token %}
+
+          {% if form.non_field_errors %}
+          <div class="alert alert-danger border-0 border-start border-danger border-4">
+            {% for error in form.non_field_errors %}{{ error }}{% endfor %}
+          </div>
+          {% endif %}
+
+          <!-- Texto da Pergunta -->
+          <div class="mb-4">
+            <label for="{{ form.texto.id_for_label }}" class="form-label fw-bold">Texto da Pergunta</label>
+            {{ form.texto }}
+            <div class="form-text text-muted">{{ form.texto.help_text }}</div>
+            {% if form.texto.errors %}<div class="text-danger small mt-1">{{ form.texto.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Tipo de Resposta -->
+          <div class="mb-4">
+            <label for="{{ form.tipo_resposta.id_for_label }}" class="form-label fw-bold">Tipo de Resposta</label>
+            {{ form.tipo_resposta }}
+            {% if form.tipo_resposta.errors %}<div class="text-danger small mt-1">{{ form.tipo_resposta.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Bloco Múltipla Escolha -->
+          <div id="div_multipla_opcoes" class="mb-4" style="display:none;">
+            <label for="{{ form.opcoes_resposta.id_for_label }}" class="form-label fw-bold">Opções de Resposta</label>
+            {{ form.opcoes_resposta }}
+            <div class="form-text text-muted">Separe as opções por vírgula. Ex: <em>Ótimo, Bom, Regular, Ruim</em></div>
+            {% if form.opcoes_resposta.errors %}<div class="text-danger small mt-1">{{ form.opcoes_resposta.errors }}</div>{% endif %}
+          </div>
+
+          <!-- Bloco Lista Suspensa -->
+          <div id="div_lista_suspensa" class="mb-4" style="display:none;">
+            <div class="card border-0 p-3" style="background-color: #1a2035;">
+              <h6 class="fw-bold mb-3"><i class="fas fa-database text-primary me-2"></i>Configuração da Lista Suspensa</h6>
+
+              <div class="mb-3">
+                <label for="{{ form.fonte_dados.id_for_label }}" class="form-label fw-bold">Fonte dos Dados</label>
+                {{ form.fonte_dados }}
+                <div class="form-text text-muted">Escolha de onde virão as opções desta lista.</div>
+              </div>
+
+              <!-- Sub-bloco manual (só aparece quando fonte = manual) -->
+              <div id="div_lista_manual" style="display:none;">
+                <label class="form-label fw-bold">Opções Manuais</label>
+                {{ form.opcoes_resposta }}
+                <div class="form-text text-muted">Separe as opções por vírgula. Ex: <em>Opção A, Opção B, Opção C</em></div>
+              </div>
+
+              <!-- Preview da fonte dinâmica -->
+              <div id="div_lista_dinamica" style="display:none;">
+                <div class="alert alert-info border-0 py-2 mb-0 small">
+                  <i class="fas fa-info-circle me-1"></i>
+                  As opções serão carregadas automaticamente no momento do preenchimento do relatório.
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Ativa -->
+          <div class="mb-4 form-check form-switch">
+            {{ form.ativa }}
+            <label class="form-check-label fw-bold" for="{{ form.ativa.id_for_label }}">Pergunta Ativa (aparece no formulário)</label>
+          </div>
+
+          <div class="d-flex justify-content-end gap-2 mt-4">
+            <a href="{% url 'core:pergunta_list' %}" class="btn btn-outline-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-primary fw-bold px-4">
+              <i class="fas fa-save me-1"></i> Salvar
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener("DOMContentLoaded", function () {
+  const tipoSelect = document.getElementById("id_tipo_resposta");
+  const fonteSelect = document.getElementById("id_fonte_dados");
+  const divMultipla = document.getElementById("div_multipla_opcoes");
+  const divLista = document.getElementById("div_lista_suspensa");
+  const divManual = document.getElementById("div_lista_manual");
+  const divDinamica = document.getElementById("div_lista_dinamica");
+
+  function atualizarUI() {
+    const tipo = tipoSelect.value;
+    divMultipla.style.display = tipo === "multipla_escolha" ? "block" : "none";
+    divLista.style.display = tipo === "lista_suspensa" ? "block" : "none";
+    if (tipo === "lista_suspensa") atualizarFonte();
+  }
+
+  function atualizarFonte() {
+    const fonte = fonteSelect ? fonteSelect.value : "manual";
+    divManual.style.display = (!fonte || fonte === "manual") ? "block" : "none";
+    divDinamica.style.display = (!fonte || fonte === "manual") ? "none" : "block";
+  }
+
+  tipoSelect.addEventListener("change", atualizarUI);
+  if (fonteSelect) fonteSelect.addEventListener("change", atualizarFonte);
+
+  atualizarUI(); // Estado inicial
+});
+</script>
+{% endblock %}

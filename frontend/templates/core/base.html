@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{% block title %}Gestão Visitas Escolares{% endblock %}</title>
+    <!-- PWA Setup -->
+    <link rel="manifest" href="{% url 'core:manifest' %}">
+    <meta name="theme-color" content="#0d6efd">
+    <link rel="apple-touch-icon" href="https://cdn-icons-png.flaticon.com/512/2991/2991106.png">
+    <!-- Bootstrap CSS -->
+    <link
+      href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css"
+      rel="stylesheet"
+    />
+    <link
+      href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css"
+      rel="stylesheet"
+    />
+    <style>
+      @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+      body {
+        font-family: 'Inter', sans-serif;
+        background-color: #0B0F19;
+        color: #e2e8f0;
+      }
+      .sidebar {
+        min-height: 100vh;
+        background-color: #171C29 !important;
+        color: #e2e8f0;
+        border-right: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .sidebar a {
+        color: #9CA3AF;
+        text-decoration: none;
+        padding: 10px 15px;
+        display: block;
+        border-radius: 8px;
+        margin-bottom: 8px;
+        transition: all 0.2s ease;
+      }
+      .sidebar a:hover {
+        background-color: rgba(99, 102, 241, 0.1);
+        color: #ffffff;
+      }
+      .sidebar .active {
+        background-color: #6366F1;
+        color: #ffffff;
+        font-weight: 500;
+        box-shadow: 0 4px 12px rgba(99, 102, 241, 0.3);
+      }
+      .card {
+        background-color: #171C29 !important;
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        border-radius: 12px;
+        box-shadow: 0 4px 6px rgba(0, 0, 0, 0.2) !important;
+        color: #e2e8f0;
+      }
+      .card-header {
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+        background-color: transparent !important;
+      }
+      .card-footer {
+        border-top: 1px solid rgba(255, 255, 255, 0.05);
+        background-color: transparent !important;
+      }
+      .text-muted {
+        color: #9CA3AF !important;
+      }
+      .bg-white {
+        background-color: #171C29 !important;
+      }
+      .bg-light {
+        background-color: #1E2538 !important;
+      }
+      label, .form-label {
+        color: #e2e8f0;
+        font-weight: 600;
+        font-size: 0.85rem;
+        margin-bottom: 0.4rem;
+        display: block;
+      }
+      .form-select, .form-control {
+        background-color: #1E2538 !important;   /* Fundo ligeiramente mais claro que o card */
+        border: 1px solid rgba(255, 255, 255, 0.05) !important;
+        color: #ffffff !important;
+        border-radius: 6px;
+        padding: 0.5rem 1rem;
+      }
+      .form-control::placeholder {
+        color: #f8f9fa !important;
+        opacity: 0.8 !important;
+      }
+      /* Ajuste do Ícone do Calendário no Modo Escuro */
+      ::-webkit-calendar-picker-indicator {
+        filter: invert(1);
+        opacity: 0.6;
+        cursor: pointer;
+      }
+      .form-select:focus, .form-control:focus {
+        background-color: #1E2538 !important;
+        color: white !important;
+        border-color: #6366F1 !important;
+        box-shadow: 0 0 0 0.25rem rgba(99, 102, 241, 0.25);
+        outline: none;
+      }
+      .form-select:disabled, .form-control:disabled, .form-select[readonly], .form-control[readonly] {
+        background-color: #0B0F19 !important;
+        color: #ffffff !important;
+        opacity: 0.9;
+        border: 1px dashed rgba(255, 255, 255, 0.1) !important;
+      }
+      .form-text {
+        color: #9CA3AF !important;
+      }
+      
+      /* Padronização das Tabelas com mesmo fundo dos cards (#171C29) */
+      .table {
+        color: #e2e8f0;
+        border-color: rgba(255, 255, 255, 0.05);
+        background-color: #171C29 !important;
+        margin-bottom: 0;
+      }
+      .table > :not(caption) > * > * {
+        background-color: #171C29 !important;
+        color: #e2e8f0 !important;
+        border-bottom-color: rgba(255, 255, 255, 0.05);
+        padding: 12px 16px;
+      }
+      .table-light > th, .table-light > td, .table > thead {
+        background-color: #171C29 !important;
+        font-weight: 600;
+        color: #9CA3AF !important;
+        border-bottom: 1px solid rgba(255, 255, 255, 0.05);
+      }
+      .table-hover>tbody>tr:hover>* {
+        background-color: rgba(99, 102, 241, 0.05) !important;
+        color: #ffffff !important;
+      }
+      .list-group-item {
+        background-color: #171C29;
+        border-color: rgba(255, 255, 255, 0.05);
+        color: #e2e8f0;
+      }
+      .list-group-item:hover {
+        background-color: #1E2538;
+      }
+      
+      /* Botões custom */
+      .btn-primary {
+        background-color: #6366F1;
+        border-color: #6366F1;
+      }
+      .btn-primary:hover, .btn-primary:focus, .btn-primary:active {
+        background-color: #4F46E5 !important;
+        border-color: #4F46E5 !important;
+      }
+      .btn-outline-primary {
+        color: #6366F1;
+        border-color: #6366F1;
+      }
+      .btn-outline-primary:hover {
+        background-color: #6366F1;
+        color: white;
+      }
+      .btn-close-white {
+        filter: invert(1) grayscale(100%) brightness(200%);
+      }
+      .text-primary {
+        color: #6366F1 !important;
+      }
+      .bg-primary {
+        background-color: #6366F1 !important;
+      }
+      .bg-success {
+        background-color: #10B981 !important; /* Verde Esmeralda */
+      }
+      .bg-warning {
+        background-color: #F59E0B !important; /* Laranja Âmbar */
+        color: #1A1A1A !important;
+      }
+      .text-dark {
+        color: #e2e8f0 !important;
+      }
+      
+      th.sortable {
+        cursor: pointer;
+        position: relative;
+      }
+      th.sortable:hover {
+        background-color: rgba(255,255,255,0.05) !important;
+      }
+      th.sortable::after {
+        content: '\21C5';
+        font-size: 0.8em;
+        margin-left: 5px;
+        opacity: 0.3;
+      }
+      th.sortable.asc::after {
+        content: '\2191';
+        opacity: 1;
+      }
+      th.sortable.desc::after {
+        content: '\2193';
+        opacity: 1;
+      }
+    </style>
+    {% block extra_css %}{% endblock %}
+  </head>
+  <body>
+    {% if user.is_authenticated %}
+    <!-- Navbar Mobile (Visível apenas em telas menores) -->
+    <nav class="navbar navbar-dark d-md-none px-3" style="background-color: #171C29; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
+      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_consultor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><i class="fas fa-school text-primary me-2"></i> Visitas</a>
+      <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
+        <span class="navbar-toggler-icon"></span>
+      </button>
+    </nav>
+    {% endif %}
+
+    <div class="container-fluid">
+      <div class="row">
+        {% if user.is_authenticated %}
+        <!-- Menu Lateral -->
+        <nav class="col-md-2 col-lg-2 d-md-block sidebar collapse py-3 offcanvas-md offcanvas-start" tabindex="-1" id="sidebarMenu" data-bs-theme="dark">
+          <div class="offcanvas-header d-md-none">
+            <h5 class="offcanvas-title text-white"><i class="fas fa-school text-primary me-2"></i> Menu</h5>
+            <button type="button" class="btn-close btn-close-white" data-bs-dismiss="offcanvas" data-bs-target="#sidebarMenu" aria-label="Close"></button>
+          </div>
+          <div class="offcanvas-body flex-column">
+            <div class="text-center mb-4 d-none d-md-block">
+              <i class="fas fa-school fa-3x mb-2 text-primary"></i>
+              <h5>Visitas Escolares</h5>
+              <small>{{ user.get_full_name|default:user.username }}</small>
+            </div>
+            
+            <div class="text-center mb-4 d-md-none text-white">
+              <h6>{{ user.get_full_name|default:user.username }}</h6>
+              <hr class="border-secondary">
+            </div>
+
+            <div class="w-100">
+              {% if user.is_admin or user.is_superuser %}
+              <a href="{% url 'core:dashboard_admin' %}"
+                class="{% if request.resolver_match.url_name == 'dashboard_admin' %}active{% endif %}"><i class="fas fa-chart-line me-2"></i> Dashboard</a
+              >
+              <a href="{% url 'core:escola_list' %}"
+                 class="{% if 'escola' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Escolas</a>
+              <a href="{% url 'core:professor_list' %}"
+                 class="{% if 'professor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Professores</a>
+              <a href="{% url 'core:consultor_list' %}"
+                 class="{% if 'consultor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-users me-2"></i> Consultores</a>
+              <a href="{% url 'core:regiao_list' %}"
+                 class="{% if 'regiao' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-map-marked-alt me-2"></i> Regiões</a>
+              
+              <hr class="border-secondary my-2">
+              <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
+              <a href="{% url 'core:agenda' %}"
+                 class="{% if 'agenda' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-calendar-alt me-2"></i> Agenda</a>
+              <a href="{% url 'core:visita_list' %}"
+                 class="{% if 'visita' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-list-alt me-2"></i> Visitas</a>
+              <a href="{% url 'core:pergunta_list' %}"
+                 class="{% if 'pergunta' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-question-circle me-2"></i> Perguntas do Formulário</a>
+              
+              <hr class="border-secondary my-2">
+              <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Controle de Acesso</small>
+              <a href="{% url 'core:admin_user_list' %}" class="{% if 'admin_user' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-user-lock me-2"></i> Usuários Admin</a>
+              <a href="{% url 'core:group_list' %}" class="{% if 'group' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-shield-alt me-2"></i> Permissões e Grupos</a>
+              {% else %}
+              <a href="{% url 'core:dashboard_consultor' %}"
+                 class="{% if request.resolver_match.url_name == 'dashboard_consultor' %}active{% endif %}"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
+              <a href="{% url 'core:escola_list' %}"
+                 class="{% if 'escola' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Minhas Escolas</a>
+              <a href="{% url 'core:professor_list' %}"
+                 class="{% if 'professor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Professores</a>
+              
+              <hr class="border-secondary my-2">
+              <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
+              <a href="{% url 'core:agenda' %}"
+                 class="{% if 'agenda' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-calendar-check me-2"></i> Minha Agenda</a>
+              {% endif %}
+
+              <hr style="border-color: #7f8c8d" />
+              <a href="{% url 'core:logout' %}" class="text-danger"
+                ><i class="fas fa-sign-out-alt me-2"></i> Sair</a
+              >
+            </div>
+          </div>
+        </nav>
+        {% endif %}
+
+        <!-- Conteúdo Principal -->
+        <main class="col-md-10 ms-sm-auto col-lg-10 px-md-4 py-4 main-bg">
+          {% if messages %} {% for message in messages %}
+          <div
+            class="alert alert-{{ message.tags }} alert-dismissible fade show"
+            role="alert"
+          >
+            {{ message }}
+            <button
+              type="button"
+              class="btn-close"
+              data-bs-dismiss="alert"
+              aria-label="Close"
+            ></button>
+          </div>
+          {% endfor %} {% endif %} {% block content %} {% endblock %}
+        </main>
+      </div>
+    </div>
+
+    <!-- Bootstrap Bundle with Popper -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script>
+      if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+          navigator.serviceWorker.register('{% url "core:serviceworker" %}').then(registration => {
+            console.log('SW registered: ', registration);
+          }).catch(registrationError => {
+            console.log('SW registration failed: ', registrationError);
+          });
+        });
+      }
+
+      document.addEventListener('DOMContentLoaded', function() {
+          // Table sorting logic
+          const getCellValue = (tr, idx) => tr.children[idx].innerText || tr.children[idx].textContent;
+
+          const comparer = (idx, asc) => (a, b) => ((v1, v2) => 
+              v1 !== '' && v2 !== '' && !isNaN(v1) && !isNaN(v2) ? v1 - v2 : v1.toString().localeCompare(v2)
+          )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
+
+          document.querySelectorAll('th').forEach(th => {
+              // Ignore columns named 'Ações' or that just contain icons/buttons
+              if (th.innerText.trim().toLowerCase() !== 'ações' && th.innerText.trim() !== '') {
+                  th.classList.add('sortable');
+                  th.addEventListener('click', function() {
+                      const table = th.closest('table');
+                      const tbody = table.querySelector('tbody');
+                      
+                      // Identify current direction
+                      const isAsc = !this.classList.contains('asc');
+                      
+                      // Remove direction classes from all headers in this table
+                      table.querySelectorAll('th').forEach(t => t.classList.remove('asc', 'desc'));
+                      
+                      // Set direction class to current header
+                      this.classList.add(isAsc ? 'asc' : 'desc');
+                      
+                      Array.from(tbody.querySelectorAll('tr'))
+                          .sort(comparer(Array.from(th.parentNode.children).indexOf(th), isAsc))
+                          .forEach(tr => tbody.appendChild(tr));
+                  });
+              }
+          });
+      });
+    </script>
+    {% block extra_js %}{% endblock %}
+  </body>
+</html>

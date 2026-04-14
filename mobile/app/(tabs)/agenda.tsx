@@ -1,0 +1,774 @@
+import React, { useState, useCallback } from 'react';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Pressable, Alert, TextInput, Linking } from 'react-native';
+import { useRouter, useFocusEffect } from 'expo-router';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { carregarAgendaLocal } from '@/services/storage';
+import { sincronizarDoServidor } from '@/services/sync';
+import { VisitaAPI, clearTokens, fetchPerfil, UserAPI, API_BASE_URL, fetchAgenda, fetchCalendarioVisitas, fetchVisitasMes } from '@/services/api';
+
+LocaleConfig.locales['pt-br'] = {
+  monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+  monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
+  dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+  dayNamesShort: ['D','S','T','Q','Q','S','S'],
+  today: 'Hoje'
+};
+LocaleConfig.defaultLocale = 'pt-br';
+
+export default function AgendaScreen() {
+  const router = useRouter();
+  const [visitas, setVisitas] = useState<VisitaAPI[]>([]);
+  const [user, setUser] = useState<UserAPI | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [sincronizando, setSincronizando] = useState(false);
+  const [offline, setOffline] = useState(false);
+  const [menuVisible, setMenuVisible] = useState(false);
+
+  // Pesquisa e Calendário
+  const [showSearch, setShowSearch] = useState(false);
+  const [searchText, setSearchText] = useState('');
+  const [showCalendar, setShowCalendar] = useState(false);
+  const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
+  const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
+  
+  // Filtro de Dashboard
+  const [filterMode, setFilterMode] = useState<'diario' | 'mensal'>('diario');
+
+  const hoje = new Date().toLocaleDateString('pt-BR', {
+    weekday: 'long',
+    day: 'numeric',
+    month: 'long',
+  });
+
+  const hojeISO = new Date().toISOString().split('T')[0];
+  const isHoje = selectedDate === hojeISO;
+
+  const carregarDados = useCallback(async (forcarSinc = false) => {
+    if (forcarSinc) setSincronizando(true);
+    const conectado = await sincronizarDoServidor();
+    setOffline(!conectado);
+    try {
+      if (conectado) {
+        try {
+          const dias = await fetchCalendarioVisitas();
+          const marcas: Record<string, any> = {};
+          dias.forEach(d => { marcas[d] = { marked: true, dotColor: '#3B82F6' }; });
+          setMarkedDates(marcas);
+          
+          // Pre-fetch do mês atual para preencher nosso Cache Genérico offline
+          const dataAtual = new Date(selectedDate + 'T12:00:00');
+          await fetchVisitasMes(dataAtual.getFullYear(), dataAtual.getMonth() + 1);
+        } catch (_) {}
+        
+        let agendaRemota = [];
+        if (filterMode === 'mensal') {
+          const dt = new Date(selectedDate + 'T12:00:00');
+          agendaRemota = await fetchVisitasMes(dt.getFullYear(), dt.getMonth() + 1);
+        } else {
+          agendaRemota = await fetchAgenda(selectedDate);
+        }
+        setVisitas(agendaRemota);
+      } else {
+        // Se bateu sem conexão, tentaremos puxar do cache mensal que preenchemos via fetchVisitasMes
+        const dt = new Date(selectedDate + 'T12:00:00');
+        const monthData = await fetchVisitasMes(dt.getFullYear(), dt.getMonth() + 1);
+        if (filterMode === 'diario') {
+          setVisitas(monthData.filter(v => v.data === selectedDate));
+        } else {
+          setVisitas(monthData);
+        }
+      }
+    } catch (e) {
+       // Em caso de erro extremo (nem cache mensal tem), tenta a base persistida antiga
+       try {
+         const agendaLocal = await carregarAgendaLocal();
+         if (filterMode === 'diario') {
+           setVisitas(agendaLocal.filter(v => v.data === selectedDate));
+         } else {
+           setVisitas(agendaLocal);
+         }
+       } catch (e2) {
+         setVisitas([]);
+       }
+    } finally {
+      setLoading(false);
+      setSincronizando(false);
+    }
+  }, [selectedDate, filterMode]);
+
+  const carregarUser = useCallback(async () => {
+    try {
+      const data = await fetchPerfil();
+      setUser(data);
+    } catch (e) {
+      console.log('Erro ao carregar perfil', e);
+    }
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      carregarDados();
+      carregarUser();
+    }, [carregarDados, carregarUser])
+  );
+
+  const onRefresh = useCallback(async () => {
+    carregarDados(true);
+  }, [carregarDados]);
+
+  const handleLogout = async () => {
+    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
+      { text: 'Cancelar', style: 'cancel' },
+      {
+        text: 'Sair',
+        style: 'destructive',
+        onPress: async () => {
+          setMenuVisible(false);
+          await clearTokens();
+          router.replace('/');
+        }
+      }
+    ]);
+  };
+
+  const realizadas = visitas.filter((v) => v.status === 'realizada').length;
+  const emExecucao = visitas.filter((v) => v.checkin_time && v.status !== 'realizada').length;
+  const pendentes = visitas.filter((v) => !v.checkin_time && v.status !== 'realizada').length;
+
+  const visitasFiltradas = visitas.filter(v =>
+    searchText.trim() === '' ||
+    v.escola_nome.toLowerCase().includes(searchText.toLowerCase())
+  );
+
+  const abrirNavegacao = (visita: VisitaAPI) => {
+    const lat = parseFloat(visita.escola_lat || (visita.escola ? visita.escola.latitude : '') || '');
+    const lng = parseFloat(visita.escola_lng || (visita.escola ? visita.escola.longitude : '') || '');
+
+    if (isNaN(lat) || isNaN(lng)) {
+      Alert.alert(
+        'Sem coordenadas',
+        `A escola "${visita.escola_nome}" ainda não tem localização cadastrada.\n\nPeça ao administrador para detectar as coordenadas no painel web.`
+      );
+      return;
+    }
+
+    Alert.alert(
+      '🧭 Navegar até a Escola',
+      visita.escola_nome,
+      [
+        {
+          text: '🟦 Waze',
+          onPress: () =>
+            Linking.openURL(`waze://?ll=${lat},${lng}&navigate=yes`).catch(() =>
+              Linking.openURL(`https://waze.com/ul?ll=${lat},${lng}&navigate=yes`)
+            ),
+        },
+        {
+          text: '🗺️ Google Maps',
+          onPress: () =>
+            Linking.openURL(`google.navigation:q=${lat},${lng}`).catch(() =>
+              Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`)
+            ),
+        },
+        { text: 'Cancelar', style: 'cancel' },
+      ]
+    );
+  };
+
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+          <Text style={{ color: '#94A3B8', marginTop: 12 }}>Carregando sua agenda...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <ScrollView
+        contentContainerStyle={styles.scrollContent}
+        refreshControl={
+          <RefreshControl
+            refreshing={sincronizando}
+            onRefresh={onRefresh}
+            tintColor="#3B82F6"
+          />
+        }
+      >
+        {/* Banner Offline */}
+        {offline && (
+          <View style={styles.offlineBanner}>
+            <IconSymbol name="wifi.slash" size={14} color="#FCD34D" />
+            <Text style={styles.offlineText}>Modo Offline – dados do último sincronismo</Text>
+          </View>
+        )}
+
+        {/* Header */}
+        <View style={styles.header}>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.greeting}>Olá, {user?.first_name || user?.username || 'Consultor'}!</Text>
+            <Text style={styles.dateText}>{hoje}</Text>
+          </View>
+          <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
+            <Image
+              source={{ uri: user?.foto ? (user.foto.startsWith('http') ? user.foto : `${API_BASE_URL}${user.foto}`) : `https://ui-avatars.com/api/?name=${user?.first_name || 'C'}&background=3B82F6&color=fff` }}
+              style={styles.avatar}
+            />
+          </TouchableOpacity>
+        </View>
+
+
+
+        {/* Toggle Mensal / Diário */}
+        <View style={styles.toggleContainer}>
+          <TouchableOpacity
+            style={[styles.toggleBtn, filterMode === 'mensal' && styles.toggleBtnActive]}
+            onPress={() => setFilterMode('mensal')}
+          >
+            <Text style={[styles.toggleText, filterMode === 'mensal' && styles.toggleTextActive]}>MENSAL</Text>
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={[styles.toggleBtn, filterMode === 'diario' && styles.toggleBtnActive]}
+            onPress={() => setFilterMode('diario')}
+          >
+            <Text style={[styles.toggleText, filterMode === 'diario' && styles.toggleTextActive]}>DIÁRIO</Text>
+          </TouchableOpacity>
+        </View>
+
+        {/* Cards de Resumo */}
+        <View style={styles.statsContainer}>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(59, 130, 246, 0.15)' }]}>
+            <Text style={[styles.statValue, { color: '#60A5FA' }]}>{visitas.length}</Text>
+            <Text style={styles.statLabel}>Total</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(16, 185, 129, 0.15)' }]}>
+            <Text style={[styles.statValue, { color: '#34D399' }]}>{realizadas}</Text>
+            <Text style={styles.statLabel}>Feitas</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(56, 189, 248, 0.15)' }]}>
+            <Text style={[styles.statValue, { color: '#38BDF8' }]}>{emExecucao}</Text>
+            <Text style={styles.statLabel}>Em Exec.</Text>
+          </View>
+          <View style={[styles.statCard, { backgroundColor: 'rgba(245, 158, 11, 0.15)' }]}>
+            <Text style={[styles.statValue, { color: '#FBBF24' }]}>{pendentes}</Text>
+            <Text style={styles.statLabel}>Pendentes</Text>
+          </View>
+        </View>
+
+        {/* Header da lista de agenda */}
+        <View style={styles.listHeader}>
+          <Text style={styles.listHeaderTitle}>
+            {filterMode === 'mensal' ? `Mês: ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}` : (isHoje ? 'Sua Agenda Hoje' : `Agenda de ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`)}
+          </Text>
+          <View style={styles.listHeaderActions}>
+            <TouchableOpacity
+              style={styles.toolbarBtn}
+              onPress={() => router.push('/novo-agendamento')}
+            >
+              <IconSymbol name="plus" size={18} color="#FFF" />
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              style={styles.toolbarBtn}
+              onPress={() => router.push('/pesquisa')}
+            >
+              <IconSymbol name="magnifyingglass" size={18} color="#94A3B8" />
+            </TouchableOpacity>
+            <TouchableOpacity
+              style={[styles.toolbarBtn, showCalendar && styles.toolbarBtnActive]}
+              onPress={() => setShowCalendar(true)}
+            >
+              <IconSymbol name="calendar" size={18} color={!isHoje ? '#3B82F6' : '#94A3B8'} />
+              {!isHoje && <View style={styles.calendarDot} />}
+            </TouchableOpacity>
+          </View>
+        </View>
+
+        {visitasFiltradas.length === 0 && (
+          <View style={{ alignItems: 'center', padding: 32 }}>
+            <Text style={{ color: '#94A3B8', textAlign: 'center' }}>
+              {searchText ? `Nenhuma escola encontrada para "${searchText}"` : 'Nenhuma visita encontrada para esta data.'}
+            </Text>
+          </View>
+        )}
+
+        {visitasFiltradas.map((visita) => (
+          <TouchableOpacity
+            key={visita.id}
+            onPress={() => router.push(`/visita/${visita.id}` as any)}
+            style={[
+              styles.visitaCard,
+              visita.status === 'realizada' && styles.visitaCardConcluida,
+              visita.checkin_time && visita.status !== 'realizada' && styles.visitaCardExecucao
+            ]}
+          >
+            <View style={styles.visitaInfo}>
+              <Text style={styles.visitaTime}>{visita.horario.substring(0, 5)}</Text>
+              <View style={{ flex: 1, marginRight: 8 }}>
+                <Text style={styles.visitaSchool} numberOfLines={2}>
+                  {visita.escola_nome}
+                </Text>
+                <Text style={[styles.visitaStatusText, visita.checkin_time && visita.status !== 'realizada' && { color: '#38BDF8' }]}>
+                  {visita.status === 'realizada'
+                    ? 'Finalizada'
+                    : visita.checkin_time
+                      ? 'Em Execução'
+                      : 'Pendente'}
+                </Text>
+              </View>
+
+              {/* Botão de Navegação */}
+              <TouchableOpacity
+                style={[
+                  styles.navButton,
+                  !(visita.escola_lat || (visita.escola && visita.escola.latitude)) && styles.navButtonDisabled,
+                  { marginRight: 8 }
+                ]}
+                onPress={(e) => { e.stopPropagation(); abrirNavegacao(visita); }}
+                activeOpacity={0.7}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              >
+                <Text style={styles.navButtonIcon}>🚗</Text>
+              </TouchableOpacity>
+              
+            </View>
+            <View style={[
+              styles.statusCircle,
+              visita.status === 'realizada'
+                ? styles.statusCircleGreen
+                : visita.checkin_time
+                  ? styles.statusCircleBlue
+                  : styles.statusCircleYellow
+            ]}>
+              {visita.status === 'realizada' ? (
+                <IconSymbol name="checkmark" size={14} color="#059669" />
+              ) : visita.checkin_time ? (
+                <IconSymbol name="play.fill" size={14} color="#0284C7" />
+              ) : null}
+            </View>
+          </TouchableOpacity>
+        ))}
+
+
+        {/* Modal Calendário */}
+        <Modal
+          visible={showCalendar}
+          transparent
+          animationType="slide"
+          onRequestClose={() => setShowCalendar(false)}
+        >
+          <Pressable style={styles.calendarOverlay} onPress={() => setShowCalendar(false)}>
+            <Pressable style={styles.calendarModal} onPress={e => e.stopPropagation()}>
+              <View style={styles.calendarHeaderRow}>
+                <Text style={styles.calendarTitle}>📅 Selecionar Data</Text>
+                <TouchableOpacity onPress={() => setShowCalendar(false)}>
+                  <IconSymbol name="xmark.circle.fill" size={24} color="#475569" />
+                </TouchableOpacity>
+              </View>
+              <Calendar
+                current={selectedDate}
+                onDayPress={(day: any) => {
+                  setSelectedDate(day.dateString);
+                  setShowCalendar(false);
+                }}
+                markedDates={{
+                  ...markedDates,
+                  [selectedDate]: { selected: true, selectedColor: '#3B82F6' }
+                }}
+                theme={{
+                  backgroundColor: '#1E293B',
+                  calendarBackground: '#1E293B',
+                  textSectionTitleColor: '#64748B',
+                  selectedDayBackgroundColor: '#3B82F6',
+                  selectedDayTextColor: '#FFF',
+                  todayTextColor: '#3B82F6',
+                  dayTextColor: '#F8FAFC',
+                  textDisabledColor: '#334155',
+                  arrowColor: '#94A3B8',
+                  monthTextColor: '#F8FAFC',
+                  dotColor: '#3B82F6',
+                  selectedDotColor: '#FFF',
+                }}
+              />
+              {!isHoje && (
+                <TouchableOpacity
+                  style={styles.voltarHojeBtn}
+                  onPress={() => { setSelectedDate(hojeISO); setShowCalendar(false); }}
+                >
+                  <Text style={styles.voltarHojeText}>Voltar para Hoje</Text>
+                </TouchableOpacity>
+              )}
+            </Pressable>
+          </Pressable>
+        </Modal>
+
+        {/* Menu do Avatar (Modal) */}
+        <Modal
+          visible={menuVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setMenuVisible(false)}
+        >
+          <Pressable style={styles.modalOverlay} onPress={() => setMenuVisible(false)}>
+            <View style={styles.menuContainer}>
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { setMenuVisible(false); router.push('/perfil'); }}
+              >
+                <IconSymbol name="person.fill" size={20} color="#E2E8F0" />
+                <Text style={styles.menuText}>Meu Perfil</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <TouchableOpacity
+                style={styles.menuItem}
+                onPress={() => { setMenuVisible(false); router.push('/configuracoes'); }}
+              >
+                <IconSymbol name="gearshape.fill" size={20} color="#E2E8F0" />
+                <Text style={styles.menuText}>Configurações</Text>
+              </TouchableOpacity>
+
+              <View style={styles.menuDivider} />
+
+              <TouchableOpacity style={styles.menuItem} onPress={handleLogout}>
+                <IconSymbol name="rectangle.portrait.and.arrow.right" size={20} color="#F43F5E" />
+                <Text style={[styles.menuText, { color: '#F43F5E' }]}>Sair</Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Modal>
+
+      </ScrollView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    backgroundColor: '#0F172A',
+  },
+  scrollContent: {
+    padding: 24,
+    paddingBottom: 100,
+  },
+  offlineBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+    backgroundColor: 'rgba(251, 191, 36, 0.15)',
+    borderWidth: 1,
+    borderColor: 'rgba(251, 191, 36, 0.3)',
+    borderRadius: 12,
+    paddingHorizontal: 12,
+    paddingVertical: 8,
+    marginBottom: 20,
+  },
+  offlineText: {
+    color: '#FCD34D',
+    fontSize: 13,
+    flex: 1,
+  },
+  header: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 32,
+  },
+  greeting: {
+    fontSize: 28,
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+  },
+  dateText: {
+    fontSize: 14,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  avatarContainer: {
+    padding: 2,
+    backgroundColor: '#1E293B',
+    borderRadius: 99,
+  },
+  avatar: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+  },
+  statsContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    marginBottom: 32,
+    gap: 8,
+  },
+  statCard: {
+    flex: 1,
+    paddingVertical: 16,
+    borderRadius: 16,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  statValue: {
+    fontSize: 22,
+    fontWeight: 'bold',
+  },
+  statLabel: {
+    fontSize: 11,
+    color: '#94A3B8',
+    marginTop: 4,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+    marginBottom: 16,
+  },
+  visitaCard: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    backgroundColor: 'rgba(30, 41, 59, 0.8)',
+    padding: 16,
+    borderRadius: 16,
+    marginBottom: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  visitaCardConcluida: {
+    opacity: 0.6,
+  },
+  visitaCardExecucao: {
+    borderColor: 'rgba(56, 189, 248, 0.4)',
+    borderLeftWidth: 4,
+  },
+  visitaInfo: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 16,
+    flex: 1,
+  },
+  visitaTime: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#3B82F6',
+  },
+  visitaSchool: {
+    fontSize: 16,
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+    marginBottom: 4,
+  },
+  visitaStatusText: {
+    fontSize: 13,
+    color: '#94A3B8',
+  },
+  navButton: {
+    backgroundColor: '#1d4ed8', borderRadius: 10,
+    paddingHorizontal: 10, paddingVertical: 6,
+  },
+  navButtonDisabled: { backgroundColor: '#334155' },
+  navButtonIcon: { fontSize: 16 },
+  statusCircle: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  statusCircleGreen: {
+    backgroundColor: '#D1FAE5',
+  },
+  statusCircleBlue: {
+    backgroundColor: '#E0F2FE',
+    borderWidth: 2,
+    borderColor: '#38BDF8',
+  },
+  statusCircleYellow: {
+    backgroundColor: '#FEF3C7',
+    borderWidth: 2,
+    borderColor: '#F59E0B',
+  },
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    justifyContent: 'flex-start',
+    alignItems: 'flex-end',
+  },
+  menuContainer: {
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingVertical: 8,
+    width: 200,
+    marginTop: 70,
+    marginRight: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.1)',
+    elevation: 10,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.4,
+    shadowRadius: 10,
+  },
+  menuItem: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    gap: 12,
+  },
+  menuText: {
+    color: '#E2E8F0',
+    fontSize: 16,
+    fontWeight: '500',
+  },
+  menuDivider: {
+    height: 1,
+    backgroundColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  // Header da lista com ferramentas inline
+  listHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 16,
+  },
+  listHeaderTitle: {
+    fontSize: 20,
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+    flex: 1,
+  },
+  listHeaderActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  dateChipSmall: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.3)',
+  },
+  toolbarBtn: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    backgroundColor: '#1E293B',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    position: 'relative',
+  },
+  toolbarBtnActive: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  calendarDot: {
+    position: 'absolute',
+    top: 4,
+    right: 4,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: '#F43F5E',
+  },
+  searchContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+    backgroundColor: '#1E293B',
+    borderRadius: 12,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    marginBottom: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+  },
+  toggleContainer: {
+    flexDirection: 'row',
+    backgroundColor: '#1E293B',
+    borderRadius: 8,
+    padding: 4,
+    marginBottom: 20,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.05)',
+  },
+  toggleBtn: {
+    flex: 1,
+    paddingVertical: 10,
+    alignItems: 'center',
+    borderRadius: 6,
+  },
+  toggleBtnActive: {
+    backgroundColor: '#3B82F6',
+  },
+  toggleText: {
+    color: '#94A3B8',
+    fontSize: 13,
+    fontWeight: 'bold',
+  },
+  toggleTextActive: {
+    color: '#FFF',
+  },
+  searchInput: {
+    flex: 1,
+    color: '#F8FAFC',
+    fontSize: 15,
+    padding: 0,
+  },
+  // Modal Calendário
+  calendarOverlay: {
+    flex: 1,
+    backgroundColor: 'rgba(0,0,0,0.6)',
+    justifyContent: 'flex-end',
+  },
+  calendarModal: {
+    backgroundColor: '#1E293B',
+    borderTopLeftRadius: 20,
+    borderTopRightRadius: 20,
+    paddingBottom: 30,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.08)',
+  },
+  calendarHeaderRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 20,
+    paddingVertical: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255,255,255,0.06)',
+  },
+  calendarTitle: {
+    fontSize: 17,
+    fontWeight: 'bold',
+    color: '#F8FAFC',
+  },
+  voltarHojeBtn: {
+    marginHorizontal: 20,
+    marginTop: 12,
+    backgroundColor: 'rgba(59,130,246,0.15)',
+    borderRadius: 12,
+    padding: 14,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: 'rgba(59,130,246,0.3)',
+  },
+  voltarHojeText: {
+    color: '#60A5FA',
+    fontWeight: '600',
+    fontSize: 15,
+  },
+});

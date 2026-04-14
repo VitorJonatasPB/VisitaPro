@@ -1,0 +1,264 @@
+import React, { useState, useEffect } from 'react';
+import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { useRouter, Stack } from 'expo-router';
+import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { IconSymbol } from '@/components/ui/icon-symbol';
+import { EscolaAPI, fetchEscolasGlobais, criarAgendamento } from '@/services/api';
+
+export default function NovoAgendamentoScreen() {
+  const router = useRouter();
+  const [selectedDate, setSelectedDate] = useState<string>('');
+  const [escola, setEscola] = useState('');
+  const [escolaId, setEscolaId] = useState<number | null>(null);
+  const [horario, setHorario] = useState<string>('');
+  const [loading, setLoading] = useState(false);
+  const [escolasGlobais, setEscolasGlobais] = useState<EscolaAPI[]>([]);
+  const [filteredEscolas, setFilteredEscolas] = useState<EscolaAPI[]>([]);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+
+  const hoje = new Date();
+  
+  useEffect(() => {
+    fetchEscolasGlobais().then(setEscolasGlobais).catch(console.log);
+  }, []);
+
+  const handleEscolaChange = (text: string) => {
+    setEscola(text);
+    setEscolaId(null);
+    if (text.length > 1) {
+      const filtered = escolasGlobais.filter(e => e.nome.toLowerCase().includes(text.toLowerCase()));
+      setFilteredEscolas(filtered.slice(0, 6)); // Mostra até 6 opções
+      setShowSuggestions(true);
+    } else {
+      setShowSuggestions(false);
+    }
+  };
+
+  const handleSelectEscola = (id: number, nome: string) => {
+    setEscola(nome);
+    setEscolaId(id);
+    setShowSuggestions(false);
+  };
+  
+  const handleDayPress = (day: any) => {
+    const selected = new Date(day.timestamp + 12 * 3600 * 1000); // adjust time zone shift
+    
+    const atualAno = hoje.getFullYear();
+    const atualMes = hoje.getMonth();
+    
+    const selAno = selected.getFullYear();
+    const selMes = selected.getMonth();
+
+    // Regra: Somente mês seguinte
+    const isProximoMes = (selAno === atualAno && selMes === atualMes + 1) || 
+                         (atualMes === 11 && selAno === atualAno + 1 && selMes === 0);
+
+    if (!isProximoMes) {
+      Alert.alert(
+        'Data Inválida', 
+        'Só é permitido realizar novos agendamentos para escolas no mês seguinte.'
+      );
+      setSelectedDate('');
+      return;
+    }
+
+    setSelectedDate(day.dateString);
+  };
+
+  const handleCreate = async () => {
+    if (!selectedDate) {
+      Alert.alert('Atenção', 'Selecione a data no calendário antes de prosseguir.');
+      return;
+    }
+    if (!escolaId) {
+      Alert.alert('Atenção', 'Selecione uma Escola válida na lista de sugestões.');
+      return;
+    }
+    if (!horario || horario.length < 5) {
+      Alert.alert('Atenção', 'Digite um horário válido (HH:MM).');
+      return;
+    }
+    
+    setLoading(true);
+    try {
+      await criarAgendamento(escolaId, selectedDate, horario);
+      Alert.alert('Sucesso!', 'Agendamento criado com sucesso.', [
+        { text: 'OK', onPress: () => router.back() }
+      ]);
+    } catch (err: any) {
+      Alert.alert('Erro', err.message || 'Falha ao criar agendamento');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <SafeAreaView style={styles.container} edges={['top']}>
+      <Stack.Screen options={{ headerShown: false }} />
+      <KeyboardAvoidingView 
+        style={{ flex: 1 }} 
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+      >
+      <View style={styles.header}>
+        <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
+          <IconSymbol name="chevron.left" size={20} color="#94A3B8" />
+        </TouchableOpacity>
+        <Text style={styles.headerTitle}>Novo Agendamento</Text>
+      </View>
+
+      <ScrollView 
+        contentContainerStyle={styles.content}
+        automaticallyAdjustKeyboardInsets={true}
+        keyboardShouldPersistTaps="handled"
+      >
+        <Text style={styles.infoText}>
+          Selecione a data desejada. Lembre-se, o agendamento só está disponível para o mês seguinte.
+        </Text>
+
+        <View style={styles.calendarWrapper}>
+          <Calendar
+            onDayPress={handleDayPress}
+            markedDates={{
+              [selectedDate]: { selected: true, selectedColor: '#3B82F6' }
+            }}
+            theme={{
+              calendarBackground: '#1E293B',
+              textSectionTitleColor: '#94A3B8',
+              selectedDayBackgroundColor: '#3B82F6',
+              selectedDayTextColor: '#ffffff',
+              todayTextColor: '#3B82F6',
+              dayTextColor: '#F8FAFC',
+              textDisabledColor: '#475569',
+              monthTextColor: '#F8FAFC',
+              arrowColor: '#3B82F6',
+            }}
+          />
+        </View>
+
+        {selectedDate ? (
+          <View style={styles.selectedBox}>
+            <IconSymbol name="calendar.badge.clock" size={20} color="#34D399" />
+            <Text style={styles.selectedText}>
+              Data confirmada: {selectedDate.split('-').reverse().join('/')}
+            </Text>
+          </View>
+        ) : null}
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Escola</Text>
+          <View style={{ position: 'relative', zIndex: 10 }}>
+            <TextInput
+              style={styles.input}
+              placeholder="Nome ou código da escola"
+              placeholderTextColor="#64748B"
+              value={escola}
+              onChangeText={handleEscolaChange}
+              onFocus={() => { if (escola.length > 1) setShowSuggestions(true); }}
+              onBlur={() => { setTimeout(() => setShowSuggestions(false), 200); }}
+            />
+            {showSuggestions && filteredEscolas.length > 0 && (
+              <View style={styles.suggestionsContainer}>
+                {filteredEscolas.map(e => (
+                  <TouchableOpacity 
+                    key={e.id} 
+                    style={styles.suggestionItem}
+                    onPress={() => handleSelectEscola(e.id, e.nome)}
+                  >
+                    <Text style={styles.suggestionText} numberOfLines={1}>{e.nome}</Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            )}
+          </View>
+        </View>
+
+        <View style={styles.inputContainer}>
+          <Text style={styles.label}>Horário</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="00:00"
+            placeholderTextColor="#64748B"
+            keyboardType="numeric"
+            maxLength={5}
+            value={horario}
+            onChangeText={(text) => {
+              let v = text.replace(/\D/g, '');
+              if (v.length >= 3) {
+                v = `${v.substring(0, 2)}:${v.substring(2, 4)}`;
+              }
+              setHorario(v);
+            }}
+          />
+        </View>
+
+        <TouchableOpacity 
+          style={[styles.submitBtn, loading && { opacity: 0.7 }]} 
+          onPress={handleCreate}
+          disabled={loading}
+        >
+          {loading ? (
+            <ActivityIndicator color="#FFF" />
+          ) : (
+            <Text style={styles.submitBtnText}>Confirmar Agendamento</Text>
+          )}
+        </TouchableOpacity>
+      </ScrollView>
+      </KeyboardAvoidingView>
+    </SafeAreaView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: '#0F172A' },
+  header: { flexDirection: 'row', alignItems: 'center', padding: 20, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  backBtn: { paddingRight: 16 },
+  headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#F8FAFC' },
+  content: { padding: 20, paddingBottom: 100 },
+  infoText: { color: '#94A3B8', fontSize: 14, lineHeight: 22, marginBottom: 20 },
+  calendarWrapper: {
+    borderRadius: 16, overflow: 'hidden', borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)', marginBottom: 20, backgroundColor: '#1E293B'
+  },
+  selectedBox: {
+    flexDirection: 'row', alignItems: 'center', gap: 10,
+    backgroundColor: 'rgba(16,185,129,0.1)', paddingVertical: 14, paddingHorizontal: 16,
+    borderRadius: 12, marginBottom: 20, borderWidth: 1, borderColor: 'rgba(16,185,129,0.2)'
+  },
+  selectedText: { color: '#34D399', fontWeight: 'bold', fontSize: 15 },
+  inputContainer: { marginBottom: 24 },
+  label: { color: '#E2E8F0', fontSize: 14, fontWeight: '600', marginBottom: 8, marginLeft: 4 },
+  input: {
+    backgroundColor: '#1E293B', color: '#F8FAFC', borderRadius: 12,
+    paddingHorizontal: 16, paddingVertical: 14, fontSize: 16,
+    borderWidth: 1, borderColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  suggestionsContainer: {
+    position: 'absolute',
+    bottom: 58,
+    left: 0,
+    right: 0,
+    backgroundColor: '#0F172A',
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(59, 130, 246, 0.3)',
+    maxHeight: 200,
+    overflow: 'hidden',
+    zIndex: 100,
+    elevation: 8,
+  },
+  suggestionItem: {
+    padding: 14,
+    borderBottomWidth: 1,
+    borderBottomColor: 'rgba(255, 255, 255, 0.05)',
+  },
+  suggestionText: {
+    color: '#F8FAFC',
+    fontSize: 15,
+  },
+  submitBtn: {
+    backgroundColor: '#3B82F6', borderRadius: 12, paddingVertical: 18,
+    alignItems: 'center', shadowColor: '#3B82F6', shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3, shadowRadius: 8, elevation: 5,
+  },
+  submitBtnText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
+});

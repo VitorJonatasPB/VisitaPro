@@ -1,0 +1,90 @@
+{% extends 'core/base.html' %}
+
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Consultor - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h2">{% if object %}Editar{% else %}Novo{% endif %} Consultor</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'core:consultor_list' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Voltar
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm col-md-8">
+    <div class="card-body">
+        <form method="post" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <div class="row">
+                {% for field in form %}
+                <div class="{% if field.name == 'cor_mapa' %}col-md-12{% else %}col-md-6{% endif %} mb-3">
+                    <label for="{{ field.id_for_label }}" class="form-label">{{ field.label }}</label>
+
+                    {% if field.name == 'cor_mapa' %}
+                    {# Seletor de cor com preview visual #}
+                    <div class="d-flex align-items-center gap-3">
+                        {{ field }}
+                        <div>
+                            <div class="fw-bold text-muted small">Cor do Pin no Mapa</div>
+                            <div class="text-muted small">Este pin representará as escolas deste consultor no mapa do Dashboard.</div>
+                        </div>
+                    </div>
+
+                    {% elif field.name == 'foto' %}
+                    {{ field }}
+                    <div class="mt-2 d-flex justify-content-center">
+                        <img id="fotoPreview" src="{% if object and object.foto %}{{ object.foto.url }}{% endif %}" alt="Preview" class="rounded-circle shadow-sm {% if not object or not object.foto %}d-none{% endif %}" style="width: 100px; height: 100px; object-fit: cover; border: 3px solid #f8f9fa;">
+                    </div>
+                    {% else %}
+                    {{ field }}
+                    {% endif %}
+
+                    {% if field.help_text %}
+                    <div class="form-text">{{ field.help_text }}</div>
+                    {% endif %}
+                    {% if field.errors %}
+                    <div class="text-danger small mt-1">
+                        {{ field.errors }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            
+            <div class="mt-4 pt-2 border-top">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Salvar</button>
+            </div>
+        </form>
+    </div>
+</div>
+</div>
+
+{% block extra_js %}
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    // Preview da Foto
+    const fotoInput = document.querySelector('input[type="file"][name="foto"]');
+    const fotoPreview = document.getElementById('fotoPreview');
+    if (fotoInput && fotoPreview) {
+        fotoInput.addEventListener('change', function(event) {
+            const file = event.target.files[0];
+            if (file) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    fotoPreview.src = e.target.result;
+                    fotoPreview.classList.remove('d-none');
+                }
+                reader.readAsDataURL(file);
+            } else {
+                var originalUrl = "{% if object and object.foto %}{{ object.foto.url }}{% endif %}";
+                if (originalUrl) { fotoPreview.src = originalUrl; }
+                else { fotoPreview.classList.add('d-none'); }
+            }
+        });
+    }
+});
+</script>
+{% endblock %}
+{% endblock %}

@@ -1,0 +1,408 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Relatório de Visita - Visitas App{% endblock %}
+
+{% block content %}
+<style>
+    .signature-wrapper {
+        position: relative;
+        width: 100%;
+        height: 250px;
+        -moz-user-select: none;
+        -webkit-user-select: none;
+        -ms-user-select: none;
+        user-select: none;
+        border: 2px dashed #ccc;
+        border-radius: 10px;
+        background-color: #fcfcfc;
+    }
+    .signature-pad {
+        position: absolute;
+        left: 0;
+        top: 0;
+        width: 100%;
+        height: 100%;
+        border-radius: 10px;
+    }
+</style>
+
+<div class="d-flex justify-content-between align-items-center mb-3 mt-2">
+    <h4 class="m-0 fw-bold">Relatório de Visita</h4>
+    <a href="{% url 'core:agenda' %}" class="btn btn-sm btn-outline-secondary rounded-pill"><i class="fas fa-arrow-left"></i> Voltar</a>
+</div>
+
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+    <div class="card-body">
+        <h5 class="text-primary fw-bold">{{ object.escola.nome }}</h5>
+        <div class="d-flex justify-content-between mb-2">
+            <span class="small text-muted"><i class="fas fa-calendar-alt"></i> {{ object.data|date:"d/m/Y" }}</span>
+            <span class="small text-muted"><i class="fas fa-clock"></i> {{ object.horario|time:"H:i" }}</span>
+        </div>
+        
+        <form method="POST" id="relatorioForm" onsubmit="return saveSignature();" enctype="multipart/form-data">
+            {% csrf_token %}
+            
+            <!-- CHECK-IN / CHECK-OUT SECTION -->
+            <div class="card bg-light border-0 rounded-3 p-3 mb-4 mt-3">
+                <h6 class="fw-bold"><i class="fas fa-map-marker-alt text-danger"></i> Localização (GPS)</h6>
+                <div class="d-flex justify-content-between mt-2 gap-2">
+                    <div class="flex-fill">
+                        {% if object.checkin_time %}
+                            <button type="button" class="btn btn-success w-100 disabled text-start">
+                                <i class="fas fa-check-circle"></i> Check-in<br>
+                                <small>{{ object.checkin_time|date:"H:i" }}</small>
+                            </button>
+                        {% else %}
+                            <button type="button" id="btnCheckin" class="btn btn-primary w-100" onclick="registrarPonto('checkin')">
+                                <i class="fas fa-sign-in-alt"></i> Fazer Check-in
+                            </button>
+                        {% endif %}
+                    </div>
+                    <div class="flex-fill">
+                        {% if object.checkout_time %}
+                            <button type="button" class="btn btn-success w-100 disabled text-start">
+                                <i class="fas fa-check-circle"></i> Check-out<br>
+                                <small>{{ object.checkout_time|date:"H:i" }}</small>
+                            </button>
+                        {% else %}
+                            <button type="button" id="btnCheckout" class="btn btn-outline-danger w-100 {% if not object.checkin_time %}disabled{% endif %}" onclick="registrarPonto('checkout')">
+                                <i class="fas fa-sign-out-alt"></i> Fazer Check-out
+                            </button>
+                        {% endif %}
+                    </div>
+                </div>
+                <small id="geo-status" class="text-muted d-block mt-2" style="font-size: 0.75rem;">Aguardando ação...</small>
+            </div>
+
+            <!-- HIDDEN FIELDS FOR GEO -->
+            {{ form.checkin_time }}
+            {{ form.checkin_lat }}
+            {{ form.checkin_lng }}
+            {{ form.checkout_time }}
+            {{ form.checkout_lat }}
+            {{ form.checkout_lng }}
+            
+            <div class="mb-3 mt-4">
+                <label class="form-label fw-bold">Status da Visita</label>
+                {{ form.status }}
+            </div>
+            
+            <!-- Select2 CSS -->
+            <link href="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/css/select2.min.css" rel="stylesheet" />
+            <link href="https://cdn.jsdelivr.net/npm/select2-bootstrap-5-theme@1.3.0/dist/select2-bootstrap-5-theme.min.css" rel="stylesheet" />
+
+
+
+            <div class="mb-3 mt-4">
+                <label class="form-label fw-bold"><i class="fas fa-camera text-primary"></i> Fotos da Visita</label>
+                <div class="form-text text-muted mb-2">Tire fotos na hora ou escolha da galeria. Você pode selecionar várias fotos ao mesmo tempo!</div>
+                
+                <div class="position-relative">
+                    <label for="id_fotos" class="p-4 border text-center rounded-3 bg-white text-primary w-100 shadow-sm" style="border: 2px dashed #0d6efd !important; cursor: pointer;">
+                        <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-primary"></i><br>
+                        <span class="fw-bold">Toque aqui para adicionar fotos</span>
+                    </label>
+                    <div class="d-none">
+                        {{ form.fotos }}
+                    </div>
+                </div>
+
+                {% if object.fotos.all %}
+                    <div class="d-flex flex-wrap gap-2 mt-3">
+                    {% for f in object.fotos.all %}
+                        <div class="position-relative">
+                            <img src="{{ f.imagem.url }}" alt="Visita" class="img-fluid rounded shadow-sm border" style="height: 100px; width: 100px; object-fit: cover;">
+                        </div>
+                    {% endfor %}
+                    </div>
+                {% endif %}
+                
+                <!-- Preview local images -->
+                <div id="fotos-preview-container" class="d-flex flex-wrap gap-2 mt-3"></div>
+            </div>
+
+            <script>
+                document.addEventListener("DOMContentLoaded", function() {
+                    const inputFotos = document.getElementById('id_fotos');
+                    if (inputFotos) {
+                        inputFotos.addEventListener('change', function(event) {
+                            const container = document.getElementById('fotos-preview-container');
+                            container.innerHTML = '';
+                            Array.from(event.target.files).forEach(file => {
+                                const reader = new FileReader();
+                                reader.onload = function(e) {
+                                    const img = document.createElement('img');
+                                    img.src = e.target.result;
+                                    img.className = 'img-fluid rounded shadow-sm border';
+                                    img.style.height = '100px';
+                                    img.style.width = '100px';
+                                    img.style.objectFit = 'cover';
+                                    container.appendChild(img);
+                                }
+                                reader.readAsDataURL(file);
+                            });
+                        });
+                    }
+                });
+            </script>
+            
+            <hr class="my-4 text-muted">
+
+            <h5 class="fw-bold mb-3"><i class="fas fa-clipboard-list text-primary"></i> Perguntas do Formulário</h5>
+            {% if perguntas %}
+                {% for p in perguntas %}
+                <div class="mb-3 p-3 border rounded shadow-sm bg-white">
+                    <label class="form-label fw-bold">{{ p.texto }}</label>
+                    {% if p.tipo_resposta == 'texto' %}
+                        <input type="text" name="pergunta_{{ p.id }}" class="form-control" placeholder="Sua resposta..." value="{{ p.resposta }}">
+                    {% elif p.tipo_resposta == 'texto_longo' %}
+                        <textarea name="pergunta_{{ p.id }}" class="form-control" rows="3" placeholder="Sua resposta...">{{ p.resposta }}</textarea>
+                    {% elif p.tipo_resposta == 'data' %}
+                        <input type="date" name="pergunta_{{ p.id }}" class="form-control" value="{{ p.resposta }}">
+                    {% elif p.tipo_resposta == 'numero' %}
+                        <input type="number" name="pergunta_{{ p.id }}" class="form-control" placeholder="0" value="{{ p.resposta }}">
+                    {% elif p.tipo_resposta == 'booleano' %}
+                        <div class="d-flex gap-3 mt-1">
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="pergunta_{{ p.id }}" id="sim_{{ p.id }}" value="Sim" {% if p.resposta == 'Sim' %}checked{% endif %}>
+                                <label class="form-check-label" for="sim_{{ p.id }}">Sim</label>
+                            </div>
+                            <div class="form-check">
+                                <input class="form-check-input" type="radio" name="pergunta_{{ p.id }}" id="nao_{{ p.id }}" value="Não" {% if p.resposta == 'Não' %}checked{% endif %}>
+                                <label class="form-check-label" for="nao_{{ p.id }}">Não</label>
+                            </div>
+                        </div>
+                    {% elif p.tipo_resposta == 'multipla_escolha' %}
+                        <select name="pergunta_{{ p.id }}" class="form-select">
+                            <option value="">Sua resposta...</option>
+                            {% for opcao in p.opcoes_resposta %}
+                                <option value="{{ opcao }}" {% if p.resposta == opcao %}selected{% endif %}>{{ opcao }}</option>
+                            {% endfor %}
+                        </select>
+                    {% elif p.tipo_resposta == 'lista_suspensa' %}
+                        <select id="select_p{{ p.id }}" class="form-select mb-2"
+                                onchange="adicionarPill({{ p.id }}, this)">
+                            <option value="">Selecione uma opção...</option>
+                            {% for opcao in p.opcoes_resposta %}
+                                <option value="{{ opcao }}">{{ opcao }}</option>
+                            {% endfor %}
+                        </select>
+                        <div id="pills_{{ p.id }}" class="d-flex flex-wrap gap-2 mt-1 mb-1"></div>
+                        <div id="hidden_{{ p.id }}">
+                            {% for opcao in p.resposta_lista %}
+                                <input type="hidden" name="pergunta_{{ p.id }}" value="{{ opcao }}">
+                            {% endfor %}
+                        </div>
+                        <script>
+                        (function() {
+                            var pid = {{ p.id }};
+                            var saved = {{ p.resposta_lista|safe }};
+                            document.addEventListener('DOMContentLoaded', function() {
+                                saved.forEach(function(v) { if(v) criarPill(pid, v); });
+                            });
+                        })();
+                        </script>
+                    {% else %}
+                        <textarea name="pergunta_{{ p.id }}" class="form-control" rows="3" placeholder="Sua resposta...">{{ p.resposta }}</textarea>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            {% else %}
+                <div class="alert alert-info py-2">O Gestor ainda não definiu as perguntas para a visita.</div>
+            {% endif %}
+
+            <hr class="my-4 text-muted">
+
+            <h5 class="fw-bold mb-3"><i class="fas fa-file-alt text-primary"></i> Relato Geral</h5>
+            <div class="mb-4">
+                <div class="form-text text-muted mb-2">Resumo das atividades, ações e observações sobre a visita escolar.</div>
+                {{ form.relatorio }}
+            </div>
+
+            <hr class="my-4 text-muted">
+
+            <h5 class="fw-bold mb-3"><i class="fas fa-signature text-primary"></i> Assinatura</h5>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Nome do Responsável Escolar</label>
+                {{ form.nome_responsavel }}
+            </div>
+
+            <div class="mb-4">
+                <label class="form-label fw-bold d-flex justify-content-between">
+                    Assinatura Física
+                    <button type="button" class="btn btn-sm btn-light border text-danger" id="clearBtn" {% if object.assinatura %}style="display:none;"{% endif %}><i class="fas fa-eraser"></i> Limpar</button>
+                </label>
+                
+                {% if object.assinatura %}
+                    <div class="text-center p-3 border rounded bg-light mb-2">
+                        <img src="{{ object.assinatura }}" alt="Assinatura" class="img-fluid" style="max-height: 150px;">
+                        <div class="mt-2 text-success small fw-bold"><i class="fas fa-check-circle"></i> Assinatura Registrada Permanentemente</div>
+                        {{ form.assinatura }}
+                    </div>
+                {% else %}
+                    <div class="signature-wrapper">
+                        <canvas id="signature-pad" class="signature-pad"></canvas>
+                    </div>
+                    {{ form.assinatura }}
+                    <div class="form-text text-muted text-center mt-1"><i class="fas fa-hand-pointer"></i> O Responsável (citado acima) deve assinar com o dedo ou caneta Touch.</div>
+                {% endif %}
+            </div>
+
+            <button type="submit" class="btn btn-primary w-100 rounded-pill btn-lg fw-bold shadow-sm mt-3 mb-5">
+                <i class="fas fa-save me-1"></i> Salvar Relatório
+            </button>
+        </form>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // ---- LISTA SUSPENSA COM PILLS ----
+    function criarPill(pid, valor) {
+        var pills = document.getElementById('pills_' + pid);
+        if (!pills) return;
+        // Evita duplicatas
+        var hidden = document.getElementById('hidden_' + pid);
+        var inputs = hidden.querySelectorAll('input[type=hidden]');
+        for (var i = 0; i < inputs.length; i++) {
+            if (inputs[i].value === valor) return;
+        }
+        // Cria a pílula
+        var pill = document.createElement('span');
+        pill.className = 'badge rounded-pill d-inline-flex align-items-center gap-2';
+        pill.style.cssText = 'background-color:#3B5BDB;font-size:0.88rem;padding:7px 14px;';
+        pill.dataset.valor = valor;
+        pill.innerHTML = valor + ' <button type="button" onclick="removerPill(' + pid + ', this, \'' + valor.replace(/'/g,"\\'") + '\')" style="background:none;border:none;color:white;font-size:1rem;padding:0;line-height:1;cursor:pointer;">&times;</button>';
+        pills.appendChild(pill);
+        // Cria input hidden para submissão
+        var inp = document.createElement('input');
+        inp.type = 'hidden';
+        inp.name = 'pergunta_' + pid;
+        inp.value = valor;
+        hidden.appendChild(inp);
+    }
+
+    function removerPill(pid, btn, valor) {
+        btn.closest('span').remove();
+        var hidden = document.getElementById('hidden_' + pid);
+        hidden.querySelectorAll('input[type=hidden]').forEach(function(inp) {
+            if (inp.value === valor) inp.remove();
+        });
+    }
+
+    function adicionarPill(pid, selectEl) {
+        var valor = selectEl.value;
+        if (!valor) return;
+        criarPill(pid, valor);
+        selectEl.value = ''; // Reseta o select
+    }
+
+    // GEOLOCATION LOGIC
+    function registrarPonto(tipo) {
+        var statusMsg = document.getElementById('geo-status');
+        if (!navigator.geolocation) {
+            statusMsg.innerHTML = '<span class="text-danger">Geolocalização não é suportada neste navegador. (Requer HTTPS)</span>';
+            return;
+        }
+
+        statusMsg.innerHTML = '<span class="text-primary"><i class="fas fa-spinner fa-spin"></i> Obtendo localização GPS...</span>';
+        
+        navigator.geolocation.getCurrentPosition(function(position) {
+            var lat = position.coords.latitude;
+            var lng = position.coords.longitude;
+            var agora = new Date();
+            var timezoneOffset = agora.getTimezoneOffset() * 60000;
+            var localISOTime = (new Date(agora - timezoneOffset)).toISOString().slice(0, 19).replace('T', ' ');
+
+            if (tipo === 'checkin') {
+                document.getElementById('id_checkin_lat').value = lat;
+                document.getElementById('id_checkin_lng').value = lng;
+                document.getElementById('id_checkin_time').value = localISOTime;
+                document.getElementById('btnCheckin').innerHTML = '<i class="fas fa-check"></i> Check-in Marcado';
+                document.getElementById('btnCheckin').className = 'btn btn-success w-100 disabled';
+                // Libera o check-out
+                document.getElementById('btnCheckout').className = 'btn btn-outline-danger w-100';
+            } else {
+                document.getElementById('id_checkout_lat').value = lat;
+                document.getElementById('id_checkout_lng').value = lng;
+                document.getElementById('id_checkout_time').value = localISOTime;
+                document.getElementById('btnCheckout').innerHTML = '<i class="fas fa-check"></i> Check-out Marcado';
+                document.getElementById('btnCheckout').className = 'btn btn-success w-100 disabled';
+            }
+            statusMsg.innerHTML = '<span class="text-success"><i class="fas fa-check"></i> Coordenadas capturadas com sucesso! Não esqueça de Salvar o Relatório no final.</span>';
+        }, function(error) {
+            var msg = '';
+            switch(error.code) {
+                case error.PERMISSION_DENIED: msg = "Usuário negou permissão para GPS. Verifique também se está usando HTTPS."; break;
+                case error.POSITION_UNAVAILABLE: msg = "As informações de localização não estão disponíveis."; break;
+                case error.TIMEOUT: msg = "O tempo para obter a localização esgotou."; break;
+                default: msg = "Ocorreu um erro desconhecido ao obter o GPS."; break;
+            }
+            statusMsg.innerHTML = '<span class="text-danger"><i class="fas fa-exclamation-triangle"></i> Falha: ' + msg + ' (Lembre-se: Testes Locais HTTP bloqueiam o GPS nativo do celular)</span>';
+        }, { enableHighAccuracy: true });
+    }
+</script>
+
+{% if not object.assinatura %}
+<script src="https://cdn.jsdelivr.net/npm/signature_pad@4.1.7/dist/signature_pad.umd.min.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        var canvas = document.getElementById('signature-pad');
+        
+        function resizeCanvas() {
+            var ratio =  Math.max(window.devicePixelRatio || 1, 1);
+            canvas.width = canvas.offsetWidth * ratio;
+            canvas.height = canvas.offsetHeight * ratio;
+            canvas.getContext("2d").scale(ratio, ratio);
+        }
+        
+        window.onresize = resizeCanvas;
+        resizeCanvas();
+
+        var signaturePad = new SignaturePad(canvas, {
+            backgroundColor: 'rgba(255, 255, 255, 0)',
+            penColor: 'rgb(0, 0, 0)'
+        });
+
+        document.getElementById('clearBtn').addEventListener('click', function () {
+            signaturePad.clear();
+        });
+
+        window.saveSignature = function() {
+            if (signaturePad.isEmpty()) {
+                // Not forcing signature if they didn't do the visit, but usually required
+                var doConfirm = confirm("O quadro de Assinatura está vazio. Deseja salvar o relatório sem a assinatura física do responsável?");
+                if (!doConfirm) {
+                    return false;
+                }
+            } else {
+                var dataUrl = signaturePad.toDataURL("image/png");
+                document.getElementById('id_assinatura').value = dataUrl;
+            }
+            return true;
+        };
+    });
+</script>
+{% endif %}
+
+<!-- Select2 JS e jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#id_professores_atendidos').select2({
+            theme: 'bootstrap-5',
+            placeholder: "Toque e procure os nomes...",
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "Nenhum professor encontrado";
+                }
+            }
+        });
+    });
+</script>
+{% endblock %}

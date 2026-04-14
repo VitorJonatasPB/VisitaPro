@@ -1,0 +1,36 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Excluir Administrador - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-4 border-bottom">
+  <h1 class="h4 fw-bold">Confirmar Exclusão</h1>
+</div>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <form method="post">
+      {% csrf_token %}
+      <div class="card shadow border-0 border-start border-danger border-5">
+        <div class="card-body text-center p-5">
+          <i class="fas fa-user-times fa-3x text-danger mb-3"></i>
+          <h4 class="card-title fw-bold">Excluir Administrador</h4>
+          <p class="card-text text-muted mb-4">
+            Tem certeza de que deseja excluir o usuário administrativo <strong>"{{ customuser.username }}"</strong>?<br>
+            Esta ação é irreversível e o usuário perderá o acesso ao sistema.
+          </p>
+          
+          <div class="d-flex gap-3 justify-content-center">
+            <a href="{% url 'core:admin_user_list' %}" class="btn btn-outline-secondary px-4">
+              Cancelar
+            </a>
+            <button type="submit" class="btn btn-danger px-4 fw-bold">
+              <i class="fas fa-trash me-2"></i> Sim, Excluir
+            </button>
+          </div>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}

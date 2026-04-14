@@ -1,0 +1,276 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Agendar Visita - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h4 fw-bold">{% if object %}Editar Visita{% else %}Agendar Nova Visita{% endif %}</h1>
+    <div class="btn-toolbar mb-2 mb-md-0">
+        <a href="{% url 'core:agenda' %}" class="btn btn-sm btn-secondary">
+            <i class="fas fa-arrow-left me-1"></i> Voltar à Agenda
+        </a>
+    </div>
+</div>
+
+<div class="card shadow-sm col-lg-6">
+    <div class="card-body">
+        <form method="post">
+            {% csrf_token %}
+            
+            <div class="row">
+                <div class="col-md-{% if user.is_admin or user.is_superuser %}7{% else %}12{% endif %} mb-3">
+                    <label for="{{ form.escola.id_for_label }}" class="form-label">Escola</label>
+                    <select name="escola" class="form-select" id="id_escola" required>
+                        <option value="">---------</option>
+                        {% for esc in form.escola.field.queryset %}
+                            <option value="{{ esc.id }}" {% if object and object.escola_id == esc.id %}selected{% endif %}>{{ esc.nome }}</option>
+                        {% endfor %}
+                    </select>
+                    {{ form.escola.errors }}
+                    {% if not user.is_admin and not user.is_superuser %}
+                    <div class="form-text">Apenas as escolas atribuídas a você aparecem nesta lista.</div>
+                    {% endif %}
+                </div>
+                {% if user.is_admin or user.is_superuser %}
+                <div class="col-md-5 mb-3">
+                    <label for="{{ form.consultor.id_for_label }}" class="form-label">Consultor</label>
+                    <select name="consultor" class="form-select" id="id_consultor" required>
+                        <option value="">---------</option>
+                        {% for cons in form.consultor.field.queryset %}
+                            <option value="{{ cons.id }}" {% if object and object.consultor_id == cons.id %}selected{% endif %}>{{ cons }}</option>
+                        {% endfor %}
+                    </select>
+                    {{ form.consultor.errors }}
+                    <div class="form-text">Pode ser alterado para esta visita.</div>
+                </div>
+                {% endif %}
+            </div>
+            
+            <div class="row">
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.data.id_for_label }}" class="form-label">Data</label>
+                    <div class="position-relative">
+                        <input type="date" name="data" value="{% if object %}{{ object.data|date:'Y-m-d' }}{% endif %}" class="form-control" id="id_data" placeholder="dd/mm/aaaa" required>
+                        <i class="far fa-calendar-alt position-absolute" id="btn-abrir-calendario" 
+                           style="right: 12px; top: 50%; transform: translateY(-50%); cursor: pointer; color: #94a3b8; pointer-events: auto;"></i>
+                    </div>
+                    {{ form.data.errors }}
+                </div>
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.horario.id_for_label }}" class="form-label">Horário Previsto</label>
+                    <input type="time" name="horario" value="{% if object %}{{ object.horario|time:'H:i' }}{% endif %}" class="form-control" id="id_horario" required>
+                    {{ form.horario.errors }}
+                </div>
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.status.id_for_label }}" class="form-label">Status</label>
+                <select name="status" class="form-select" id="id_status" required>
+                    <option value="agendada" {% if object and object.status == 'agendada' %}selected{% endif %}>Agendada</option>
+                    <option value="realizada" {% if object and object.status == 'realizada' %}selected{% endif %}>Realizada</option>
+                    <option value="cancelada" {% if object and object.status == 'cancelada' %}selected{% endif %}>Cancelada</option>
+                </select>
+                {{ form.status.errors }}
+            </div>
+            
+            <div class="mb-3">
+                <label for="{{ form.observacoes.id_for_label }}" class="form-label">Observações (Opcional)</label>
+                <textarea name="observacoes" class="form-control" id="id_observacoes" rows="3">{% if object and object.observacoes %}{{ object.observacoes }}{% endif %}</textarea>
+                {{ form.observacoes.errors }}
+            </div>
+            
+            <div class="mt-4 pt-2 border-top d-flex justify-content-between">
+                <button type="submit" class="btn btn-primary"><i class="fas fa-save me-1"></i> Salvar Agendamento</button>
+                {% if object %}
+                    <a href="{% url 'core:visita_delete' object.id %}" class="btn btn-outline-danger"><i class="fas fa-trash me-1"></i> Excluir Visita</a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+{% if object and auditoria_checkin_lat and auditoria_checkin_lng %}
+<div class="card shadow-sm col-lg-6 mt-4">
+    <div class="card-header bg-white d-flex align-items-center gap-2">
+        <i class="fas fa-map-marked-alt text-danger"></i>
+        <h6 class="mb-0 fw-semibold">Auditoria de GPS — Check-in</h6>
+    </div>
+    <div class="card-body p-0">
+        <div id="mapaAuditoria" style="height: 320px; width: 100%; border-radius: 0 0 8px 8px;"></div>
+    </div>
+    {% if justificativa_distancia %}
+    <div class="card-footer d-flex gap-2 align-items-start bg-warning bg-opacity-10 border-warning">
+        <i class="fas fa-exclamation-triangle text-warning mt-1"></i>
+        <div>
+            <strong class="d-block text-warning-emphasis" style="font-size: 0.85rem;">Check-in fora do raio (&gt;500m)</strong>
+            <span class="text-secondary" style="font-size: 0.85rem;">{{ justificativa_distancia }}</span>
+        </div>
+    </div>
+    {% endif %}
+    <div class="card-footer bg-light d-flex gap-4 text-muted" style="font-size: 0.8rem;">
+        <span><span class="badge" style="background:#1d4ed8;">📍</span> Escola: {{ auditoria_escola_nome }}</span>
+        <span><span class="badge bg-danger">📌</span> Check-in do Consultor</span>
+        <span id="distanciaLabel" class="ms-auto fw-semibold"></span>
+    </div>
+</div>
+{% endif %}
+
+{% endblock %}
+
+{% block extra_css %}
+{% if object and auditoria_checkin_lat and auditoria_checkin_lng %}
+<!-- Leaflet CSS -->
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin=""/>
+{% endif %}
+
+<!-- Formatação de data com Flatpickr theme escuro -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+<link rel="stylesheet" type="text/css" href="https://npmcdn.com/flatpickr/dist/themes/dark.css">
+<style>
+    .flatpickr-calendar.dark {
+        background: #1e293b !important;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.5) !important;
+        border: 1px solid rgba(255,255,255,0.1) !important;
+        transform: scale(0.75); /* Reduzindo o calendário ainda mais */
+        transform-origin: top left;
+    }
+    .flatpickr-day.selected, .flatpickr-day.startRange, .flatpickr-day.endRange, .flatpickr-day.selected.inRange, .flatpickr-day.startRange.inRange, .flatpickr-day.endRange.inRange, .flatpickr-day.selected:focus, .flatpickr-day.startRange:focus, .flatpickr-day.endRange:focus, .flatpickr-day.selected:hover, .flatpickr-day.startRange:hover, .flatpickr-day.endRange:hover, .flatpickr-day.selected.prevMonthDay, .flatpickr-day.startRange.prevMonthDay, .flatpickr-day.endRange.prevMonthDay, .flatpickr-day.selected.nextMonthDay, .flatpickr-day.startRange.nextMonthDay, .flatpickr-day.endRange.nextMonthDay {
+        background: #3b82f6 !important;
+        border-color: #3b82f6 !important;
+    }
+    /* Estilizar o select de meses (texto como 'abril') */
+    .flatpickr-monthDropdown-months {
+        font-size: 18px !important;
+        padding: 0 !important;
+        font-weight: bold;
+    }
+    /* Estilizar as opções internas (janeiro, fevereiro...) para não estourarem no Windows */
+    .flatpickr-monthDropdown-months .flatpickr-monthDropdown-month {
+        font-size: 14px !important;
+        font-weight: normal;
+    }
+    /* Estilizar o input nativo para esconder seu ícone padrão quando usamos Flatpickr */
+    input[type="date"]::-webkit-calendar-picker-indicator {
+        background: transparent;
+        bottom: 0;
+        color: transparent;
+        cursor: pointer;
+        height: auto;
+        left: 0;
+        position: absolute;
+        right: 0;
+        top: 0;
+        width: auto;
+    }
+</style>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+<script src="https://npmcdn.com/flatpickr/dist/l10n/pt.js"></script>
+<script>
+    document.addEventListener("DOMContentLoaded", function() {
+        // Configurador de restrições do Flatpickr
+        let configFlatpickr = {
+            dateFormat: "Y-m-d",
+            altInput: true,
+            altFormat: "d/m/Y", // Formato amigável para o usuário visualizar/digitar
+            allowInput: true, // Permite que o usuário digite a data
+            locale: "pt",
+            disableMobile: true /* Força o flatpickr e evita o calendário branco padrão do celular/navegador */
+        };
+
+        {% if not user.is_admin and not user.is_superuser %}
+        // Para consultores, restringe aos agendamentos EXATAMENTE para o próximo mês
+        const dataAtual = new Date();
+        const primeiroDiaProxMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 1, 1);
+        const ultimoDiaProxMes = new Date(dataAtual.getFullYear(), dataAtual.getMonth() + 2, 0); 
+        
+        configFlatpickr.minDate = primeiroDiaProxMes;
+        configFlatpickr.maxDate = ultimoDiaProxMes;
+        {% endif %}
+
+        const fpInstance = flatpickr("#id_data", configFlatpickr);
+        
+        // Abre o calendário ao clicar no ícone que criamos
+        document.getElementById('btn-abrir-calendario').addEventListener('click', function() {
+            fpInstance.open();
+        });
+        
+        // Aplica a classe dark ao flatpickr via CSS caso ele não carregue automaticamente
+        const calendars = document.querySelectorAll('.flatpickr-calendar');
+        calendars.forEach(c => c.classList.add('dark'));
+    });
+</script>
+
+{% if object and auditoria_checkin_lat and auditoria_checkin_lng %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js" integrity="sha256-20nQCchB9co0qIjJZRGuk2/Z9VM+kNiyxNV1lvTlZBo=" crossorigin=""></script>
+<script>
+  var _checkinLat = parseFloat('{{ auditoria_checkin_lat }}');
+  var _checkinLng = parseFloat('{{ auditoria_checkin_lng }}');
+  var _escolaLat  = parseFloat('{{ auditoria_escola_lat }}');
+  var _escolaLng  = parseFloat('{{ auditoria_escola_lng }}');
+
+  function haversineMetros(lat1, lng1, lat2, lng2) {
+    var R = 6371000;
+    var toRad = function(v) { return v * Math.PI / 180; };
+    var dLat = toRad(lat2 - lat1), dLng = toRad(lng2 - lng1);
+    var a = Math.sin(dLat/2)*Math.sin(dLat/2) +
+            Math.cos(toRad(lat1))*Math.cos(toRad(lat2))*Math.sin(dLng/2)*Math.sin(dLng/2);
+    return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+  }
+
+  document.addEventListener("DOMContentLoaded", function() {
+    var mapEl = document.getElementById('mapaAuditoria');
+    if (!mapEl) return;
+
+    var map = L.map('mapaAuditoria').setView([_checkinLat, _checkinLng], 15);
+    
+    L.tileLayer('https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png', {
+      maxZoom: 19,
+      attribution: '&copy; OpenStreetMap &copy; CARTO'
+    }).addTo(map);
+
+    var bounds = [];
+    var pinEscolaIcon = L.divIcon({
+        className: 'custom-pin-escola',
+        html: '<div style="background:#1d4ed8; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:2px solid white; font-weight:bold; font-size:12px;">E</div>',
+        iconSize: [24,24],
+        iconAnchor: [12,12],
+        popupAnchor: [0,-12]
+    });
+    
+    var pinCheckinIcon = L.divIcon({
+        className: 'custom-pin-checkin',
+        html: '<div style="background:#dc2626; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:2px solid white; font-weight:bold; font-size:12px;">C</div>',
+        iconSize: [24,24],
+        iconAnchor: [12,12],
+        popupAnchor: [0,-12]
+    });
+
+    if (!isNaN(_escolaLat) && !isNaN(_escolaLng)) {
+      L.marker([_escolaLat, _escolaLng], {icon: pinEscolaIcon}).addTo(map).bindPopup('{{ auditoria_escola_nome }}');
+      bounds.push([_escolaLat, _escolaLng]);
+    }
+
+    L.marker([_checkinLat, _checkinLng], {icon: pinCheckinIcon}).addTo(map).bindPopup('Local do Check-in');
+    bounds.push([_checkinLat, _checkinLng]);
+
+    if (bounds.length == 2) {
+      L.polyline(bounds, {color: '#f59e0b', weight: 3}).addTo(map);
+      map.fitBounds(bounds, {padding: [30, 30]});
+
+      var dist = haversineMetros(_checkinLat, _checkinLng, _escolaLat, _escolaLng);
+      var label = document.getElementById('distanciaLabel');
+      if (label) {
+        var cor = dist > 500 ? '#dc2626' : '#16a34a';
+        label.innerHTML = '<span style="color:' + cor + ';">⬤</span> Distância: <strong>' +
+          (dist >= 1000 ? (dist/1000).toFixed(2) + ' km' : Math.round(dist) + ' m') + '</strong>';
+      }
+    }
+  });
+</script>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,68 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Permissões e Grupos - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+  <h1 class="h4 fw-bold mb-0">Permissões e Grupos</h1>
+  <div class="btn-toolbar mb-2 mb-md-0 d-flex gap-2">
+    <a href="{% url 'core:group_create' %}" class="btn btn-sm btn-primary">
+      <i class="fas fa-plus me-1"></i> Novo Grupo
+    </a>
+  </div>
+</div>
+
+<div class="row">
+  <div class="col-md-12">
+    <!-- Formulário de Filtro Minimalista -->
+    <div class="card shadow-sm border-0 mb-4 p-3 bg-dark">
+      <form method="get" class="row gx-2 gy-2 align-items-center">
+        <div class="col-md-4">
+          <input type="text" name="nome" class="form-control form-control-sm border-secondary text-white" style="background-color: #1a2035;" placeholder="Buscar por nome do grupo..." value="{{ request.GET.nome }}">
+        </div>
+        <div class="col-md-2">
+          <button type="submit" class="btn btn-sm btn-outline-primary w-100"><i class="fas fa-search"></i> Filtrar</button>
+        </div>
+      </form>
+    </div>
+
+    <div class="card shadow-sm border-0">
+      <div class="card-body p-0">
+        <div class="table-responsive">
+          <table class="table table-hover align-middle mb-0">
+            <thead class="table-dark">
+              <tr>
+                <th class="ps-3">Nome do Grupo</th>
+                <th>Permissões Atribuídas</th>
+                <th class="text-end pe-3">Ações</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for grupo in grupos %}
+              <tr onclick="window.location.href='{% url 'core:group_update' grupo.id %}'" style="cursor: pointer;">
+                <td class="ps-3 text-white fw-bold">{{ grupo.name }}</td>
+                <td><span class="badge bg-secondary">{{ grupo.permissions.count }} Regras de Acesso</span></td>
+                <td class="text-end pe-3">
+                  <a href="{% url 'core:group_update' grupo.id %}" class="btn btn-sm btn-outline-warning" title="Editar Grupo">
+                    <i class="fas fa-edit"></i>
+                  </a>
+                  <a href="{% url 'core:group_delete' grupo.id %}" class="btn btn-sm btn-outline-danger" title="Excluir Grupo" onclick="event.stopPropagation();">
+                    <i class="fas fa-trash"></i>
+                  </a>
+                </td>
+              </tr>
+              {% empty %}
+              <tr>
+                <td colspan="3" class="text-center py-4 text-muted">
+                  Nenhum grupo de permissão encontrado com os filtros aplicados.
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

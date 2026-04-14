@@ -1,0 +1,30 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Excluir Visita - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h4 fw-bold">Excluir Visita</h1>
+</div>
+
+<div class="card shadow-sm col-md-6 border-danger">
+    <div class="card-header bg-danger text-white">
+        <h5 class="card-title mb-0"><i class="fas fa-exclamation-triangle me-2"></i> Confirmação de Exclusão</h5>
+    </div>
+    <div class="card-body">
+        <p>Tem certeza que deseja excluir o agendamento da visita para a escola <strong>{{ object.escola.nome }}</strong>?</p>
+        <ul>
+            <li><strong>Data:</strong> {{ object.data|date:"d/m/Y" }}</li>
+            <li><strong>Horário:</strong> {{ object.horario|time:"H:i" }}</li>
+            <li><strong>Consultor Designado:</strong> {{ object.consultor.get_full_name|default:object.consultor.username }}</li>
+        </ul>
+        <p class="text-muted small">Esta ação não poderá ser desfeita.</p>
+        
+        <form method="post" class="mt-4">
+            {% csrf_token %}
+            <a href="{% url 'core:visita_update' object.id %}" class="btn btn-secondary">Cancelar</a>
+            <button type="submit" class="btn btn-danger">Sim, Excluir</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

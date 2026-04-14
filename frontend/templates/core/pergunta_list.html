@@ -1,0 +1,263 @@
+{% extends 'core/base.html' %}
+
+{% block title %}Perguntas do Formulário - Visitas Escolares{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
+    <h1 class="h2">Configuração de Formulários</h1>
+    <div class="btn-toolbar mb-2 mb-md-0 d-flex gap-2">
+        <a href="{% url 'core:pergunta_create' %}" class="btn btn-sm btn-primary">
+            <i class="fas fa-plus me-1"></i> Nova Pergunta
+        </a>
+    </div>
+</div>
+
+<ul class="nav nav-tabs mb-4" id="configTabs" role="tablist">
+    <li class="nav-item" role="presentation">
+        <button class="nav-link text-secondary" id="preview-tab" data-bs-toggle="tab" data-bs-target="#preview-pane" type="button" role="tab" aria-controls="preview-pane" aria-selected="false">
+            <i class="fas fa-list-alt me-1"></i> Relatório
+        </button>
+    </li>
+    <li class="nav-item" role="presentation">
+        <button class="nav-link active fw-bold" id="perguntas-tab" data-bs-toggle="tab" data-bs-target="#perguntas-pane" type="button" role="tab" aria-controls="perguntas-pane" aria-selected="true">
+            <i class="fas fa-question-circle me-1"></i> Perguntas do Formulário
+        </button>
+    </li>
+</ul>
+
+<div class="tab-content" id="configTabsContent">
+    <!-- Aba 1: Preview do Relatório -->
+    <div class="tab-pane fade" id="preview-pane" role="tabpanel" aria-labelledby="preview-tab" tabindex="0">
+        
+        <div class="card shadow-sm border-0 rounded-4 mb-4 mx-auto" style="max-width: 800px;">
+            <div class="card-body">
+                <h5 class="text-primary fw-bold">NOME DA ESCOLA</h5>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="small text-muted"><i class="fas fa-calendar-alt"></i> {% now "d/m/Y" %}</span>
+                    <span class="small text-muted"><i class="fas fa-clock"></i> {% now "H:i" %}</span>
+                </div>
+                
+                <form onsubmit="event.preventDefault();">
+                    <!-- CHECK-IN / CHECK-OUT SECTION -->
+                    <div class="card bg-light border-0 rounded-3 p-3 mb-4 mt-3">
+                        <h6 class="fw-bold"><i class="fas fa-map-marker-alt text-danger"></i> Localização (GPS)</h6>
+                        <div class="d-flex justify-content-between mt-2 gap-2">
+                            <div class="flex-fill">
+                                <button type="button" class="btn btn-primary w-100 disabled text-white" style="cursor: not-allowed;">
+                                    <i class="fas fa-sign-in-alt"></i> Fazer Check-in
+                                </button>
+                            </div>
+                            <div class="flex-fill">
+                                <button type="button" class="btn btn-outline-danger w-100 disabled" style="cursor: not-allowed;">
+                                    <i class="fas fa-sign-out-alt"></i> Fazer Check-out
+                                </button>
+                            </div>
+                        </div>
+                        <small class="text-muted d-block mt-2" style="font-size: 0.75rem;">Aguardando ação...</small>
+                    </div>
+
+                    <div class="mb-3 mt-4">
+                        <label class="form-label fw-bold">Status da Visita</label>
+                        <select class="form-select border-secondary text-muted" disabled>
+                            <option>Realizada</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3 mt-4">
+                        <label class="form-label fw-bold"><i class="fas fa-camera text-primary"></i> Fotos da Visita</label>
+                        <div class="form-text text-muted mb-2">Tire fotos na hora ou escolha da galeria. Você pode selecionar várias fotos ao mesmo tempo!</div>
+                        
+                        <div class="position-relative">
+                            <div class="p-4 border text-center rounded-3 bg-light text-muted w-100 shadow-sm" style="border: 2px dashed #ccc !important; cursor: not-allowed;">
+                                <i class="fas fa-cloud-upload-alt fa-2x mb-2 text-muted"></i><br>
+                                <span class="fw-bold">Toque aqui para adicionar fotos</span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <hr class="my-4 text-muted">
+
+                    <h5 class="fw-bold mb-3"><i class="fas fa-clipboard-list text-primary"></i> Relatório / Perguntas</h5>
+                    {% if perguntas %}
+                        {% for p in perguntas %}
+                        {% if p.ativa %}
+                        <div class="mb-3 p-3 border rounded shadow-sm bg-white">
+                            <label class="form-label fw-bold">{{ p.texto }}</label>
+                            {% if p.tipo_resposta == 'texto' %}
+                                <input type="text" class="form-control" placeholder="Sua resposta..." readonly>
+                            {% elif p.tipo_resposta == 'texto_longo' %}
+                                <textarea class="form-control" rows="3" placeholder="Sua resposta..." readonly></textarea>
+                            {% elif p.tipo_resposta == 'data' %}
+                                <input type="date" class="form-control">
+                            {% elif p.tipo_resposta == 'numero' %}
+                                <input type="number" class="form-control" placeholder="0" readonly>
+                            {% elif p.tipo_resposta == 'booleano' %}
+                                <div class="d-flex gap-3 mt-1">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" disabled>
+                                        <label class="form-check-label">Sim</label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="radio" disabled>
+                                        <label class="form-check-label">Não</label>
+                                    </div>
+                                </div>
+                            {% elif p.tipo_resposta == 'multipla_escolha' %}
+                                <select class="form-select" disabled>
+                                    <option>Sua resposta...</option>
+                                </select>
+                            {% elif p.tipo_resposta == 'lista_suspensa' %}
+                                <select class="form-select" disabled>
+                                    <option>Selecione uma opção...</option>
+                                    {% if p.opcoes_resposta %}
+                                        {% for opc in p.opcoes_resposta.split %}<option>{{ opc }}</option>{% endfor %}
+                                    {% endif %}
+                                </select>
+                                {% if p.fonte_dados and p.fonte_dados != 'manual' %}
+                                <div class="form-text text-info mt-1"><i class="fas fa-database me-1"></i>Fonte dinâmica: <strong>{{ p.fonte_dados }}</strong></div>
+                                {% endif %}
+                            {% endif %}
+                        </div>
+                        {% endif %}
+                        {% endfor %}
+                    {% else %}
+                        <div class="alert alert-info py-2">Nenhuma pergunta configurada.</div>
+                    {% endif %}
+
+                    <hr class="my-4 text-muted">
+
+                    <h5 class="fw-bold mb-3"><i class="fas fa-signature text-primary"></i> Assinatura</h5>
+                    <div class="mb-3">
+                        <label class="form-label fw-bold">Nome do Responsável Escolar</label>
+                        <input type="text" class="form-control" disabled>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-bold">Assinatura Física</label>
+                        <div class="p-5 border rounded bg-light text-center text-muted" style="border: 2px dashed #ccc !important;">
+                            <i class="fas fa-pen-nib fa-2x mb-2"></i><br>
+                            Quadro de Assinatura do Dispositivo
+                        </div>
+                    </div>
+
+                    <button type="button" class="btn btn-primary w-100 rounded-pill btn-lg fw-bold shadow-sm mt-3 mb-5 disabled" style="cursor: not-allowed;">
+                        <i class="fas fa-save me-1"></i> Salvar Relatório
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    <!-- Aba 2: Tabela de Perguntas -->
+    <div class="tab-pane fade show active" id="perguntas-pane" role="tabpanel" aria-labelledby="perguntas-tab" tabindex="0">
+        <div class="card shadow">
+    <div class="card-body">
+        {% if perguntas %}
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead class="table-light">
+                        <tr>
+                            <th>Texto da Pergunta</th>
+                            <th>Tipo de Resposta</th>
+                            <th>Preview do Campo</th>
+                            <th>Status (Ativa/Inativa)</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for pergunta in perguntas %}
+                        <tr>
+                            <td class="fw-bold">{{ pergunta.texto }}</td>
+                            <td><span class="badge bg-light text-dark border">{{ pergunta.get_tipo_resposta_display }}</span></td>
+                            <td style="min-width: 250px;">
+                                {% if pergunta.tipo_resposta == 'texto' %}
+                                    <input type="text" class="form-control form-control-sm text-muted" placeholder="Resposta curta..." readonly>
+                                {% elif pergunta.tipo_resposta == 'texto_longo' %}
+                                    <textarea class="form-control form-control-sm text-muted" rows="2" placeholder="Resposta detalhada..." readonly></textarea>
+                                {% elif pergunta.tipo_resposta == 'data' %}
+                                    <input type="date" class="form-control form-control-sm text-muted">
+                                {% elif pergunta.tipo_resposta == 'numero' %}
+                                    <input type="number" class="form-control form-control-sm text-muted" placeholder="0" readonly>
+                                {% elif pergunta.tipo_resposta == 'booleano' %}
+                                    <div class="d-flex gap-2">
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" disabled>
+                                            <label class="form-check-label small">Sim</label>
+                                        </div>
+                                        <div class="form-check form-check-inline">
+                                            <input class="form-check-input" type="radio" disabled>
+                                            <label class="form-check-label small">Não</label>
+                                        </div>
+                                    </div>
+                                {% elif pergunta.tipo_resposta == 'multipla_escolha' %}
+                                    <select class="form-select form-select-sm text-muted" disabled>
+                                        <option>Múltipla Escolha...</option>
+                                    </select>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if pergunta.ativa %}
+                                    <span class="badge bg-success">Ativa</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Inativa</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <a href="{% url 'core:pergunta_update' pergunta.id %}" class="btn btn-sm btn-outline-primary" title="Editar">
+                                    <i class="fas fa-edit"></i>
+                                </a>
+                                <a href="{% url 'core:pergunta_delete' pergunta.id %}" class="btn btn-sm btn-outline-danger" title="Excluir">
+                                    <i class="fas fa-trash"></i>
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        {% else %}
+            <div class="alert alert-info border-0 shadow-sm align-items-center mb-0">
+                <i class="fas fa-info-circle me-2"></i> Nenhuma pergunta cadastrada.
+            </div>
+        {% endif %}
+    </div>
+        </div> <!-- FECHA CARD -->
+    </div> <!-- FECHA TAB PANE PERGUNTAS -->
+</div> <!-- FECHA TAB CONTENT -->
+
+<!-- JS PARA MUDAR A COR DA FONTE AO CLICAR NA ABA -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    var triggerTabList = [].slice.call(document.querySelectorAll('#configTabs button'))
+    triggerTabList.forEach(function (triggerEl) {
+        triggerEl.addEventListener('click', function (event) {
+            triggerTabList.forEach(item => {
+                item.classList.remove('fw-bold', 'text-dark');
+                item.classList.add('text-secondary');
+            });
+            event.target.classList.add('fw-bold');
+            event.target.classList.remove('text-secondary');
+        })
+    })
+});
+</script>
+
+<!-- Select2 JS e jQuery -->
+<script src="https://code.jquery.com/jquery-3.7.0.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
+<script>
+    $(document).ready(function() {
+        $('#simulador_professores').select2({
+            theme: 'bootstrap-5',
+            placeholder: "Toque e procure os nomes...",
+            allowClear: true,
+            width: '100%',
+            language: {
+                noResults: function() {
+                    return "Nenhum professor encontrado";
+                }
+            }
+        });
+    });
+</script>
+
+{% endblock %}
