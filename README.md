@@ -1,7 +1,16 @@
 # Projeto Rota99
 
-**O que o sistema faz:**
-O **Rota99** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
+**Rota99:** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
+
+---
+
+## Arquitetura do Sistema
+
+O sistema foi dividido em três camadas principais:
+
+- **Back-end (Django + DRF):** Responsável pela regra de negócio, autenticação e persistência dos dados.
+- **Front-end Web (Django Templates):** Utilizado para o painel administrativo e cadastro, foi escolhido pela simplicidade e rapidez no desenvolvimento.
+- **Mobile (React Native):** Responsável pela coleta de dados em campo, com suporte offline e sincronização com a API.
 
 ---
 
@@ -9,9 +18,9 @@ O **Rota99** é um sistema que foi criado para organizar e controlar as visitas 
 
 ### Back-end (A nossa API e o Painel Web)
 
-- **Python e Django:** O back-end foi desenvolvido em Python utilizando o Django (versão 6).
+- **Python e Django:** O back-end foi desenvolvido em Python utilizando o Django (versão 6), escolhido por sua facilidade de uso e criação de APIs.
 - **Django REST Framework (DRF):** Utilizado para criar os endpoints da API que o aplicativo do celular consome. O **SimpleJWT** é usado para autenticação e gerenciamento de tokens de acesso.
-- **Banco de Dados:** O sistema utiliza **SQLite** em ambiente de desenvolvimento e está configurado para **PostgreSQL** em produção, com o uso da biblioteca _psycopg_.
+- **Banco de Dados:** O sistema utiliza **SQLite** em ambiente de desenvolvimento, pela simplicidade e facilidade de uso, e está configurado para **PostgreSQL** em produção, com o uso da biblioteca _psycopg_.
 - **Painel Administrativo:** O painel de administração do Django foi customizado com o _django-jazzmin_, proporcionando uma interface mais moderna e amigável.
 - **Gerenciamento de Dependências:** O **Poetry** é utilizado para gerenciar as dependências do projeto, garantindo o controle de versões e a reprodutibilidade do ambiente.
 
