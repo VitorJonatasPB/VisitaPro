@@ -1,6 +1,7 @@
 # Projeto Rota99
 
 **Rota99:** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
+<<<<<<< HEAD
 
 ---
 
@@ -11,6 +12,8 @@ O sistema foi dividido em três camadas principais:
 - **Back-end (Django + DRF):** Responsável pela regra de negócio, autenticação e persistência dos dados.
 - **Front-end Web (Django Templates):** Utilizado para o painel administrativo e cadastro, foi escolhido pela simplicidade e rapidez no desenvolvimento.
 - **Mobile (React Native):** Responsável pela coleta de dados em campo, com suporte offline e sincronização com a API.
+=======
+>>>>>>> e2978c24036588a984d46f89d6a013f48d884302
 
 ---
 

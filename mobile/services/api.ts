@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { addToQueue, getQueue } from './queue';
 
-export const API_BASE_URL = 'http://000.000.0.00:8000';
+export const API_BASE_URL = 'http://192.168.0.59:8000';
 
 export const ENDPOINTS = {
   token: '/api/token/',
