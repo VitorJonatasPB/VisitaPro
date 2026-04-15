@@ -1,7 +1,6 @@
 # Projeto Rota99
 
-**O que o sistema faz:**
-O **Rota99** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
+**Rota99:** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
 
 ---
 
