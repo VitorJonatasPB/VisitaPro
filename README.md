@@ -1,38 +1,39 @@
 # Projeto Rota99
 
 **O que o sistema faz:**
-O **Rota99** é um sistema que a gente criou para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher uns relatórios.
+O **Rota99** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
 
 ---
 
-## As Tecnologias (Nossa Stack)
-
-Eu dividi certinho como a gente usou cada coisa no código:
+## Stack
 
 ### Back-end (A nossa API e o Painel Web)
-- **Python e Django:** A gente fez o back-end inteiro em Python usando o Django (versão 6). Escolhemos o Django porque ele já vem com bastante coisa pronta.
-- **Django REST Framework (DRF):** Usamos ele pra criar os endpoints da API que o aplicativo do celular chama pra pegar e salvar os dados. Pra parte de login, a gente colocou o **SimpleJWT**, que gera aquele token de acesso pra saber quem está logado no app.
-- **Banco de Dados:** Aqui no dev, pra testar rápido, tá usando o **SQLite**. Mas deixamos tudo configurado direitinho com uma biblioteca chamada *psycopg* pra conectar e rodar no **PostgreSQL** quando for pra produção.
-- **Painel Bonitão:** Sabe aquela tela padrão de admin do Django que é meio feia? A gente instalou uma biblioteca chamada *django-jazzmin* que deixou o painel com uma cara bem mais profissional e fácil para o pessoal usar.
-- **Poetry:** Em vez de usar aquele bloco de notas `requirements.txt` pra instalar os pacotes, a gente usou o Poetry. Ajuda muito a gente não ter dor de cabeça com versão de biblioteca quebrando no computador de cada um.
+
+- **Python e Django:** O back-end foi desenvolvido em Python utilizando o Django (versão 6).
+- **Django REST Framework (DRF):** Utilizado para criar os endpoints da API que o aplicativo do celular consome. O **SimpleJWT** é usado para autenticação e gerenciamento de tokens de acesso.
+- **Banco de Dados:** O sistema utiliza **SQLite** em ambiente de desenvolvimento e está configurado para **PostgreSQL** em produção, com o uso da biblioteca _psycopg_.
+- **Painel Administrativo:** O painel de administração do Django foi customizado com o _django-jazzmin_, proporcionando uma interface mais moderna e amigável.
+- **Gerenciamento de Dependências:** O **Poetry** é utilizado para gerenciar as dependências do projeto, garantindo o controle de versões e a reprodutibilidade do ambiente.
 
 ### Front-end (O site principal / Páginas da Web)
-- **Django Templates (HTML/CSS):** Pra fazer a interface das telas que abrem no navegador do computador (tipo os formulários pro pessoal da gestão web ou da escola acessar), a gente utilizou o sistema de *Templates* que já vem embutido no Django. A gente cria o HTML dentro da pasta `frontend/templates` e o próprio Django se vira pra enviar as páginas prontinhas com as informações do banco de dados. Como a ideia era entregar essa parte o mais rápido possível e sem dores de cabeça com configurações, a gente resolveu não usar nenhuma biblioteca JS muito complexa ou pesada (tipo React.js) lá na web; mantivemos no arroz com feijão bem feito do Django que resolve e não dá "tilt".
+
+- **Django Templates (HTML/CSS):** A interface das telas que abrem no navegador do computador é desenvolvida utilizando o sistema de _Templates_ nativo do Django. Os arquivos HTML são criados dentro da pasta `frontend/templates` e o Django é responsável por renderizar as páginas com as informações do banco de dados. A escolha por essa abordagem foi visando agilidade na entrega e simplicidade na manutenção, evitando a complexidade de integrações com bibliotecas JavaScript pesadas como React.js.
 
 ### App Mobile (Aplicativo do Consultor)
-- **React Native com Expo:** O aplicativo que o consultor instala no celular foi feito com React Native, usando o Expo (versão 54). Assim, com o mesmo código, a gente consegue gerar o app tanto para Android quanto para iPhone.
-- **TypeScript:** A gente escreveu o código em TypeScript em vez de JavaScript puro. Foi bom porque o editor avisa dos erros antes da gente rodar, evitando aqueles bugs chatos de variável escrita errada.
-- **Requisições para a API:** Pra chamar a nossa API do Django lá no celular, usamos o `@tanstack/react-query`. Ele é muito bom porque faz o carregamento automático, guarda os dados em cache e deixa tudo bem rápido sem a tela ficar travando.
+
+- **React Native com Expo:** O aplicativo que o consultor instala no celular foi feito com React Native, usando o Expo (versão 54). Com o mesmo código, é possível gerar o app tanto para Android quanto para iPhone.
+- **TypeScript:** O código foi escrito em TypeScript, o que permite a detecção de erros em tempo de desenvolvimento, evitando bugs comuns em JavaScript puro.
+- **Requisições para a API:** O `@tanstack/react-query` é utilizado para realizar as requisições à API do Django, gerenciando o carregamento de dados, cache e proporcionando uma experiência fluida ao usuário.
 
 ---
 
-## O Que o App Consegue Fazer na Prática?
+## Funcionalidades do Aplicativo
 
-- **Ponto com GPS (Check-in e Check-out):** A gente usou o pacote *expo-location* do React Native. Quando o consultor toca no botão de "cheguei na escola", o app pega a localização (latitude e longitude) dele e manda pro back-end, só pra gente ter certeza de que ele estava mesmo lá no raio da escola.
-- **Responder Questionários:** O pessoal pelo painel web consegue criar várias perguntas diferentes. O app puxa isso e monta a tela pro consultor responder: se tem arquivos em dia, colocar notas, marcar sim ou não, etc.
-- **Assinatura na Tela:** Quando o consultor termina a visita, precisa da assinatura de um responsável lá da escola. A gente colocou um pacote chamado *react-native-signature-canvas* que basicamente deixa a tela do celular virar um caderninho pro cara assinar com o dedo. Depois a gente transforma isso numa string gigante (Base64) e salva no nosso servidor.
-- **Modo Offline:** Essa foi a parte que deu mais trabalho, mas ficou legal. Se a escola não tiver internet, o app guarda as respostas do consultor na memória do próprio aparelho (usamos o *AsyncStorage* pra isso). Lá no back-end a gente tem uma flag avisando que foi feito offline, e quando a internet do celular volta, ele manda tudo certinho pra API.
-- **Reportar o Bug:** Tem um botão no app que se der algum erro, o consultor clica, e a gente já manda tudo os dados do aparelho pra nós podermos ver o que deu errado e arrumar.
+- **Ponto com GPS (Check-in e Check-out):** O aplicativo utiliza o _expo-location_ para capturar a localização do consultor no momento do check-in e check-out, enviando as coordenadas para o back-end para validação de proximidade com a escola.
+- **Responder Questionários:** O sistema permite a criação de questionários dinâmicos pelo painel web, que são exibidos ao consultor no aplicativo para coleta de informações, notas e status de arquivos.
+- **Assinatura na Tela:** A funcionalidade de assinatura é implementada através do _react-native-signature-canvas_, permitindo que o consultor colete a assinatura do responsável na tela do dispositivo. A assinatura é convertida em string (Base64) e salva no servidor.
+- **Modo Offline:** O aplicativo suporta operação offline, armazenando as respostas localmente utilizando o _AsyncStorage_ e sincronizando com o back-end quando a conexão com a internet é restabelecida.
+- **Reportar o Bug:** Uma funcionalidade de reporte de bugs permite que o consultor envie informações detalhadas sobre erros ocorridos no aplicativo, facilitando o diagnóstico e correção de problemas.
 
 ---
 
