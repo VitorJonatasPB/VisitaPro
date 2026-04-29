@@ -481,7 +481,10 @@ files = [
 ]
 
 [package.dependencies]
-numpy = {version = ">=2.3.3", markers = "python_version >= \"3.14\""}
+numpy = [
+    {version = ">=1.26.0", markers = "python_version < \"3.14\""},
+    {version = ">=2.3.3", markers = "python_version >= \"3.14\""},
+]
 python-dateutil = ">=2.8.2"
 tzdata = {version = "*", markers = "sys_platform == \"win32\" or sys_platform == \"emscripten\""}
 
@@ -633,6 +636,7 @@ files = [
 ]
 
 [package.dependencies]
+typing-extensions = {version = ">=4.6", markers = "python_version < \"3.13\""}
 tzdata = {version = "*", markers = "sys_platform == \"win32\""}
 
 [package.extras]
@@ -791,6 +795,19 @@ xlsx = ["openpyxl (>=2.6.0)"]
 yaml = ["pyyaml"]
 
 [[package]]
+name = "typing-extensions"
+version = "4.15.0"
+description = "Backported and Experimental Type Hints for Python 3.9+"
+optional = false
+python-versions = ">=3.9"
+groups = ["main"]
+markers = "python_version == \"3.12\""
+files = [
+    {file = "typing_extensions-4.15.0-py3-none-any.whl", hash = "sha256:f0fa19c6845758ab08074a0cfa8b7aecb71c999ca73d62883bc25cc018c4e548"},
+    {file = "typing_extensions-4.15.0.tar.gz", hash = "sha256:0cea48d173cc12fa28ecabc3b837ea3cf6f38c6d1136f85cbaaf598984861466"},
+]
+
+[[package]]
 name = "tzdata"
 version = "2025.3"
 description = "Provider of IANA time zone data"
@@ -819,5 +836,5 @@ brotli = ["brotli"]
 
 [metadata]
 lock-version = "2.1"
-python-versions = ">=3.14"
-content-hash = "8de0ddffc7b92f74800c02f126c14ab36676e9d0dc7977797b1b3e0557995d9e"
+python-versions = ">=3.12"
+content-hash = "9d3950b7b0e656fe6243d457d3f19f9912ed54a683a935f008965c4c3a8833ba"
