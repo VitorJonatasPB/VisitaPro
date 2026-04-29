@@ -20,10 +20,13 @@ class CustomLoginView(LoginView):
     
     def get_success_url(self):
         user = self.request.user
-        if user.is_admin:
+        if getattr(user, 'is_admin', False) or user.is_superuser:
             return reverse_lazy('core:dashboard_admin')
-        elif user.is_consultor:
+        elif getattr(user, 'is_consultor', False):
             return reverse_lazy('core:dashboard_consultor')
+        # Fallback para admin se for superuser sem os campos booleanos marcados
+        if user.is_superuser:
+            return reverse_lazy('core:dashboard_admin')
         return reverse_lazy('core:dashboard_consultor')
 
 def custom_logout(request):
