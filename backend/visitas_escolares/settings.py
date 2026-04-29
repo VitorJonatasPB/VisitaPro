@@ -159,9 +159,12 @@ USE_TZ = True
 
 STATIC_URL = "static/"
 
-STATICFILES_DIRS = [
-    BASE_DIR.parent / "frontend" / "static",
-]
+import os
+
+STATICFILES_DIRS = []
+frontend_static = BASE_DIR.parent / "frontend" / "static"
+if frontend_static.exists():
+    STATICFILES_DIRS.append(frontend_static)
 
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
