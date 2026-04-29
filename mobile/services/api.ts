@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { addToQueue, getQueue } from './queue';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://novovisitaspro-production.up.railway.app';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://novorota99-production.up.railway.app';
 
 export const ENDPOINTS = {
   token: '/api/token/',
