@@ -34,7 +34,9 @@ dependencies = [
     "six (==1.17.0)",
     "sqlparse (==0.5.5)",
     "tablib (==3.9.0)",
-    "tzdata (==2025.3)"
+    "tzdata (==2025.3)",
+    "gunicorn (>=25.3.0,<26.0.0)",
+    "whitenoise (>=6.12.0,<7.0.0)"
 ]
 
 
