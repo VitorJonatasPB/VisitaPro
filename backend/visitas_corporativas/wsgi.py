@@ -1,5 +1,5 @@
 """
-WSGI config for visitas_escolares project.
+WSGI config for visitas_corporativas project.
 
 It exposes the WSGI callable as a module-level variable named ``application``.
 
@@ -11,6 +11,6 @@ import os
 
 from django.core.wsgi import get_wsgi_application
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_escolares.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_corporativas.settings')
 
 application = get_wsgi_application()

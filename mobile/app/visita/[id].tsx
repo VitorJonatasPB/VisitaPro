@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { carregarAgendaLocal, carregarPerguntasLocal, adicionarNaFila } from '@/services/storage';
-import { realizarCheckin, realizarCheckout, enviarRelatorio, VisitaAPI, PerguntaAPI, fetchProfessoresEscola, ProfessorAPI, fetchVisitaById, fetchPerguntas } from '@/services/api';
+import { realizarCheckin, realizarCheckout, enviarRelatorio, VisitaAPI, PerguntaAPI, fetchContatoesEmpresa, ContatoAPI, fetchVisitaById, fetchPerguntas } from '@/services/api';
 import { processarFilaDeSincronismo } from '@/services/sync';
 import SignatureScreen from 'react-native-signature-canvas';
 import * as DocumentPicker from 'expo-document-picker';
@@ -25,9 +25,9 @@ export default function VisitaDetalheScreen() {
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [showSignModal, setShowSignModal] = useState(false);
 
-  // Fase 6: Professores e Fotos
-  const [professores, setProfessores] = useState<ProfessorAPI[]>([]);
-  const [professoresSelecionados, setProfessoresSelecionados] = useState<number[]>([]);
+  // Fase 6: Contatoes e Fotos
+  const [contatoes, setContatoes] = useState<ContatoAPI[]>([]);
+  const [contatoesSelecionados, setContatoesSelecionados] = useState<number[]>([]);
   const [fotos, setFotos] = useState<string[]>([]);
 
   // Novo layout: Navegação interna e Docs
@@ -68,13 +68,13 @@ export default function VisitaDetalheScreen() {
       setPerguntas(pergsLocal);
     }
 
-    // 4. Carregar professores vinculados à escola
+    // 4. Carregar contatoes vinculados à empresa
     if (visitaEncontrada) {
       try {
-        const profs = await fetchProfessoresEscola(visitaEncontrada.id);
-        setProfessores(profs);
+        const profs = await fetchContatoesEmpresa(visitaEncontrada.id);
+        setContatoes(profs);
       } catch (e) {
-        console.log('Erro ao carregar professores da escola:', e);
+        console.log('Erro ao carregar contatoes da empresa:', e);
       }
     }
 
@@ -131,7 +131,7 @@ export default function VisitaDetalheScreen() {
   };
 
   const handleCheckin = async () => {
-    Alert.alert('Check-in', 'Confirmar chegada nesta escola?', [
+    Alert.alert('Check-in', 'Confirmar chegada nesta empresa?', [
       { text: 'Cancelar', style: 'cancel' },
       {
         text: 'Confirmar', onPress: async () => {
@@ -139,11 +139,11 @@ export default function VisitaDetalheScreen() {
           if (!gps || !visita) return;
 
           // Verificar Geofencing
-          const escolaLat = parseFloat(visita.escola?.latitude ?? '');
-          const escolaLng = parseFloat(visita.escola?.longitude ?? '');
+          const empresaLat = parseFloat(visita.empresa?.latitude ?? '');
+          const empresaLng = parseFloat(visita.empresa?.longitude ?? '');
 
-          if (!isNaN(escolaLat) && !isNaN(escolaLng)) {
-            const dist = haversineDistancia(gps.lat, gps.lng, escolaLat, escolaLng);
+          if (!isNaN(empresaLat) && !isNaN(empresaLng)) {
+            const dist = haversineDistancia(gps.lat, gps.lng, empresaLat, empresaLng);
             if (dist > 500) {
               // Guarda o GPS pendente e abre o modal de justificativa
               setPendingGps(gps);
@@ -188,7 +188,7 @@ export default function VisitaDetalheScreen() {
             if (gps) {
               chOutResult = await realizarCheckout(visita.id, gps.lat, gps.lng);
             }
-            const relResult = await enviarRelatorio(visita.id, respostasArray, assinatura, professoresSelecionados, fotos);
+            const relResult = await enviarRelatorio(visita.id, respostasArray, assinatura, contatoesSelecionados, fotos);
             
             if ((relResult && (relResult as any).offline) || (chOutResult && (chOutResult as any).offline)) {
                Alert.alert('📶 Salvo Offline', 'Relatório e check-out salvos. Serão enviados quando houver internet.', [
@@ -312,7 +312,7 @@ export default function VisitaDetalheScreen() {
             <Text style={styles.backBtnText}>Voltar</Text>
           </TouchableOpacity>
           <View style={{ flex: 1 }}>
-            <Text style={styles.schoolName}>{visita.escola_nome}</Text>
+            <Text style={styles.schoolName}>{visita.empresa_nome}</Text>
             <Text style={styles.visitaDate}>{visita.data} às {visita.horario.substring(0, 5)}</Text>
           </View>
         </View>
@@ -346,7 +346,7 @@ export default function VisitaDetalheScreen() {
         <View style={styles.menuContainer}>
           <TouchableOpacity style={[styles.menuBtn, activeMenu === 'info' && styles.menuBtnActive]} onPress={() => setActiveMenu('info')}>
             <IconSymbol name="info.circle" size={18} color={activeMenu === 'info' ? '#FFF' : '#94A3B8'} />
-            <Text style={[styles.menuBtnText, activeMenu === 'info' && styles.menuBtnTextActive]}>Escola</Text>
+            <Text style={[styles.menuBtnText, activeMenu === 'info' && styles.menuBtnTextActive]}>Empresa</Text>
           </TouchableOpacity>
           <TouchableOpacity style={[styles.menuBtn, activeMenu === 'relatorio' && styles.menuBtnActive]} onPress={() => setActiveMenu('relatorio')}>
             <IconSymbol name="doc.text" size={18} color={activeMenu === 'relatorio' ? '#FFF' : '#94A3B8'} />
@@ -362,18 +362,18 @@ export default function VisitaDetalheScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* ----------------- ABA INFO ESCOLA ----------------- */}
+        {/* ----------------- ABA INFO EMPRESA ----------------- */}
         {activeMenu === 'info' && (
           <View style={styles.tabContent}>
-            <Text style={styles.sectionTitle}>🏫 Dados da Escola</Text>
-            {visita.escola ? (
+            <Text style={styles.sectionTitle}>🏫 Dados da Empresa</Text>
+            {visita.empresa ? (
               <View style={styles.cardInfo}>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Nome:</Text><Text style={styles.infoValue}>{visita.escola.nome}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>CDE/Região:</Text><Text style={styles.infoValue}>{visita.escola.regiao_nome}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Telefone:</Text><Text style={styles.infoValue}>{visita.escola.telefone || 'N/A'}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Email:</Text><Text style={styles.infoValue}>{visita.escola.email || 'N/A'}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Status:</Text><Text style={styles.infoValue}>{visita.escola.status === 'A' ? 'Ativa' : 'Inativa'}</Text></View>
-                <View style={styles.infoRow}><Text style={styles.infoLabel}>Última Visita:</Text><Text style={styles.infoValue}>{visita.escola.ultima_visita || 'Nunca'}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>Nome:</Text><Text style={styles.infoValue}>{visita.empresa.nome}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>CDE/Região:</Text><Text style={styles.infoValue}>{visita.empresa.regiao_nome}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>Telefone:</Text><Text style={styles.infoValue}>{visita.empresa.telefone || 'N/A'}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>Email:</Text><Text style={styles.infoValue}>{visita.empresa.email || 'N/A'}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>Status:</Text><Text style={styles.infoValue}>{visita.empresa.status === 'A' ? 'Ativa' : 'Inativa'}</Text></View>
+                <View style={styles.infoRow}><Text style={styles.infoLabel}>Última Visita:</Text><Text style={styles.infoValue}>{visita.empresa.ultima_visita || 'Nunca'}</Text></View>
               </View>
             ) : (
               <Text style={styles.hintText2}>Dados detalhados não sincronizados para visualização offline. Conecte-se e abra a agenda novamente.</Text>
@@ -394,18 +394,18 @@ export default function VisitaDetalheScreen() {
             
             {perguntas.map(renderCampoPergunta)}
 
-            {/* Professores Atendidos */}
-            {professores.length > 0 && (
+            {/* Contatoes Atendidos */}
+            {contatoes.length > 0 && (
               <View style={styles.fieldContainer}>
-                <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 8 }]}>👥 Professores Atendidos</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 8 }]}>👥 Contatoes Atendidos</Text>
                 <View style={styles.opcoesContainer}>
-                  {professores.map((prof) => {
-                    const isSelected = professoresSelecionados.includes(prof.id);
+                  {contatoes.map((prof) => {
+                    const isSelected = contatoesSelecionados.includes(prof.id);
                     return (
                       <TouchableOpacity
                         key={prof.id}
                         style={[styles.opcaoBtn, isSelected && styles.opcaoBtnSelected]}
-                        onPress={() => setProfessoresSelecionados(prev => isSelected ? prev.filter(p => p !== prof.id) : [...prev, prof.id])}
+                        onPress={() => setContatoesSelecionados(prev => isSelected ? prev.filter(p => p !== prof.id) : [...prev, prof.id])}
                       >
                         <Text style={[styles.opcaoText, isSelected && styles.opcaoTextSelected]}>{prof.nome}</Text>
                       </TouchableOpacity>
@@ -516,7 +516,7 @@ export default function VisitaDetalheScreen() {
               <Text style={styles.geofenceTitle}>Check-in Fora do Raio</Text>
             </View>
             <Text style={styles.geofenceDesc}>
-              Você parece estar a mais de 500 metros da escola. Para continuar, explique o motivo:
+              Você parece estar a mais de 500 metros da empresa. Para continuar, explique o motivo:
             </Text>
             <TextInput
               style={styles.geofenceInput}

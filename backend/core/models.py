@@ -27,20 +27,20 @@ class Regiao(models.Model):
     def __str__(self):
         return f"{self.nome} - {self.cidade}"
 
-class Escola(models.Model):
+class Empresa(models.Model):
     STATUS_CHOICES = [
         ('A', 'Ativa'),
         ('I', 'Inativa'),
     ]
     
     nome = models.CharField(max_length=150)
-    regiao = models.ForeignKey(Regiao, on_delete=models.CASCADE, related_name='escolas', verbose_name="CDE / DDZ")
+    regiao = models.ForeignKey(Regiao, on_delete=models.CASCADE, related_name='empresas', verbose_name="CDE / DDZ")
     telefone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    consultor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='escolas')
+    consultor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='empresas')
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='A')
     frequencia_recomendada_dias = models.PositiveIntegerField(default=30)
-    consultores_autorizados = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='escolas_autorizadas', blank=True)
+    consultores_autorizados = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='empresas_autorizadas', blank=True)
     ultima_visita = models.DateField(null=True, blank=True)
     latitude = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: -23.550520")
     longitude = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: -46.633308")
@@ -55,7 +55,7 @@ class Visita(models.Model):
         ('cancelada', 'Cancelada'),
     ]
 
-    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='visitas')
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='visitas')
     consultor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='visitas')
     data = models.DateField()
     horario = models.TimeField()
@@ -64,7 +64,7 @@ class Visita(models.Model):
     relatorio = models.TextField(blank=True, null=True, help_text="Relatório preenchido pelo consultor")
     nome_responsavel = models.CharField(max_length=200, blank=True, null=True, help_text="Nome do responsável que assinou")
     assinatura = models.TextField(blank=True, null=True, help_text="Assinatura digitalizada em Base64")
-    professores_atendidos = models.ManyToManyField('Professor', related_name='visitas_participadas', blank=True)
+    contatoes_atendidos = models.ManyToManyField('Contato', related_name='visitas_participadas', blank=True)
     
     checkin_time = models.DateTimeField(blank=True, null=True)
     checkin_lat = models.CharField(max_length=50, blank=True, null=True)
@@ -84,7 +84,7 @@ class Visita(models.Model):
         ordering = ['-data', '-horario']
 
     def __str__(self):
-        return f"Visita {self.escola.nome} - {self.data} ({self.consultor.username})"
+        return f"Visita {self.empresa.nome} - {self.data} ({self.consultor.username})"
 
 class VisitaFoto(models.Model):
     visita = models.ForeignKey(Visita, on_delete=models.CASCADE, related_name='fotos')
@@ -109,18 +109,18 @@ class Disciplina(models.Model):
     def __str__(self):
         return self.nome
 
-class Professor(models.Model):
+class Contato(models.Model):
     nome = models.CharField(max_length=150)
     matricula = models.CharField(max_length=50, blank=True, null=True, verbose_name="Matrícula")
-    escola = models.ForeignKey(Escola, on_delete=models.CASCADE, related_name='professores')
-    disciplinas = models.ManyToManyField(Disciplina, related_name='professores', blank=True)
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='contatoes')
+    disciplinas = models.ManyToManyField(Disciplina, related_name='contatoes', blank=True)
     telefone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name_plural = "Professores"
+        verbose_name_plural = "Contatoes"
         
     def __str__(self):
         return f"{self.nome} ({self.matricula})" if self.matricula else self.nome
@@ -136,14 +136,14 @@ class PerguntaRelatorio(models.Model):
         ('lista_suspensa', 'Lista Suspensa'),
     ]
 
-    texto = models.CharField(max_length=255, help_text="Ex: A escola estava com as apostilas em dia?")
+    texto = models.CharField(max_length=255, help_text="Ex: A empresa estava com as apostilas em dia?")
     tipo_resposta = models.CharField(max_length=30, choices=TIPO_CHOICES, default='texto')
     opcoes_resposta = models.CharField(max_length=500, blank=True, null=True, help_text="Para Múltipla Escolha ou Lista Suspensa manual. Separe por vírgula.")
     fonte_dados = models.CharField(
         max_length=50,
         blank=True,
         null=True,
-        help_text="Apenas para Lista Suspensa. Chave da fonte registrada em data_sources.py (ex: 'professores'). Deixe em branco para opções manuais."
+        help_text="Apenas para Lista Suspensa. Chave da fonte registrada em data_sources.py (ex: 'contatoes'). Deixe em branco para opções manuais."
     )
     ativa = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)

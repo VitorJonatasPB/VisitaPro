@@ -1,17 +1,17 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Excluir Professor - Visitas Escolares{% endblock %}
+{% block title %}Excluir Contato - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h4 fw-bold">Excluir Professor</h1>
+    <h1 class="h4 fw-bold">Excluir Contato</h1>
 </div>
 
 <div class="card shadow-sm col-lg-6">
     <div class="card-body">
         <h5 class="card-title text-danger">Tem certeza que deseja excluir?</h5>
         <p class="card-text">
-            Você está prestes a excluir o(a) professor(a) <strong>{{ object.nome }}</strong>.
+            Você está prestes a excluir o(a) contato(a) <strong>{{ object.nome }}</strong>.
             Esta ação não pode ser desfeita.
         </p>
         
@@ -19,7 +19,7 @@
             {% csrf_token %}
             <div class="mt-4 pt-2 border-top d-flex gap-2">
                 <button type="submit" class="btn btn-danger"><i class="fas fa-trash me-1"></i> Sim, Excluir</button>
-                <a href="{% url 'core:professor_list' %}" class="btn btn-secondary">Cancelar</a>
+                <a href="{% url 'core:contato_list' %}" class="btn btn-secondary">Cancelar</a>
             </div>
         </form>
     </div>

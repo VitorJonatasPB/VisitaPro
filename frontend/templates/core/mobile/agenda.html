@@ -31,12 +31,12 @@
             <div class="card mobile-card {{ visita.status }}">
                 <div class="card-body">
                     <div class="d-flex justify-content-between">
-                        <h5 class="card-title fw-bold text-dark">{{ visita.escola.nome }}</h5>
+                        <h5 class="card-title fw-bold text-dark">{{ visita.empresa.nome }}</h5>
                         <span class="badge {% if visita.status == 'agendada' %}bg-primary{% elif visita.status == 'realizada' %}bg-success{% else %}bg-danger{% endif %} align-self-start">{{ visita.get_status_display }}</span>
                     </div>
                     
                     <p class="mb-1 text-muted small"><i class="fas fa-calendar-alt me-1"></i> {{ visita.data|date:"d/m/Y" }} às {{ visita.horario|time:"H:i" }}</p>
-                    <p class="mb-3 text-muted small"><i class="fas fa-map-marker-alt me-1"></i> {{ visita.escola.regiao.nome }} ({{ visita.escola.regiao.cidade }})</p>
+                    <p class="mb-3 text-muted small"><i class="fas fa-map-marker-alt me-1"></i> {{ visita.empresa.regiao.nome }} ({{ visita.empresa.regiao.cidade }})</p>
                     
                     <a href="{% url 'core:mobile_relatorio' visita.id %}" class="btn btn-primary w-100 rounded-pill fw-bold">
                         {% if visita.status == 'realizada' and visita.assinatura %}

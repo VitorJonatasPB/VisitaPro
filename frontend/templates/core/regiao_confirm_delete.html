@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Excluir Região - Visitas Escolares{% endblock %}
+{% block title %}Excluir Região - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -10,7 +10,7 @@
 <div class="card shadow-sm border-danger col-md-6">
     <div class="card-body">
         <h5 class="card-title">Você tem certeza que deseja excluir a região "{{ object.nome }}"?</h5>
-        <p class="card-text text-muted">Aviso: Esta ação não pode ser desfeita. Se houver cidades ou escolas vinculadas, elas também poderão ser afetadas ou a exclusão será bloqueada.</p>
+        <p class="card-text text-muted">Aviso: Esta ação não pode ser desfeita. Se houver cidades ou empresas vinculadas, elas também poderão ser afetadas ou a exclusão será bloqueada.</p>
         
         <form method="post" class="mt-4">
             {% csrf_token %}

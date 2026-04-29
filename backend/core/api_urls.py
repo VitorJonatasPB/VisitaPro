@@ -22,13 +22,13 @@ urlpatterns = [
     path('visitas/<int:visita_id>/checkin/', api_views.fazer_checkin, name='api-checkin'),
     path('visitas/<int:visita_id>/checkout/', api_views.fazer_checkout, name='api-checkout'),
     path('visitas/<int:visita_id>/responder/', api_views.enviar_relatorio, name='api-responder'),
-    path('visitas/<int:visita_id>/professores/', api_views.professores_escola, name='api-professores'),
+    path('visitas/<int:visita_id>/contatoes/', api_views.contatoes_empresa, name='api-contatoes'),
 
     # Meu Perfil e Bugs
     path('users/me/', api_views.meu_perfil, name='api-meu-perfil'),
     path('bugs/', api_views.reportar_bug, name='api-reportar-bug'),
 
     # Listagem global do consultor
-    path('escolas/', api_views.lista_escolas, name='api-lista-escolas'),
-    path('professores/', api_views.lista_professores, name='api-lista-professores'),
+    path('empresas/', api_views.lista_empresas, name='api-lista-empresas'),
+    path('contatoes/', api_views.lista_contatoes, name='api-lista-contatoes'),
 ]

@@ -3,7 +3,7 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>{% block title %}Gestão Visitas Escolares{% endblock %}</title>
+    <title>{% block title %}Gestão Visitas Corporativas{% endblock %}</title>
     <!-- PWA Setup -->
     <link rel="manifest" href="{% url 'core:manifest' %}">
     <meta name="theme-color" content="#0d6efd">
@@ -231,7 +231,7 @@
           <div class="offcanvas-body flex-column">
             <div class="text-center mb-4 d-none d-md-block">
               <i class="fas fa-school fa-3x mb-2 text-primary"></i>
-              <h5>Visitas Escolares</h5>
+              <h5>Visitas Corporativas</h5>
               <small>{{ user.get_full_name|default:user.username }}</small>
             </div>
             
@@ -245,10 +245,10 @@
               <a href="{% url 'core:dashboard_admin' %}"
                 class="{% if request.resolver_match.url_name == 'dashboard_admin' %}active{% endif %}"><i class="fas fa-chart-line me-2"></i> Dashboard</a
               >
-              <a href="{% url 'core:escola_list' %}"
-                 class="{% if 'escola' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Escolas</a>
-              <a href="{% url 'core:professor_list' %}"
-                 class="{% if 'professor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Professores</a>
+              <a href="{% url 'core:empresa_list' %}"
+                 class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Empresas</a>
+              <a href="{% url 'core:contato_list' %}"
+                 class="{% if 'contato' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Contatoes</a>
               <a href="{% url 'core:consultor_list' %}"
                  class="{% if 'consultor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-users me-2"></i> Consultores</a>
               <a href="{% url 'core:regiao_list' %}"
@@ -270,10 +270,10 @@
               {% else %}
               <a href="{% url 'core:dashboard_consultor' %}"
                  class="{% if request.resolver_match.url_name == 'dashboard_consultor' %}active{% endif %}"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
-              <a href="{% url 'core:escola_list' %}"
-                 class="{% if 'escola' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Minhas Escolas</a>
-              <a href="{% url 'core:professor_list' %}"
-                 class="{% if 'professor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Professores</a>
+              <a href="{% url 'core:empresa_list' %}"
+                 class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Minhas Empresas</a>
+              <a href="{% url 'core:contato_list' %}"
+                 class="{% if 'contato' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Contatoes</a>
               
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>

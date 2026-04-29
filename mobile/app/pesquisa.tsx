@@ -46,7 +46,7 @@ export default function PesquisaScreen() {
 
   // Filtragem (Texto + Chips)
   const filtradas = visitas.filter((v) => {
-    const textMatch = searchText.trim() === '' || v.escola_nome.toLowerCase().includes(searchText.toLowerCase());
+    const textMatch = searchText.trim() === '' || v.empresa_nome.toLowerCase().includes(searchText.toLowerCase());
     if (!textMatch) return false;
 
     if (activeFilter === 'execucao') return v.checkin_time && v.status !== 'realizada';
@@ -106,7 +106,7 @@ export default function PesquisaScreen() {
           <IconSymbol name="magnifyingglass" size={18} color="#64748B" />
           <TextInput
             style={styles.searchInput}
-            placeholder="Digite o nome da escola..."
+            placeholder="Digite o nome da empresa..."
             placeholderTextColor="#64748B"
             value={searchText}
             onChangeText={setSearchText}
@@ -177,7 +177,7 @@ export default function PesquisaScreen() {
                 ]}
               >
                 <View style={styles.visitaHeader}>
-                  <Text style={styles.visitaNome} numberOfLines={1}>{visita.escola_nome}</Text>
+                  <Text style={styles.visitaNome} numberOfLines={1}>{visita.empresa_nome}</Text>
                   {visita.status === 'realizada' ? (
                     <View style={styles.badgeSuccess}><Text style={styles.badgeText}>Realizada</Text></View>
                   ) : visita.checkin_time ? (

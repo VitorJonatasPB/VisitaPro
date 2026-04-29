@@ -42,11 +42,11 @@ urlpatterns = [
     path('consultores/<int:pk>/editar/', views.ConsultorUpdateView.as_view(), name='consultor_update'),
     path('consultores/<int:pk>/excluir/', views.ConsultorDeleteView.as_view(), name='consultor_delete'),
 
-    # Escola
-    path('escolas/', views.EscolaListView.as_view(), name='escola_list'),
-    path('escolas/nova/', views.EscolaCreateView.as_view(), name='escola_create'),
-    path('escolas/<int:pk>/editar/', views.EscolaUpdateView.as_view(), name='escola_update'),
-    path('escolas/<int:pk>/excluir/', views.EscolaDeleteView.as_view(), name='escola_delete'),
+    # Empresa
+    path('empresas/', views.EmpresaListView.as_view(), name='empresa_list'),
+    path('empresas/nova/', views.EmpresaCreateView.as_view(), name='empresa_create'),
+    path('empresas/<int:pk>/editar/', views.EmpresaUpdateView.as_view(), name='empresa_update'),
+    path('empresas/<int:pk>/excluir/', views.EmpresaDeleteView.as_view(), name='empresa_delete'),
 
     # Agenda / Visitas
     path('agenda/', views.AgendaView.as_view(), name='agenda'),
@@ -65,13 +65,13 @@ urlpatterns = [
     # Configuração PWA (Mobile) - Convertido para Módulo do Consultor (Relatório)
     path('agenda/<int:pk>/relatorio/', views.RelatorioVisitaView.as_view(), name='visita_relatorio'),
 
-    # Professor
-    path('professores/', views.ProfessorListView.as_view(), name='professor_list'),
-    path('professores/novo/', views.ProfessorCreateView.as_view(), name='professor_create'),
-    path('professores/<int:pk>/editar/', views.ProfessorUpdateView.as_view(), name='professor_update'),
-    path('professores/<int:pk>/excluir/', views.ProfessorDeleteView.as_view(), name='professor_delete'),
+    # Contato
+    path('contatoes/', views.ContatoListView.as_view(), name='contato_list'),
+    path('contatoes/novo/', views.ContatoCreateView.as_view(), name='contato_create'),
+    path('contatoes/<int:pk>/editar/', views.ContatoUpdateView.as_view(), name='contato_update'),
+    path('contatoes/<int:pk>/excluir/', views.ContatoDeleteView.as_view(), name='contato_delete'),
 
     # Imports
-    path('importar/escolas/', views.importar_escolas, name='importar_escolas'),
-    path('importar/professores/', views.importar_professores, name='importar_professores'),
+    path('importar/empresas/', views.importar_empresas, name='importar_empresas'),
+    path('importar/contatoes/', views.importar_contatoes, name='importar_contatoes'),
 ]

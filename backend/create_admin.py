@@ -1,7 +1,7 @@
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_escolares.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_corporativas.settings')
 django.setup()
 
 from core.models import CustomUser

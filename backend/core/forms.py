@@ -2,7 +2,7 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.contrib.auth.models import Group
-from .models import Regiao, Escola, Visita, Professor, Disciplina, PerguntaRelatorio
+from .models import Regiao, Empresa, Visita, Contato, Disciplina, PerguntaRelatorio
 from .data_sources import get_data_source_choices
 
 User = get_user_model()
@@ -88,9 +88,9 @@ class AdminUserForm(forms.ModelForm):
             self.save_m2m() # Importante salvar grants m2m
         return user
 
-class EscolaForm(forms.ModelForm):
+class EmpresaForm(forms.ModelForm):
     class Meta:
-        model = Escola
+        model = Empresa
         fields = ['nome', 'regiao', 'telefone', 'email', 'consultor', 'status', 'frequencia_recomendada_dias', 'consultores_autorizados', 'latitude', 'longitude']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
@@ -108,9 +108,9 @@ class EscolaForm(forms.ModelForm):
 class VisitaForm(forms.ModelForm):
     class Meta:
         model = Visita
-        fields = ['escola', 'consultor', 'data', 'horario', 'status', 'observacoes']
+        fields = ['empresa', 'consultor', 'data', 'horario', 'status', 'observacoes']
         widgets = {
-            'escola': forms.Select(attrs={'class': 'form-select', 'id': 'id_escola'}),
+            'empresa': forms.Select(attrs={'class': 'form-select', 'id': 'id_empresa'}),
             'consultor': forms.Select(attrs={'class': 'form-select', 'id': 'id_consultor'}),
             'data': forms.DateInput(attrs={'class': 'form-control', 'type': 'date'}),
             'horario': forms.TimeInput(attrs={'class': 'form-control', 'type': 'time'}),
@@ -124,7 +124,7 @@ class VisitaForm(forms.ModelForm):
         super(VisitaForm, self).__init__(*args, **kwargs)
         if user:
             if not getattr(user, 'is_admin', False) and not user.is_superuser:
-                self.fields['escola'].queryset = Escola.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+                self.fields['empresa'].queryset = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
                 if 'consultor' in self.fields:
                     del self.fields['consultor']
             else:
@@ -165,10 +165,10 @@ class RelatorioVisitaForm(forms.ModelForm):
     fotos = MultipleFileField(required=False)
     class Meta:
         model = Visita
-        fields = ['status', 'professores_atendidos', 'relatorio', 'nome_responsavel', 'assinatura', 'checkin_time', 'checkin_lat', 'checkin_lng', 'checkout_time', 'checkout_lat', 'checkout_lng']
+        fields = ['status', 'contatoes_atendidos', 'relatorio', 'nome_responsavel', 'assinatura', 'checkin_time', 'checkin_lat', 'checkin_lng', 'checkout_time', 'checkout_lat', 'checkout_lng']
         widgets = {
             'status': forms.Select(attrs={'class': 'form-select form-select-lg mb-3'}),
-            'professores_atendidos': forms.SelectMultiple(attrs={'class': 'form-select', 'data-placeholder': 'Selecione os professores atendidos...'}),
+            'contatoes_atendidos': forms.SelectMultiple(attrs={'class': 'form-select', 'data-placeholder': 'Selecione os contatoes atendidos...'}),
             'relatorio': forms.Textarea(attrs={'class': 'form-control', 'rows': 4, 'placeholder': 'Descreva detalhadamente o relato e atividades da visita...'}),
             'nome_responsavel': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome do Responsável'}),
             'assinatura': forms.HiddenInput(),
@@ -182,8 +182,8 @@ class RelatorioVisitaForm(forms.ModelForm):
 
     def __init__(self, *args, **kwargs):
         super(RelatorioVisitaForm, self).__init__(*args, **kwargs)
-        if self.instance and hasattr(self.instance, 'escola'):
-            self.fields['professores_atendidos'].queryset = Professor.objects.filter(escola=self.instance.escola).order_by('nome')
+        if self.instance and hasattr(self.instance, 'empresa'):
+            self.fields['contatoes_atendidos'].queryset = Contato.objects.filter(empresa=self.instance.empresa).order_by('nome')
 
 class DisciplinaForm(forms.ModelForm):
     class Meta:
@@ -193,14 +193,14 @@ class DisciplinaForm(forms.ModelForm):
             'nome': forms.TextInput(attrs={'class': 'form-control', 'placeholder': 'Nome da Disciplina'})
         }
 
-class ProfessorForm(forms.ModelForm):
+class ContatoForm(forms.ModelForm):
     class Meta:
-        model = Professor
-        fields = ['nome', 'matricula', 'escola', 'disciplinas', 'telefone', 'email']
+        model = Contato
+        fields = ['nome', 'matricula', 'empresa', 'disciplinas', 'telefone', 'email']
         widgets = {
             'nome': forms.TextInput(attrs={'class': 'form-control'}),
             'matricula': forms.TextInput(attrs={'class': 'form-control'}),
-            'escola': forms.Select(attrs={'class': 'form-select'}),
+            'empresa': forms.Select(attrs={'class': 'form-select'}),
             'disciplinas': forms.SelectMultiple(attrs={'class': 'form-select'}),
             'telefone': forms.TextInput(attrs={'class': 'form-control'}),
             'email': forms.EmailInput(attrs={'class': 'form-control'})

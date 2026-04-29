@@ -1,6 +1,6 @@
-# Projeto Rota99
+# Projeto VisitasPro
 
-**Rota99:** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas escolas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das escolas, professores, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na escola e preencher os relatórios.
+**VisitasPro:** é um sistema que foi criado para organizar e controlar as visitas que os consultores fazem nas empresas. Ele tem duas partes principais: um painel na web onde fica todo o cadastro (das empresas, contatoes, regiões, etc.) e um aplicativo de celular que o consultor usa na rua para registrar que chegou na empresa e preencher os relatórios.
 
 ---
 
@@ -38,7 +38,7 @@ O sistema foi dividido em três camadas principais:
 
 ## Funcionalidades do Aplicativo
 
-- **Ponto com GPS (Check-in e Check-out):** O aplicativo utiliza o _expo-location_ para capturar a localização do consultor no momento do check-in e check-out, enviando as coordenadas para o back-end para validação de proximidade com a escola.
+- **Ponto com GPS (Check-in e Check-out):** O aplicativo utiliza o _expo-location_ para capturar a localização do consultor no momento do check-in e check-out, enviando as coordenadas para o back-end para validação de proximidade com a empresa.
 - **Responder Questionários:** O sistema permite a criação de questionários dinâmicos pelo painel web, que são exibidos ao consultor no aplicativo para coleta de informações, notas e status de arquivos.
 - **Assinatura na Tela:** A funcionalidade de assinatura é implementada através do _react-native-signature-canvas_, permitindo que o consultor colete a assinatura do responsável na tela do dispositivo. A assinatura é convertida em string (Base64) e salva no servidor.
 - **Modo Offline:** O aplicativo suporta operação offline, armazenando as respostas localmente utilizando o _AsyncStorage_ e sincronizando com o back-end quando a conexão com a internet é restabelecida.
@@ -61,8 +61,8 @@ Siga o passo a passo padrão:
 **1. Clone o repositório:**
 
 ```bash
-git clone https://github.com/SEU-USUARIO/rota99.git
-cd rota99
+git clone https://github.com/SEU-USUARIO/visitaspro.git
+cd visitaspro
 ```
 
 **2. Instale as dependências com o Poetry:**

@@ -8,8 +8,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 import json
 from django.conf import settings
-from .models import Regiao, Escola, Visita, CustomUser, Professor, Disciplina, PerguntaRelatorio, RespostaRelatorio
-from .forms import RegiaoForm, ConsultorForm, AdminUserForm, EscolaForm, VisitaForm, RelatorioVisitaForm, ProfessorForm, DisciplinaForm, PerguntaRelatorioForm, GroupForm
+from .models import Regiao, Empresa, Visita, CustomUser, Contato, Disciplina, PerguntaRelatorio, RespostaRelatorio
+from .forms import RegiaoForm, ConsultorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, ContatoForm, DisciplinaForm, PerguntaRelatorioForm, GroupForm
 from django.contrib.auth.models import Group
 import pandas as pd
 from django.contrib import messages
@@ -91,16 +91,16 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         context['consultores_ativos'] = CustomUser.objects.filter(is_consultor=True, is_active=True).count()
         
         from django.db.models import Q
-        escolas_qs = Escola.objects.all()
+        empresas_qs = Empresa.objects.all()
         if consultor_id:
-            escolas_qs = escolas_qs.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
-        context['total_escolas'] = escolas_qs.count()
+            empresas_qs = empresas_qs.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
+        context['total_empresas'] = empresas_qs.count()
         
-        from .models import Professor
-        professores_qs = Professor.objects.all()
+        from .models import Contato
+        contatoes_qs = Contato.objects.all()
         if consultor_id:
-            professores_qs = professores_qs.filter(escola__in=escolas_qs).distinct()
-        context['total_professores'] = professores_qs.count()
+            contatoes_qs = contatoes_qs.filter(empresa__in=empresas_qs).distinct()
+        context['total_contatoes'] = contatoes_qs.count()
         
         # Últimas visitas
         ultimas_visitas = Visita.objects.all().order_by('-data', '-horario')
@@ -108,27 +108,27 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
             ultimas_visitas = ultimas_visitas.filter(consultor_id=consultor_id)
         context['ultimas_visitas'] = ultimas_visitas[:5]
 
-        # Escolas no Mapa (se tiver filtro, mostra só as dele)
+        # Empresas no Mapa (se tiver filtro, mostra só as dele)
         from django.db.models import Q
-        escolas = Escola.objects.exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='')
+        empresas = Empresa.objects.exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='')
         if consultor_id:
-            escolas = escolas.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
+            empresas = empresas.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
             
-        escolas_mapa = []
-        for e in escolas:
+        empresas_mapa = []
+        for e in empresas:
             cor = e.consultor.cor_mapa if e.consultor and hasattr(e.consultor, 'cor_mapa') else '#3B82F6'
             nome_consultor = e.consultor.get_full_name() or e.consultor.username if e.consultor else 'Sem consultor'
-            escolas_mapa.append({
+            empresas_mapa.append({
                 'nome': e.nome,
                 'lat': e.latitude,
                 'lng': e.longitude,
-                'url': str(reverse_lazy('core:escola_update', kwargs={'pk': e.id})),
+                'url': str(reverse_lazy('core:empresa_update', kwargs={'pk': e.id})),
                 'cor': cor,
                 'consultor': nome_consultor,
             })
-        context['escolas_mapa'] = json.dumps(escolas_mapa)
+        context['empresas_mapa'] = json.dumps(empresas_mapa)
         
-        # Métrica p/ Gráfico de Colunas: Professores Atendidos nos últimos 6 meses
+        # Métrica p/ Gráfico de Colunas: Contatoes Atendidos nos últimos 6 meses
         grafico_labels = []
         grafico_data = []
         
@@ -143,37 +143,37 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
             if consultor_id:
                 visitas_mes_ano = visitas_mes_ano.filter(consultor_id=consultor_id)
                 
-            escolas_ids = set([v.escola.id for v in visitas_mes_ano])
-            from .models import Professor
-            total_professores = Professor.objects.filter(escola__id__in=escolas_ids).count()
+            empresas_ids = set([v.empresa.id for v in visitas_mes_ano])
+            from .models import Contato
+            total_contatoes = Contato.objects.filter(empresa__id__in=empresas_ids).count()
             
             nome_mes = calendar.month_abbr[mes]
             meses_ptbr = {1:'Jan', 2:'Fev', 3:'Mar', 4:'Abr', 5:'Mai', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Set', 10:'Out', 11:'Nov', 12:'Dez'}
             nome_mes_br = meses_ptbr.get(mes, '')
             
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
-            grafico_data.append(total_professores)
+            grafico_data.append(total_contatoes)
             
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Métrica p/ Gráfico de Rosca: % de Professores Atendidos no Total Geral
-        # Para isso, precisamos ver todos os professores que já participaram de pelo menos 1 visita realizada
+        # Métrica p/ Gráfico de Rosca: % de Contatoes Atendidos no Total Geral
+        # Para isso, precisamos ver todos os contatoes que já participaram de pelo menos 1 visita realizada
         import math
         visitas_para_rosca = Visita.objects.filter(status='realizada')
         if consultor_id:
             visitas_para_rosca = visitas_para_rosca.filter(consultor_id=consultor_id)
             
-        professores_atendidos_ids = set()
+        contatoes_atendidos_ids = set()
         for v in visitas_para_rosca:
-            for p in v.professores_atendidos.all():
-                professores_atendidos_ids.add(p.id)
+            for p in v.contatoes_atendidos.all():
+                contatoes_atendidos_ids.add(p.id)
                 
-        total_atendidos_unicos = len(professores_atendidos_ids)
-        total_professores_geral = context.get('total_professores', 0)
+        total_atendidos_unicos = len(contatoes_atendidos_ids)
+        total_contatoes_geral = context.get('total_contatoes', 0)
         
-        if total_professores_geral > 0:
-            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_professores_geral) * 100)
+        if total_contatoes_geral > 0:
+            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_contatoes_geral) * 100)
         else:
             porcentagem_atendidos = 0
             
@@ -195,16 +195,16 @@ class ServiceWorkerView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        escolas = Escola.objects.exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='')
-        escolas_mapa = []
-        for e in escolas:
-            escolas_mapa.append({
+        empresas = Empresa.objects.exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='')
+        empresas_mapa = []
+        for e in empresas:
+            empresas_mapa.append({
                 'nome': e.nome,
                 'lat': e.latitude,
                 'lng': e.longitude,
-                'url': str(reverse_lazy('core:escola_update', kwargs={'pk': e.id}))
+                'url': str(reverse_lazy('core:empresa_update', kwargs={'pk': e.id}))
             })
-        context['escolas_mapa'] = json.dumps(escolas_mapa)
+        context['empresas_mapa'] = json.dumps(empresas_mapa)
         return context
 
 # -- CRUD REGIÃO --
@@ -254,16 +254,16 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         from django.db.models import Q
-        escolas = Escola.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='').distinct()
-        escolas_mapa = []
-        for e in escolas:
-            escolas_mapa.append({
+        empresas = Empresa.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='').distinct()
+        empresas_mapa = []
+        for e in empresas:
+            empresas_mapa.append({
                 'nome': e.nome,
                 'lat': e.latitude,
                 'lng': e.longitude,
-                'url': str(reverse_lazy('core:escola_update', kwargs={'pk': e.id}))
+                'url': str(reverse_lazy('core:empresa_update', kwargs={'pk': e.id}))
             })
-        context['escolas_mapa'] = json.dumps(escolas_mapa)
+        context['empresas_mapa'] = json.dumps(empresas_mapa)
         
         # Avatar (Iniciais)
         iniciais = ""
@@ -307,11 +307,11 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
             data=hoje
         ).order_by('horario')
         
-        context['total_escolas'] = escolas.count()
-        from .models import Professor
-        context['total_professores'] = Professor.objects.filter(escola__in=escolas).distinct().count()
+        context['total_empresas'] = empresas.count()
+        from .models import Contato
+        context['total_contatoes'] = Contato.objects.filter(empresa__in=empresas).distinct().count()
         
-        # Métrica p/ Gráfico de Pizza: Professores Atendidos nos últimos 6 meses
+        # Métrica p/ Gráfico de Pizza: Contatoes Atendidos nos últimos 6 meses
         grafico_labels = []
         grafico_data = []
         
@@ -326,12 +326,12 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
             # Buscar visitas 'realizadas' naquele mes/ano para o consultor
             visitas_mes_ano = Visita.objects.filter(consultor=user, data__year=ano, data__month=mes, status='realizada')
             
-            # Pegar o ID de todas as escolas dessas visitas
-            escolas_ids = set([v.escola.id for v in visitas_mes_ano])
+            # Pegar o ID de todas as empresas dessas visitas
+            empresas_ids = set([v.empresa.id for v in visitas_mes_ano])
             
-            # Contar total de professores dessas escolas
-            from .models import Professor
-            total_professores = Professor.objects.filter(escola__id__in=escolas_ids).count()
+            # Contar total de contatoes dessas empresas
+            from .models import Contato
+            total_contatoes = Contato.objects.filter(empresa__id__in=empresas_ids).count()
             
             # Formatando o Nome do mes
             nome_mes = calendar.month_abbr[mes]  # ex: 'Jan', 'Feb' (Nota: por padrão pt-BR de locale, não tem no Django sem Babel, usaremos um mapa fixo p/ BR se preferível mas calendar é ok)
@@ -339,25 +339,25 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
             nome_mes_br = meses_ptbr.get(mes, '')
             
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
-            grafico_data.append(total_professores)
+            grafico_data.append(total_contatoes)
             
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Métrica p/ Gráfico de Rosca: % de Professores Atendidos no Total Geral do Consultor
+        # Métrica p/ Gráfico de Rosca: % de Contatoes Atendidos no Total Geral do Consultor
         import math
         visitas_para_rosca = Visita.objects.filter(consultor=user, status='realizada')
         
-        professores_atendidos_ids = set()
+        contatoes_atendidos_ids = set()
         for v in visitas_para_rosca:
-            for p in v.professores_atendidos.all():
-                professores_atendidos_ids.add(p.id)
+            for p in v.contatoes_atendidos.all():
+                contatoes_atendidos_ids.add(p.id)
                 
-        total_atendidos_unicos = len(professores_atendidos_ids)
-        total_professores_geral = context.get('total_professores', 0)
+        total_atendidos_unicos = len(contatoes_atendidos_ids)
+        total_contatoes_geral = context.get('total_contatoes', 0)
         
-        if total_professores_geral > 0:
-            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_professores_geral) * 100)
+        if total_contatoes_geral > 0:
+            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_contatoes_geral) * 100)
         else:
             porcentagem_atendidos = 0
             
@@ -404,11 +404,11 @@ class ConsultorDeleteView(AdminRequiredMixin, DeleteView):
     template_name = 'core/consultor_confirm_delete.html'
     success_url = reverse_lazy('core:consultor_list')
 
-# -- CRUD ESCOLA --
-class EscolaListView(LoginRequiredMixin, ListView):
-    model = Escola
-    template_name = 'core/escola_list.html'
-    context_object_name = 'escolas'
+# -- CRUD EMPRESA --
+class EmpresaListView(LoginRequiredMixin, ListView):
+    model = Empresa
+    template_name = 'core/empresa_list.html'
+    context_object_name = 'empresas'
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -433,7 +433,7 @@ class EscolaListView(LoginRequiredMixin, ListView):
             qs = qs.filter(consultor_id=consultor_id)
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            # Retorna apenas as escolas que esse consultor está designado como titular ou autorizado
+            # Retorna apenas as empresas que esse consultor está designado como titular ou autorizado
             from django.db.models import Q
             qs = qs.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
         return qs
@@ -448,17 +448,17 @@ class EscolaListView(LoginRequiredMixin, ListView):
             context['consultores_list'] = CustomUser.objects.filter(is_consultor=True)
         return context
 
-class EscolaCreateView(AdminRequiredMixin, CreateView):
-    model = Escola
-    form_class = EscolaForm
-    template_name = 'core/escola_form.html'
-    success_url = reverse_lazy('core:escola_list')
+class EmpresaCreateView(AdminRequiredMixin, CreateView):
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = 'core/empresa_form.html'
+    success_url = reverse_lazy('core:empresa_list')
 
-class EscolaUpdateView(LoginRequiredMixin, UpdateView):
-    model = Escola
-    form_class = EscolaForm
-    template_name = 'core/escola_form.html'
-    success_url = reverse_lazy('core:escola_list')
+class EmpresaUpdateView(LoginRequiredMixin, UpdateView):
+    model = Empresa
+    form_class = EmpresaForm
+    template_name = 'core/empresa_form.html'
+    success_url = reverse_lazy('core:empresa_list')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -475,10 +475,10 @@ class EscolaUpdateView(LoginRequiredMixin, UpdateView):
             raise PermissionDenied("Apenas administradores podem editar.")
         return super().post(request, *args, **kwargs)
 
-class EscolaDeleteView(AdminRequiredMixin, DeleteView):
-    model = Escola
-    template_name = 'core/escola_confirm_delete.html'
-    success_url = reverse_lazy('core:escola_list')
+class EmpresaDeleteView(AdminRequiredMixin, DeleteView):
+    model = Empresa
+    template_name = 'core/empresa_confirm_delete.html'
+    success_url = reverse_lazy('core:empresa_list')
 
 # -- AGENDA / VISITAS --
 class AgendaView(LoginRequiredMixin, TemplateView):
@@ -624,12 +624,12 @@ class VisitaCreateView(LoginRequiredMixin, CreateView):
         import json
         user = self.request.user
         if getattr(user, 'is_admin', False) or user.is_superuser:
-            escolas = Escola.objects.all()
+            empresas = Empresa.objects.all()
         else:
             from django.db.models import Q
-            escolas = Escola.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
-        escola_consultor_map = {e.id: e.consultor.id for e in escolas if e.consultor}
-        context['escola_consultor_map'] = json.dumps(escola_consultor_map)
+            empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+        empresa_consultor_map = {e.id: e.consultor.id for e in empresas if e.consultor}
+        context['empresa_consultor_map'] = json.dumps(empresa_consultor_map)
         context['is_edit'] = False
         return context
 
@@ -655,21 +655,21 @@ class VisitaUpdateView(AdminRequiredMixin, UpdateView):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         if getattr(user, 'is_admin', False) or user.is_superuser:
-            escolas = Escola.objects.all()
+            empresas = Empresa.objects.all()
         else:
             from django.db.models import Q
-            escolas = Escola.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
-        escola_consultor_map = {e.id: e.consultor.id for e in escolas if e.consultor}
-        context['escola_consultor_map'] = json.dumps(escola_consultor_map)
+            empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+        empresa_consultor_map = {e.id: e.consultor.id for e in empresas if e.consultor}
+        context['empresa_consultor_map'] = json.dumps(empresa_consultor_map)
         context['is_edit'] = True
 
         # Mapa de auditoria de GPS
         visita = self.get_object()
         context['auditoria_checkin_lat'] = visita.checkin_lat or ''
         context['auditoria_checkin_lng'] = visita.checkin_lng or ''
-        context['auditoria_escola_lat'] = visita.escola.latitude or ''
-        context['auditoria_escola_lng'] = visita.escola.longitude or ''
-        context['auditoria_escola_nome'] = visita.escola.nome
+        context['auditoria_empresa_lat'] = visita.empresa.latitude or ''
+        context['auditoria_empresa_lng'] = visita.empresa.longitude or ''
+        context['auditoria_empresa_nome'] = visita.empresa.nome
         context['justificativa_distancia'] = visita.justificativa_distancia or ''
         return context
 
@@ -702,7 +702,7 @@ class VisitasAPIView(LoginRequiredMixin, View):
 
             events.append({
                 'id': v.id,
-                'title': f"{v.escola.nome} ({v.consultor.username})",
+                'title': f"{v.empresa.nome} ({v.consultor.username})",
                 'start': f"{v.data.isoformat()}T{v.horario.isoformat()}",
                 'backgroundColor': color,
                 'borderColor': color,
@@ -784,50 +784,50 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
             )
         return response
 
-# -- CRUD PROFESSOR --
-class ProfessorListView(LoginRequiredMixin, ListView):
-    model = Professor
-    template_name = 'core/professor_list.html'
-    context_object_name = 'professores'
+# -- CRUD CONTATO --
+class ContatoListView(LoginRequiredMixin, ListView):
+    model = Contato
+    template_name = 'core/contato_list.html'
+    context_object_name = 'contatoes'
     
     def get_queryset(self):
         qs = super().get_queryset()
         user = self.request.user
 
         nome = self.request.GET.get('nome')
-        escola_id = self.request.GET.get('escola')
+        empresa_id = self.request.GET.get('empresa')
 
         if nome:
             qs = qs.filter(nome__icontains=nome)
-        if escola_id:
-            qs = qs.filter(escola_id=escola_id)
+        if empresa_id:
+            qs = qs.filter(empresa_id=empresa_id)
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
             from django.db.models import Q
-            qs = qs.filter(Q(escola__consultor=user) | Q(escola__visitas__consultor=user)).distinct()
+            qs = qs.filter(Q(empresa__consultor=user) | Q(empresa__visitas__consultor=user)).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         if user.is_superuser or getattr(user, 'is_admin', False):
-            context['escolas_list'] = Escola.objects.all()
+            context['empresas_list'] = Empresa.objects.all()
         else:
             from django.db.models import Q
-            context['escolas_list'] = Escola.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).distinct()
+            context['empresas_list'] = Empresa.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).distinct()
         return context
 
-class ProfessorCreateView(AdminRequiredMixin, CreateView):
-    model = Professor
-    form_class = ProfessorForm
-    template_name = 'core/professor_form.html'
-    success_url = reverse_lazy('core:professor_list')
+class ContatoCreateView(AdminRequiredMixin, CreateView):
+    model = Contato
+    form_class = ContatoForm
+    template_name = 'core/contato_form.html'
+    success_url = reverse_lazy('core:contato_list')
 
-class ProfessorUpdateView(LoginRequiredMixin, UpdateView):
-    model = Professor
-    form_class = ProfessorForm
-    template_name = 'core/professor_form.html'
-    success_url = reverse_lazy('core:professor_list')
+class ContatoUpdateView(LoginRequiredMixin, UpdateView):
+    model = Contato
+    form_class = ContatoForm
+    template_name = 'core/contato_form.html'
+    success_url = reverse_lazy('core:contato_list')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -844,18 +844,18 @@ class ProfessorUpdateView(LoginRequiredMixin, UpdateView):
             raise PermissionDenied("Apenas administradores podem editar.")
         return super().post(request, *args, **kwargs)
 
-class ProfessorDeleteView(AdminRequiredMixin, DeleteView):
-    model = Professor
-    template_name = 'core/professor_confirm_delete.html'
-    success_url = reverse_lazy('core:professor_list')
+class ContatoDeleteView(AdminRequiredMixin, DeleteView):
+    model = Contato
+    template_name = 'core/contato_confirm_delete.html'
+    success_url = reverse_lazy('core:contato_list')
 
 import traceback
 
 @login_required
-def importar_escolas(request):
+def importar_empresas(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_admin', False)):
         messages.error(request, 'Sem permissão.')
-        return redirect('core:escola_list')
+        return redirect('core:empresa_list')
 
     if request.method == 'POST' and request.FILES.get('arquivo_importacao'):
         arquivo = request.FILES['arquivo_importacao']
@@ -866,7 +866,7 @@ def importar_escolas(request):
                 df = pd.read_excel(arquivo)
             else:
                 messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
-                return redirect('core:escola_list')
+                return redirect('core:empresa_list')
                 
             required_cols = ['nome', 'regiao', 'telefone', 'email', 'status', 'consultor_username']
             # We allow consultor_username to be empty for some
@@ -874,7 +874,7 @@ def importar_escolas(request):
             
             if not all(col in columns for col in required_cols):
                 messages.error(request, f"Arquivo não possui todas as colunas obrigatórias: {required_cols}")
-                return redirect('core:escola_list')
+                return redirect('core:empresa_list')
             
             sucesso = 0
             for index, row in df.iterrows():
@@ -889,7 +889,7 @@ def importar_escolas(request):
                     username = str(row['consultor_username']).strip() if pd.notna(row['consultor_username']) else ''
                     consultor_obj = CustomUser.objects.filter(username=username, is_consultor=True).first() if username else None
                     
-                    Escola.objects.update_or_create(
+                    Empresa.objects.update_or_create(
                         nome=str(row['nome']).strip(),
                         regiao=regiao_obj,
                         defaults={
@@ -905,18 +905,18 @@ def importar_escolas(request):
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
                     continue
-            messages.success(request, f"{sucesso} escolas importadas com sucesso!")
+            messages.success(request, f"{sucesso} empresas importadas com sucesso!")
         except Exception as e:
             traceback.print_exc()
             messages.error(request, f"Erro ao processar arquivo: {str(e)}")
             
-    return redirect('core:escola_list')
+    return redirect('core:empresa_list')
 
 @login_required
-def importar_professores(request):
+def importar_contatoes(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_admin', False)):
         messages.error(request, 'Sem permissão.')
-        return redirect('core:professor_list')
+        return redirect('core:contato_list')
 
     if request.method == 'POST' and request.FILES.get('arquivo_importacao'):
         arquivo = request.FILES['arquivo_importacao']
@@ -927,33 +927,33 @@ def importar_professores(request):
                 df = pd.read_excel(arquivo)
             else:
                 messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
-                return redirect('core:professor_list')
+                return redirect('core:contato_list')
                 
-            required_cols = ['nome', 'matricula', 'escola', 'disciplinas', 'telefone', 'email']
+            required_cols = ['nome', 'matricula', 'empresa', 'disciplinas', 'telefone', 'email']
             columns = df.columns.str.strip().str.lower()
             
             if not all(col in columns for col in required_cols):
                 messages.error(request, f"Arquivo não possui todas as colunas obrigatórias: {required_cols}")
-                return redirect('core:professor_list')
+                return redirect('core:contato_list')
             
             sucesso = 0
             for index, row in df.iterrows():
                 try:
-                    escola_nome = str(row['escola']).strip() if pd.notna(row['escola']) else ''
-                    if not escola_nome: continue
+                    empresa_nome = str(row['empresa']).strip() if pd.notna(row['empresa']) else ''
+                    if not empresa_nome: continue
                     
-                    escola_obj = Escola.objects.filter(nome__icontains=escola_nome).first()
-                    if not escola_obj:
+                    empresa_obj = Empresa.objects.filter(nome__icontains=empresa_nome).first()
+                    if not empresa_obj:
                         continue # Skip if school not found
                         
                     matricula_val = str(row['matricula']).strip() if pd.notna(row['matricula']) else ''
                     nome_val = str(row['nome']).strip()
                     if not nome_val or nome_val == 'nan': continue
                     
-                    prof, created = Professor.objects.update_or_create(
+                    prof, created = Contato.objects.update_or_create(
                         nome=nome_val,
                         matricula=matricula_val,
-                        escola=escola_obj,
+                        empresa=empresa_obj,
                         defaults={
                             'telefone': str(row['telefone']) if pd.notna(row['telefone']) else '',
                             'email': str(row['email']) if pd.notna(row['email']) else ''
@@ -970,12 +970,12 @@ def importar_professores(request):
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
                     continue
-            messages.success(request, f"{sucesso} professores importados com sucesso!")
+            messages.success(request, f"{sucesso} contatoes importados com sucesso!")
         except Exception as e:
             traceback.print_exc()
             messages.error(request, f"Erro ao processar arquivo: {str(e)}")
             
-    return redirect('core:professor_list')
+    return redirect('core:contato_list')
 
 # -- MÓDULO DE PERGUNTAS (RELATÓRIO DE VISITA) --
 class PerguntaListView(AdminRequiredMixin, ListView):

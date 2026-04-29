@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Agendar Visita - Visitas Escolares{% endblock %}
+{% block title %}Agendar Visita - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
@@ -19,16 +19,16 @@
             
             <div class="row">
                 <div class="col-md-{% if user.is_admin or user.is_superuser %}7{% else %}12{% endif %} mb-3">
-                    <label for="{{ form.escola.id_for_label }}" class="form-label">Escola</label>
-                    <select name="escola" class="form-select" id="id_escola" required>
+                    <label for="{{ form.empresa.id_for_label }}" class="form-label">Empresa</label>
+                    <select name="empresa" class="form-select" id="id_empresa" required>
                         <option value="">---------</option>
-                        {% for esc in form.escola.field.queryset %}
-                            <option value="{{ esc.id }}" {% if object and object.escola_id == esc.id %}selected{% endif %}>{{ esc.nome }}</option>
+                        {% for esc in form.empresa.field.queryset %}
+                            <option value="{{ esc.id }}" {% if object and object.empresa_id == esc.id %}selected{% endif %}>{{ esc.nome }}</option>
                         {% endfor %}
                     </select>
-                    {{ form.escola.errors }}
+                    {{ form.empresa.errors }}
                     {% if not user.is_admin and not user.is_superuser %}
-                    <div class="form-text">Apenas as escolas atribuídas a você aparecem nesta lista.</div>
+                    <div class="form-text">Apenas as empresas atribuídas a você aparecem nesta lista.</div>
                     {% endif %}
                 </div>
                 {% if user.is_admin or user.is_superuser %}
@@ -109,7 +109,7 @@
     </div>
     {% endif %}
     <div class="card-footer bg-light d-flex gap-4 text-muted" style="font-size: 0.8rem;">
-        <span><span class="badge" style="background:#1d4ed8;">📍</span> Escola: {{ auditoria_escola_nome }}</span>
+        <span><span class="badge" style="background:#1d4ed8;">📍</span> Empresa: {{ auditoria_empresa_nome }}</span>
         <span><span class="badge bg-danger">📌</span> Check-in do Consultor</span>
         <span id="distanciaLabel" class="ms-auto fw-semibold"></span>
     </div>
@@ -209,8 +209,8 @@
 <script>
   var _checkinLat = parseFloat('{{ auditoria_checkin_lat }}');
   var _checkinLng = parseFloat('{{ auditoria_checkin_lng }}');
-  var _escolaLat  = parseFloat('{{ auditoria_escola_lat }}');
-  var _escolaLng  = parseFloat('{{ auditoria_escola_lng }}');
+  var _empresaLat  = parseFloat('{{ auditoria_empresa_lat }}');
+  var _empresaLng  = parseFloat('{{ auditoria_empresa_lng }}');
 
   function haversineMetros(lat1, lng1, lat2, lng2) {
     var R = 6371000;
@@ -233,8 +233,8 @@
     }).addTo(map);
 
     var bounds = [];
-    var pinEscolaIcon = L.divIcon({
-        className: 'custom-pin-escola',
+    var pinEmpresaIcon = L.divIcon({
+        className: 'custom-pin-empresa',
         html: '<div style="background:#1d4ed8; color:white; border-radius:50%; width:24px; height:24px; display:flex; align-items:center; justify-content:center; border:2px solid white; font-weight:bold; font-size:12px;">E</div>',
         iconSize: [24,24],
         iconAnchor: [12,12],
@@ -249,9 +249,9 @@
         popupAnchor: [0,-12]
     });
 
-    if (!isNaN(_escolaLat) && !isNaN(_escolaLng)) {
-      L.marker([_escolaLat, _escolaLng], {icon: pinEscolaIcon}).addTo(map).bindPopup('{{ auditoria_escola_nome }}');
-      bounds.push([_escolaLat, _escolaLng]);
+    if (!isNaN(_empresaLat) && !isNaN(_empresaLng)) {
+      L.marker([_empresaLat, _empresaLng], {icon: pinEmpresaIcon}).addTo(map).bindPopup('{{ auditoria_empresa_nome }}');
+      bounds.push([_empresaLat, _empresaLng]);
     }
 
     L.marker([_checkinLat, _checkinLng], {icon: pinCheckinIcon}).addTo(map).bindPopup('Local do Check-in');
@@ -261,7 +261,7 @@
       L.polyline(bounds, {color: '#f59e0b', weight: 3}).addTo(map);
       map.fitBounds(bounds, {padding: [30, 30]});
 
-      var dist = haversineMetros(_checkinLat, _checkinLng, _escolaLat, _escolaLng);
+      var dist = haversineMetros(_checkinLat, _checkinLng, _empresaLat, _empresaLng);
       var label = document.getElementById('distanciaLabel');
       if (label) {
         var cor = dist > 500 ? '#dc2626' : '#16a34a';

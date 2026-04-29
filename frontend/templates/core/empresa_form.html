@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
 
-{% block title %}{% if object %}Editar{% else %}Nova{% endif %} Escola - Visitas Escolares{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Nova{% endif %} Empresa - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h4 fw-bold">{% if object %}Editar{% else %}Nova{% endif %} Escola</h1>
+    <h1 class="h4 fw-bold">{% if object %}Editar{% else %}Nova{% endif %} Empresa</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'core:escola_list' %}" class="btn btn-sm btn-secondary">
+        <a href="{% url 'core:empresa_list' %}" class="btn btn-sm btn-secondary">
             <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
     </div>

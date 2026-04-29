@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { addToQueue, getQueue } from './queue';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://novorota99-production.up.railway.app';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://novovisitaspro-production.up.railway.app';
 
 export const ENDPOINTS = {
   token: '/api/token/',
@@ -16,27 +16,27 @@ export const ENDPOINTS = {
   checkout: (id: number) => `/api/visitas/${id}/checkout/`,
   responder: (id: number) => `/api/visitas/${id}/responder/`,
   calendario: '/api/visitas/calendario/',
-  professores: (id: number) => `/api/visitas/${id}/professores/`,
+  contatoes: (id: number) => `/api/visitas/${id}/contatoes/`,
   perfil: '/api/users/me/',
   bugs: '/api/bugs/',
-  escolasGlobal: '/api/escolas/',
-  professoresGlobal: '/api/professores/',
+  empresasGlobal: '/api/empresas/',
+  contatoesGlobal: '/api/contatoes/',
 };
 
 // ---------- Helpers de Token ----------
 
 export async function getAccessToken(): Promise<string | null> {
-  return AsyncStorage.getItem('@rota99:access_token');
+  return AsyncStorage.getItem('@visitaspro:access_token');
 }
 
 export async function saveTokens(access: string, refresh: string) {
-  await AsyncStorage.setItem('@rota99:access_token', access);
-  await AsyncStorage.setItem('@rota99:refresh_token', refresh);
+  await AsyncStorage.setItem('@visitaspro:access_token', access);
+  await AsyncStorage.setItem('@visitaspro:refresh_token', refresh);
 }
 
 export async function clearTokens() {
-  await AsyncStorage.removeItem('@rota99:access_token');
-  await AsyncStorage.removeItem('@rota99:refresh_token');
+  await AsyncStorage.removeItem('@visitaspro:access_token');
+  await AsyncStorage.removeItem('@visitaspro:refresh_token');
 }
 
 // ---------- Requisição Base ----------
@@ -127,7 +127,7 @@ export async function login(username: string, password: string): Promise<boolean
 
 // ---------- Agenda ----------
 
-export interface EscolaAPI {
+export interface EmpresaAPI {
   id: number;
   nome: string;
   regiao_nome: string;
@@ -142,10 +142,10 @@ export interface EscolaAPI {
 
 export interface VisitaAPI {
   id: number;
-  escola_nome: string;
-  escola?: EscolaAPI;
-  escola_lat?: string | null;
-  escola_lng?: string | null;
+  empresa_nome: string;
+  empresa?: EmpresaAPI;
+  empresa_lat?: string | null;
+  empresa_lng?: string | null;
   horario: string;
   data: string;
   status: string;
@@ -186,8 +186,8 @@ async function patchListWithQueue(list: VisitaAPI[]): Promise<VisitaAPI[]> {
   }
 }
 
-export async function criarAgendamento(escola_id: number, data: string, horario: string) {
-  return request(ENDPOINTS.novoAgendamento, 'POST', { escola_id, data, horario });
+export async function criarAgendamento(empresa_id: number, data: string, horario: string) {
+  return request(ENDPOINTS.novoAgendamento, 'POST', { empresa_id, data, horario });
 }
 
 export async function fetchVisitaById(id: number): Promise<VisitaAPI> {
@@ -290,24 +290,24 @@ export interface RespostaPayload {
   resposta: string;
 }
 
-export interface ProfessorAPI {
+export interface ContatoAPI {
   id: number;
   nome: string;
   matricula: string | null;
-  escola_nome?: string;
+  empresa_nome?: string;
   telefone?: string | null;
   email?: string | null;
 }
 
-export async function fetchProfessoresEscola(visitaId: number): Promise<ProfessorAPI[]> {
-  return request<ProfessorAPI[]>(ENDPOINTS.professores(visitaId), 'GET');
+export async function fetchContatoesEmpresa(visitaId: number): Promise<ContatoAPI[]> {
+  return request<ContatoAPI[]>(ENDPOINTS.contatoes(visitaId), 'GET');
 }
 
 export async function enviarRelatorio(
   visitaId: number, 
   respostas: RespostaPayload[], 
   assinatura?: string, 
-  professores?: number[],
+  contatoes?: number[],
   fotos?: string[]
 ) {
   const formData = new FormData();
@@ -316,7 +316,7 @@ export async function enviarRelatorio(
   const payloadStr = JSON.stringify({
     respostas,
     assinatura,
-    professores_atendidos: professores
+    contatoes_atendidos: contatoes
   });
   formData.append('payload', payloadStr);
 
@@ -334,7 +334,7 @@ export async function enviarRelatorio(
 
   // Se tem fotos, manda FormData. Se não, manda o objeto JSON comum do payload.
   const hasFotos = fotos && fotos.length > 0;
-  const finalPayload = hasFotos ? formData : { respostas, assinatura, professores_atendidos: professores };
+  const finalPayload = hasFotos ? formData : { respostas, assinatura, contatoes_atendidos: contatoes };
 
   try {
     return await request(ENDPOINTS.responder(visitaId), 'POST', finalPayload);
@@ -409,12 +409,12 @@ export async function reportBug(data: BugReportAPI): Promise<any> {
   }
 }
 
-// ---------- Escolas e Professores Globais ----------
+// ---------- Empresas e Contatoes Globais ----------
 
-export async function fetchEscolasGlobais(): Promise<EscolaAPI[]> {
-  return request<EscolaAPI[]>(ENDPOINTS.escolasGlobal, 'GET');
+export async function fetchEmpresasGlobais(): Promise<EmpresaAPI[]> {
+  return request<EmpresaAPI[]>(ENDPOINTS.empresasGlobal, 'GET');
 }
 
-export async function fetchProfessoresGlobais(): Promise<ProfessorAPI[]> {
-  return request<ProfessorAPI[]>(ENDPOINTS.professoresGlobal, 'GET');
+export async function fetchContatoesGlobais(): Promise<ContatoAPI[]> {
+  return request<ContatoAPI[]>(ENDPOINTS.contatoesGlobal, 'GET');
 }

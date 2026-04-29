@@ -2,14 +2,14 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { fetchEscolasGlobais, EscolaAPI } from '@/services/api';
+import { fetchEmpresasGlobais, EmpresaAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useRouter } from 'expo-router';
 
-export default function EscolasScreen() {
-  const { data: escolas = [], isLoading: loading } = useQuery({
-    queryKey: ['escolasGlobal'],
-    queryFn: fetchEscolasGlobais,
+export default function EmpresasScreen() {
+  const { data: empresas = [], isLoading: loading } = useQuery({
+    queryKey: ['empresasGlobal'],
+    queryFn: fetchEmpresasGlobais,
   });
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -20,21 +20,21 @@ export default function EscolasScreen() {
     setExpandedId(prev => (prev === id ? null : id));
   };
 
-  const abrirNavegacao = (escola: EscolaAPI) => {
-    const lat = parseFloat(escola.latitude ?? '');
-    const lng = parseFloat(escola.longitude ?? '');
+  const abrirNavegacao = (empresa: EmpresaAPI) => {
+    const lat = parseFloat(empresa.latitude ?? '');
+    const lng = parseFloat(empresa.longitude ?? '');
 
     if (isNaN(lat) || isNaN(lng)) {
       Alert.alert(
         'Sem coordenadas',
-        `A escola "${escola.nome}" ainda não tem localização cadastrada.\n\nPeça ao administrador para detectar as coordenadas no painel web.`
+        `A empresa "${empresa.nome}" ainda não tem localização cadastrada.\n\nPeça ao administrador para detectar as coordenadas no painel web.`
       );
       return;
     }
 
     Alert.alert(
-      '🧭 Navegar até a Escola',
-      escola.nome,
+      '🧭 Navegar até a Empresa',
+      empresa.nome,
       [
         {
           text: '🟦 Waze',
@@ -55,12 +55,12 @@ export default function EscolasScreen() {
     );
   };
 
-  const filteredEscolas = escolas.filter(e => {
+  const filteredEmpresas = empresas.filter(e => {
     const q = searchQuery.toLowerCase();
     return e.nome.toLowerCase().includes(q) || e.regiao_nome.toLowerCase().includes(q);
   });
 
-  const renderEscola = ({ item }: { item: EscolaAPI }) => {
+  const renderEmpresa = ({ item }: { item: EmpresaAPI }) => {
     const isExpanded = expandedId === item.id;
     const temCoordenadas = !!(item.latitude && item.longitude);
 
@@ -122,8 +122,8 @@ export default function EscolasScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Minhas Escolas</Text>
-        <Text style={styles.subtitle}>Escolas em sua responsabilidade</Text>
+        <Text style={styles.title}>Minhas Empresas</Text>
+        <Text style={styles.subtitle}>Empresas em sua responsabilidade</Text>
       </View>
 
       <View style={styles.searchContainer}>
@@ -148,14 +148,14 @@ export default function EscolasScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredEscolas}
+          data={filteredEmpresas}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderEscola}
+          renderItem={renderEmpresa}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
             <View style={styles.center}>
               <IconSymbol name="slash.circle" size={48} color="#475569" />
-              <Text style={styles.emptyText}>Você não tem escolas vinculadas.</Text>
+              <Text style={styles.emptyText}>Você não tem empresas vinculadas.</Text>
             </View>
           }
         />

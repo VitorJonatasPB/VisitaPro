@@ -1,27 +1,27 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Professor, Escola
+from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Contato, Empresa
 
 
 class VisitaAgendaSerializer(serializers.ModelSerializer):
     """Serializer resumido para exibição na Agenda do consultor."""
-    escola_nome = serializers.ReadOnlyField(source='escola.nome')
-    escola_lat = serializers.ReadOnlyField(source='escola.latitude')
-    escola_lng = serializers.ReadOnlyField(source='escola.longitude')
+    empresa_nome = serializers.ReadOnlyField(source='empresa.nome')
+    empresa_lat = serializers.ReadOnlyField(source='empresa.latitude')
+    empresa_lng = serializers.ReadOnlyField(source='empresa.longitude')
 
     class Meta:
         model = Visita
         fields = [
-            'id', 'escola_nome', 'escola_lat', 'escola_lng', 'data', 'horario', 'status',
+            'id', 'empresa_nome', 'empresa_lat', 'empresa_lng', 'data', 'horario', 'status',
             'checkin_time', 'checkout_time',
         ]
 
 
-class EscolaSerializer(serializers.ModelSerializer):
+class EmpresaSerializer(serializers.ModelSerializer):
     regiao_nome = serializers.ReadOnlyField(source='regiao.nome')
 
     class Meta:
-        model = Escola
+        model = Empresa
         fields = [
             'id', 'nome', 'regiao_nome', 'telefone', 'email', 
             'status', 'frequencia_recomendada_dias', 'ultima_visita',
@@ -30,14 +30,14 @@ class EscolaSerializer(serializers.ModelSerializer):
 
 
 class VisitaDetalheSerializer(serializers.ModelSerializer):
-    """Serializer detalhado com as informações completas da Escola."""
-    escola = EscolaSerializer(read_only=True)
-    escola_nome = serializers.ReadOnlyField(source='escola.nome')
+    """Serializer detalhado com as informações completas da Empresa."""
+    empresa = EmpresaSerializer(read_only=True)
+    empresa_nome = serializers.ReadOnlyField(source='empresa.nome')
 
     class Meta:
         model = Visita
         fields = [
-            'id', 'escola', 'escola_nome', 'data', 'horario', 'status',
+            'id', 'empresa', 'empresa_nome', 'data', 'horario', 'status',
             'checkin_time', 'checkout_time', 'observacoes'
         ]
 
@@ -70,16 +70,16 @@ class CheckoutSerializer(serializers.Serializer):
 class RelatorioPayloadSerializer(serializers.Serializer):
     respostas = RespostaRelatorioSerializer(many=True, required=False)
     assinatura = serializers.CharField(required=False, allow_blank=True)
-    professores_atendidos = serializers.ListField(
+    contatoes_atendidos = serializers.ListField(
         child=serializers.IntegerField(), required=False
     )
 
 
-class ProfessorSerializer(serializers.ModelSerializer):
-    escola_nome = serializers.ReadOnlyField(source='escola.nome')
+class ContatoSerializer(serializers.ModelSerializer):
+    empresa_nome = serializers.ReadOnlyField(source='empresa.nome')
     class Meta:
-        model = Professor
-        fields = ['id', 'nome', 'matricula', 'escola_nome', 'telefone', 'email']
+        model = Contato
+        fields = ['id', 'nome', 'matricula', 'empresa_nome', 'telefone', 'email']
 
 
 class VisitaFotoSerializer(serializers.ModelSerializer):

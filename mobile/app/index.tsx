@@ -43,7 +43,7 @@ export default function LoginScreen() {
       if (hasHardware && isEnrolled) {
         // Tenta autenticar
         const result = await LocalAuthentication.authenticateAsync({
-          promptMessage: 'Desbloqueie o Rota99',
+          promptMessage: 'Desbloqueie o VisitasPro',
           fallbackLabel: 'Usar Senha',
           disableDeviceFallback: false,
         });
@@ -118,7 +118,7 @@ export default function LoginScreen() {
 
       <View style={styles.formContainer}>
         <View style={styles.headerContainer}>
-          <Text style={styles.title}>Rota99</Text>
+          <Text style={styles.title}>VisitasPro</Text>
           <Text style={styles.subtitle}>Portal do Consultor</Text>
         </View>
 

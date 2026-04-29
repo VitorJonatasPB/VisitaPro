@@ -4,40 +4,40 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { EscolaAPI, fetchEscolasGlobais, criarAgendamento } from '@/services/api';
+import { EmpresaAPI, fetchEmpresasGlobais, criarAgendamento } from '@/services/api';
 
 export default function NovoAgendamentoScreen() {
   const router = useRouter();
   const [selectedDate, setSelectedDate] = useState<string>('');
-  const [escola, setEscola] = useState('');
-  const [escolaId, setEscolaId] = useState<number | null>(null);
+  const [empresa, setEmpresa] = useState('');
+  const [empresaId, setEmpresaId] = useState<number | null>(null);
   const [horario, setHorario] = useState<string>('');
   const [loading, setLoading] = useState(false);
-  const [escolasGlobais, setEscolasGlobais] = useState<EscolaAPI[]>([]);
-  const [filteredEscolas, setFilteredEscolas] = useState<EscolaAPI[]>([]);
+  const [empresasGlobais, setEmpresasGlobais] = useState<EmpresaAPI[]>([]);
+  const [filteredEmpresas, setFilteredEmpresas] = useState<EmpresaAPI[]>([]);
   const [showSuggestions, setShowSuggestions] = useState(false);
 
   const hoje = new Date();
   
   useEffect(() => {
-    fetchEscolasGlobais().then(setEscolasGlobais).catch(console.log);
+    fetchEmpresasGlobais().then(setEmpresasGlobais).catch(console.log);
   }, []);
 
-  const handleEscolaChange = (text: string) => {
-    setEscola(text);
-    setEscolaId(null);
+  const handleEmpresaChange = (text: string) => {
+    setEmpresa(text);
+    setEmpresaId(null);
     if (text.length > 1) {
-      const filtered = escolasGlobais.filter(e => e.nome.toLowerCase().includes(text.toLowerCase()));
-      setFilteredEscolas(filtered.slice(0, 6)); // Mostra até 6 opções
+      const filtered = empresasGlobais.filter(e => e.nome.toLowerCase().includes(text.toLowerCase()));
+      setFilteredEmpresas(filtered.slice(0, 6)); // Mostra até 6 opções
       setShowSuggestions(true);
     } else {
       setShowSuggestions(false);
     }
   };
 
-  const handleSelectEscola = (id: number, nome: string) => {
-    setEscola(nome);
-    setEscolaId(id);
+  const handleSelectEmpresa = (id: number, nome: string) => {
+    setEmpresa(nome);
+    setEmpresaId(id);
     setShowSuggestions(false);
   };
   
@@ -57,7 +57,7 @@ export default function NovoAgendamentoScreen() {
     if (!isProximoMes) {
       Alert.alert(
         'Data Inválida', 
-        'Só é permitido realizar novos agendamentos para escolas no mês seguinte.'
+        'Só é permitido realizar novos agendamentos para empresas no mês seguinte.'
       );
       setSelectedDate('');
       return;
@@ -71,8 +71,8 @@ export default function NovoAgendamentoScreen() {
       Alert.alert('Atenção', 'Selecione a data no calendário antes de prosseguir.');
       return;
     }
-    if (!escolaId) {
-      Alert.alert('Atenção', 'Selecione uma Escola válida na lista de sugestões.');
+    if (!empresaId) {
+      Alert.alert('Atenção', 'Selecione uma Empresa válida na lista de sugestões.');
       return;
     }
     if (!horario || horario.length < 5) {
@@ -82,7 +82,7 @@ export default function NovoAgendamentoScreen() {
     
     setLoading(true);
     try {
-      await criarAgendamento(escolaId, selectedDate, horario);
+      await criarAgendamento(empresaId, selectedDate, horario);
       Alert.alert('Sucesso!', 'Agendamento criado com sucesso.', [
         { text: 'OK', onPress: () => router.back() }
       ]);
@@ -146,24 +146,24 @@ export default function NovoAgendamentoScreen() {
         ) : null}
 
         <View style={styles.inputContainer}>
-          <Text style={styles.label}>Escola</Text>
+          <Text style={styles.label}>Empresa</Text>
           <View style={{ position: 'relative', zIndex: 10 }}>
             <TextInput
               style={styles.input}
-              placeholder="Nome ou código da escola"
+              placeholder="Nome ou código da empresa"
               placeholderTextColor="#64748B"
-              value={escola}
-              onChangeText={handleEscolaChange}
-              onFocus={() => { if (escola.length > 1) setShowSuggestions(true); }}
+              value={empresa}
+              onChangeText={handleEmpresaChange}
+              onFocus={() => { if (empresa.length > 1) setShowSuggestions(true); }}
               onBlur={() => { setTimeout(() => setShowSuggestions(false), 200); }}
             />
-            {showSuggestions && filteredEscolas.length > 0 && (
+            {showSuggestions && filteredEmpresas.length > 0 && (
               <View style={styles.suggestionsContainer}>
-                {filteredEscolas.map(e => (
+                {filteredEmpresas.map(e => (
                   <TouchableOpacity 
                     key={e.id} 
                     style={styles.suggestionItem}
-                    onPress={() => handleSelectEscola(e.id, e.nome)}
+                    onPress={() => handleSelectEmpresa(e.id, e.nome)}
                   >
                     <Text style={styles.suggestionText} numberOfLines={1}>{e.nome}</Text>
                   </TouchableOpacity>

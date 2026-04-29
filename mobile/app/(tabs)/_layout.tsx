@@ -28,16 +28,16 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="escolas"
+        name="empresas"
         options={{
-          title: 'Escolas',
+          title: 'Empresas',
           tabBarIcon: ({ color }) => <FontAwesome5 size={24} name="building" color={color} />,
         }}
       />
       <Tabs.Screen
-        name="professores"
+        name="contatoes"
         options={{
-          title: 'Professores',
+          title: 'Contatoes',
           tabBarIcon: ({ color }) => <FontAwesome5 size={24} name="chalkboard-teacher" color={color} />,
         }}
       />

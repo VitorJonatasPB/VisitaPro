@@ -1,6 +1,6 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Perguntas do Formulário - Visitas Escolares{% endblock %}
+{% block title %}Perguntas do Formulário - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3">
@@ -31,7 +31,7 @@
         
         <div class="card shadow-sm border-0 rounded-4 mb-4 mx-auto" style="max-width: 800px;">
             <div class="card-body">
-                <h5 class="text-primary fw-bold">NOME DA ESCOLA</h5>
+                <h5 class="text-primary fw-bold">NOME DA EMPRESA</h5>
                 <div class="d-flex justify-content-between mb-2">
                     <span class="small text-muted"><i class="fas fa-calendar-alt"></i> {% now "d/m/Y" %}</span>
                     <span class="small text-muted"><i class="fas fa-clock"></i> {% now "H:i" %}</span>
@@ -128,7 +128,7 @@
 
                     <h5 class="fw-bold mb-3"><i class="fas fa-signature text-primary"></i> Assinatura</h5>
                     <div class="mb-3">
-                        <label class="form-label fw-bold">Nome do Responsável Escolar</label>
+                        <label class="form-label fw-bold">Nome do Responsável Empresar</label>
                         <input type="text" class="form-control" disabled>
                     </div>
                     <div class="mb-4">
@@ -246,14 +246,14 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#simulador_professores').select2({
+        $('#simulador_contatoes').select2({
             theme: 'bootstrap-5',
             placeholder: "Toque e procure os nomes...",
             allowClear: true,
             width: '100%',
             language: {
                 noResults: function() {
-                    return "Nenhum professor encontrado";
+                    return "Nenhum contato encontrado";
                 }
             }
         });

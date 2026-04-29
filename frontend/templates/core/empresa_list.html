@@ -1,13 +1,13 @@
 {% extends 'core/base.html' %}
-{% block title %}Escolas - Visitas Escolares{% endblock %}
+{% block title %}Empresas - Visitas Corporativas{% endblock %}
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pt-3 pb-2 mb-3 border-bottom">
-  <h1 class="h4 fw-bold mb-3 mb-md-0">Escolas</h1>
+  <h1 class="h4 fw-bold mb-3 mb-md-0">Empresas</h1>
   <div class="d-grid gap-2 d-md-flex justify-content-md-end">
     {% if user.is_admin or user.is_superuser %}
     <div class="btn-group w-100 w-md-auto">
-      <a href="{% url 'core:escola_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
-        <i class="fas fa-plus me-2"></i> Nova Escola
+      <a href="{% url 'core:empresa_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
+        <i class="fas fa-plus me-2"></i> Nova Empresa
       </a>
       <button
         type="button"
@@ -97,14 +97,14 @@
           </tr>
         </thead>
         <tbody>
-          {% for escola in escolas %}
-          <tr onclick="window.location.href='{% url 'core:escola_update' escola.id %}'" style="cursor: pointer;">
-            <td title="{{ escola.nome }}"><strong>{{ escola.nome }}</strong></td>
-            <td title="{{ escola.regiao.nome }}">{{ escola.regiao.nome }}</td>
-            <td title="{{ escola.regiao.cidade|default:'-' }}">{{ escola.regiao.cidade|default:"-" }}</td>
-            <td title="{{ escola.telefone|default:'-' }}">{{ escola.telefone|default:"-" }}</td>
+          {% for empresa in empresas %}
+          <tr onclick="window.location.href='{% url 'core:empresa_update' empresa.id %}'" style="cursor: pointer;">
+            <td title="{{ empresa.nome }}"><strong>{{ empresa.nome }}</strong></td>
+            <td title="{{ empresa.regiao.nome }}">{{ empresa.regiao.nome }}</td>
+            <td title="{{ empresa.regiao.cidade|default:'-' }}">{{ empresa.regiao.cidade|default:"-" }}</td>
+            <td title="{{ empresa.telefone|default:'-' }}">{{ empresa.telefone|default:"-" }}</td>
             <td>
-              {% if escola.status == 'A' %}
+              {% if empresa.status == 'A' %}
               <span class="badge bg-success">Ativa</span>
               {% else %}
               <span class="badge bg-danger">Inativa</span>
@@ -112,9 +112,9 @@
             </td>
             {% if user.is_admin or user.is_superuser %}
             <td>
-              {% if escola.consultor %}
+              {% if empresa.consultor %}
               <span class="badge" style="background-color: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.5); padding: 0.4rem 0.6rem;">
-                {{ escola.consultor.get_full_name|default:escola.consultor.username }}
+                {{ empresa.consultor.get_full_name|default:empresa.consultor.username }}
               </span>
               {% else %}
               <span class="text-muted small">Nenhum</span>
@@ -122,13 +122,13 @@
             </td>
             <td class="text-end">
               <a
-                href="{% url 'core:escola_update' escola.id %}"
+                href="{% url 'core:empresa_update' empresa.id %}"
                 class="btn btn-sm btn-outline-warning"
                 title="Editar"
                 ><i class="fas fa-edit"></i
               ></a>
               <a
-                href="{% url 'core:escola_delete' escola.id %}"
+                href="{% url 'core:empresa_delete' empresa.id %}"
                 class="btn btn-sm btn-outline-danger"
                 title="Excluir"
                 ><i class="fas fa-trash"></i
@@ -139,7 +139,7 @@
           {% empty %}
           <tr>
             <td colspan="7" class="text-center py-4">
-              Nenhuma escola cadastrada.
+              Nenhuma empresa cadastrada.
             </td>
           </tr>
           {% endfor %}
@@ -153,10 +153,10 @@
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="{% url 'core:importar_escolas' %}" method="POST" enctype="multipart/form-data">
+            <form action="{% url 'core:importar_empresas' %}" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="importModalLabel"><i class="fas fa-file-import me-2"></i> Importar Escolas</h5>
+                    <h5 class="modal-title" id="importModalLabel"><i class="fas fa-file-import me-2"></i> Importar Empresas</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -164,10 +164,10 @@
                         <h6 class="alert-heading fw-bold mb-1"><i class="fas fa-info-circle me-1"></i> Instruções:</h6>
                         <p class="mb-1 small">A planilha (.csv ou .xlsx - Excel/Google Sheets) deve conter as seguintes colunas obrigatórias:</p>
                         <ul class="mb-0 small">
-                            <li><strong>nome</strong>: Nome da escola</li>
+                            <li><strong>nome</strong>: Nome da empresa</li>
                             <li><strong>regiao</strong>: Nome da CDE/DDZ (ex: CDE 1)</li>
                             <li><strong>telefone</strong>: Telefone de contato</li>
-                            <li><strong>email</strong>: Email da escola</li>
+                            <li><strong>email</strong>: Email da empresa</li>
                             <li><strong>status</strong>: A (Ativa) ou I (Inativa)</li>
                             <li><strong>consultor_username</strong>: Username do consultor responsável (deixe em branco se não houver)</li>
                             <li><strong>latitude</strong>: (Opcional) Coordenada Y (ex: -23.550520)</li>

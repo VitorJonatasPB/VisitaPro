@@ -33,7 +33,7 @@
 
 <div class="card shadow-sm border-0 rounded-4 mb-4">
     <div class="card-body">
-        <h5 class="text-primary fw-bold">{{ object.escola.nome }}</h5>
+        <h5 class="text-primary fw-bold">{{ object.empresa.nome }}</h5>
         <div class="d-flex justify-content-between mb-2">
             <span class="small text-muted"><i class="fas fa-calendar-alt"></i> {{ object.data|date:"d/m/Y" }}</span>
             <span class="small text-muted"><i class="fas fa-clock"></i> {{ object.horario|time:"H:i" }}</span>
@@ -215,7 +215,7 @@
 
             <h5 class="fw-bold mb-3"><i class="fas fa-file-alt text-primary"></i> Relato Geral</h5>
             <div class="mb-4">
-                <div class="form-text text-muted mb-2">Resumo das atividades, ações e observações sobre a visita escolar.</div>
+                <div class="form-text text-muted mb-2">Resumo das atividades, ações e observações sobre a visita empresar.</div>
                 {{ form.relatorio }}
             </div>
 
@@ -224,7 +224,7 @@
             <h5 class="fw-bold mb-3"><i class="fas fa-signature text-primary"></i> Assinatura</h5>
             
             <div class="mb-3">
-                <label class="form-label fw-bold">Nome do Responsável Escolar</label>
+                <label class="form-label fw-bold">Nome do Responsável Empresar</label>
                 {{ form.nome_responsavel }}
             </div>
 
@@ -392,14 +392,14 @@
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#id_professores_atendidos').select2({
+        $('#id_contatoes_atendidos').select2({
             theme: 'bootstrap-5',
             placeholder: "Toque e procure os nomes...",
             allowClear: true,
             width: '100%',
             language: {
                 noResults: function() {
-                    return "Nenhum professor encontrado";
+                    return "Nenhum contato encontrado";
                 }
             }
         });

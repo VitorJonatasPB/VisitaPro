@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Professor, VisitaFoto, Escola
+from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Contato, VisitaFoto, Empresa
 from .api_serializers import (
     VisitaAgendaSerializer,
     VisitaDetalheSerializer,
@@ -15,8 +15,8 @@ from .api_serializers import (
     RelatorioPayloadSerializer,
     UserSerializer,
     BugReportSerializer,
-    ProfessorSerializer,
-    EscolaSerializer,
+    ContatoSerializer,
+    EmpresaSerializer,
 )
 import json
 
@@ -37,7 +37,7 @@ def agenda_hoje(request):
     else:
         target_date = date.today()
 
-    visitas = Visita.objects.filter(consultor=request.user, data=target_date).select_related('escola')
+    visitas = Visita.objects.filter(consultor=request.user, data=target_date).select_related('empresa')
     serializer = VisitaAgendaSerializer(visitas, many=True)
     return Response(serializer.data)
 
@@ -62,7 +62,7 @@ def agenda_mes(request):
         consultor=request.user, 
         data__year=ano, 
         data__month=mes
-    ).select_related('escola')
+    ).select_related('empresa')
     
     serializer = VisitaAgendaSerializer(visitas, many=True)
     return Response(serializer.data)
@@ -94,18 +94,18 @@ def calendario_visitas(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def professores_escola(request, visita_id):
+def contatoes_empresa(request, visita_id):
     """
-    Retorna os professores da escola atrelada à visita.
-    GET /api/visitas/<id>/professores/
+    Retorna os contatoes da empresa atrelada à visita.
+    GET /api/visitas/<id>/contatoes/
     """
     try:
         visita = Visita.objects.get(pk=visita_id, consultor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     
-    professores = Professor.objects.filter(escola=visita.escola)
-    serializer = ProfessorSerializer(professores, many=True)
+    contatoes = Contato.objects.filter(empresa=visita.empresa)
+    serializer = ContatoSerializer(contatoes, many=True)
     return Response(serializer.data)
 
 
@@ -180,7 +180,7 @@ def fazer_checkout(request, visita_id):
 @permission_classes([IsAuthenticated])
 def enviar_relatorio(request, visita_id):
     """
-    Recebe as respostas do relatório, assinatura, professores e múltiplas fotos via FormData.
+    Recebe as respostas do relatório, assinatura, contatoes e múltiplas fotos via FormData.
     POST /api/visitas/<id>/responder/
     """
     try:
@@ -212,10 +212,10 @@ def enviar_relatorio(request, visita_id):
         visita.assinatura = data['assinatura']
         visita.save(update_fields=['assinatura'])
 
-    # Professores
-    prof_ids = data.get('professores_atendidos')
+    # Contatoes
+    prof_ids = data.get('contatoes_atendidos')
     if prof_ids is not None:
-        visita.professores_atendidos.set(prof_ids)
+        visita.contatoes_atendidos.set(prof_ids)
 
     # Respostas
     if 'respostas' in data:
@@ -271,37 +271,37 @@ def reportar_bug(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def lista_escolas(request):
+def lista_empresas(request):
     """
-    Retorna as escolas vinculadas ao consultor.
-    GET /api/escolas/
+    Retorna as empresas vinculadas ao consultor.
+    GET /api/empresas/
     """
     user = request.user
     from django.db.models import Q
     if user.is_superuser or getattr(user, 'is_admin', False):
-        escolas = Escola.objects.all()
+        empresas = Empresa.objects.all()
     else:
-        escolas = Escola.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+        empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
     
-    serializer = EscolaSerializer(escolas, many=True)
+    serializer = EmpresaSerializer(empresas, many=True)
     return Response(serializer.data)
 
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def lista_professores(request):
+def lista_contatoes(request):
     """
-    Retorna os professores das escolas vinculadas ao consultor.
-    GET /api/professores/
+    Retorna os contatoes das empresas vinculadas ao consultor.
+    GET /api/contatoes/
     """
     user = request.user
     from django.db.models import Q
     if user.is_superuser or getattr(user, 'is_admin', False):
-        professores = Professor.objects.all()
+        contatoes = Contato.objects.all()
     else:
-        professores = Professor.objects.filter(Q(escola__consultor=user) | Q(escola__consultores_autorizados=user)).distinct()
+        contatoes = Contato.objects.filter(Q(empresa__consultor=user) | Q(empresa__consultores_autorizados=user)).distinct()
     
-    serializer = ProfessorSerializer(professores, many=True)
+    serializer = ContatoSerializer(contatoes, many=True)
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -311,17 +311,17 @@ def criar_agendamento(request):
     Cria um novo agendamento no mobile.
     POST /api/visitas/novo/
     """
-    escola_id = request.data.get('escola_id')
+    empresa_id = request.data.get('empresa_id')
     data_str = request.data.get('data')
     horario_str = request.data.get('horario')
 
-    if not escola_id or not data_str or not horario_str:
-        return Response({'error': 'escola_id, data e horario são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+    if not empresa_id or not data_str or not horario_str:
+        return Response({'error': 'empresa_id, data e horario são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        escola = Escola.objects.get(id=escola_id)
-    except Escola.DoesNotExist:
-        return Response({'error': 'Escola não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        empresa = Empresa.objects.get(id=empresa_id)
+    except Empresa.DoesNotExist:
+        return Response({'error': 'Empresa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
     try:
         from datetime import datetime
@@ -331,7 +331,7 @@ def criar_agendamento(request):
         return Response({'error': 'Formato de data ou horário inválido.'}, status=status.HTTP_400_BAD_REQUEST)
 
     visita = Visita.objects.create(
-        escola=escola,
+        empresa=empresa,
         consultor=request.user,
         data=data_obj,
         horario=horario_obj,

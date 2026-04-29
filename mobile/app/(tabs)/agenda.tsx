@@ -139,24 +139,24 @@ export default function AgendaScreen() {
 
   const visitasFiltradas = visitas.filter(v =>
     searchText.trim() === '' ||
-    v.escola_nome.toLowerCase().includes(searchText.toLowerCase())
+    v.empresa_nome.toLowerCase().includes(searchText.toLowerCase())
   );
 
   const abrirNavegacao = (visita: VisitaAPI) => {
-    const lat = parseFloat(visita.escola_lat || (visita.escola ? visita.escola.latitude : '') || '');
-    const lng = parseFloat(visita.escola_lng || (visita.escola ? visita.escola.longitude : '') || '');
+    const lat = parseFloat(visita.empresa_lat || (visita.empresa ? visita.empresa.latitude : '') || '');
+    const lng = parseFloat(visita.empresa_lng || (visita.empresa ? visita.empresa.longitude : '') || '');
 
     if (isNaN(lat) || isNaN(lng)) {
       Alert.alert(
         'Sem coordenadas',
-        `A escola "${visita.escola_nome}" ainda não tem localização cadastrada.\n\nPeça ao administrador para detectar as coordenadas no painel web.`
+        `A empresa "${visita.empresa_nome}" ainda não tem localização cadastrada.\n\nPeça ao administrador para detectar as coordenadas no painel web.`
       );
       return;
     }
 
     Alert.alert(
-      '🧭 Navegar até a Escola',
-      visita.escola_nome,
+      '🧭 Navegar até a Empresa',
+      visita.empresa_nome,
       [
         {
           text: '🟦 Waze',
@@ -292,7 +292,7 @@ export default function AgendaScreen() {
         {visitasFiltradas.length === 0 && (
           <View style={{ alignItems: 'center', padding: 32 }}>
             <Text style={{ color: '#94A3B8', textAlign: 'center' }}>
-              {searchText ? `Nenhuma escola encontrada para "${searchText}"` : 'Nenhuma visita encontrada para esta data.'}
+              {searchText ? `Nenhuma empresa encontrada para "${searchText}"` : 'Nenhuma visita encontrada para esta data.'}
             </Text>
           </View>
         )}
@@ -311,7 +311,7 @@ export default function AgendaScreen() {
               <Text style={styles.visitaTime}>{visita.horario.substring(0, 5)}</Text>
               <View style={{ flex: 1, marginRight: 8 }}>
                 <Text style={styles.visitaSchool} numberOfLines={2}>
-                  {visita.escola_nome}
+                  {visita.empresa_nome}
                 </Text>
                 <Text style={[styles.visitaStatusText, visita.checkin_time && visita.status !== 'realizada' && { color: '#38BDF8' }]}>
                   {visita.status === 'realizada'
@@ -326,7 +326,7 @@ export default function AgendaScreen() {
               <TouchableOpacity
                 style={[
                   styles.navButton,
-                  !(visita.escola_lat || (visita.escola && visita.escola.latitude)) && styles.navButtonDisabled,
+                  !(visita.empresa_lat || (visita.empresa && visita.empresa.latitude)) && styles.navButtonDisabled,
                   { marginRight: 8 }
                 ]}
                 onPress={(e) => { e.stopPropagation(); abrirNavegacao(visita); }}

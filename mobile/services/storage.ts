@@ -8,9 +8,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { VisitaAPI, PerguntaAPI, RespostaPayload } from './api';
 
 const KEYS = {
-  agenda: '@rota99:agenda',
-  perguntas: '@rota99:perguntas',
-  filaSincronismo: '@rota99:fila_sincronismo',
+  agenda: '@visitaspro:agenda',
+  perguntas: '@visitaspro:perguntas',
+  filaSincronismo: '@visitaspro:fila_sincronismo',
 };
 
 // ---------- Agenda ----------

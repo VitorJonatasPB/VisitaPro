@@ -151,7 +151,7 @@ export default function ConfiguracoesScreen() {
           </TouchableOpacity>
         </View>
 
-        <Text style={styles.versionLabel}>Rota99 App Versão 1.0.0</Text>
+        <Text style={styles.versionLabel}>VisitasPro App Versão 1.0.0</Text>
 
       </ScrollView>
     </SafeAreaView>

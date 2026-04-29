@@ -3,9 +3,9 @@ import urllib.request
 import urllib.parse
 from django.contrib import admin, messages
 from django.conf import settings
-from .models import Professor, Disciplina, Regiao, Escola, Visita, CustomUser
+from .models import Contato, Disciplina, Regiao, Empresa, Visita, CustomUser
 
-class EscolaAdmin(admin.ModelAdmin):
+class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('nome', 'regiao', 'status', 'latitude', 'longitude')
     list_filter = ('regiao', 'status')
     search_fields = ('nome',)
@@ -23,7 +23,7 @@ class CustomUserAdmin(admin.ModelAdmin):
         ('Dados de Acesso', {'fields': ('username', 'password')}),
         ('Informações Pessoais', {'fields': ('first_name', 'last_name', 'email', 'telefone', 'foto')}),
         ('Permissões', {'fields': ('is_consultor', 'is_admin', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Personalização do Mapa', {'fields': ('cor_mapa',), 'description': 'Escolha a cor dos pins das escolas deste consultor no mapa.'}),
+        ('Personalização do Mapa', {'fields': ('cor_mapa',), 'description': 'Escolha a cor dos pins das empresas deste consultor no mapa.'}),
     )
 
     def preview_cor_inline(self, obj):
@@ -33,7 +33,7 @@ class CustomUserAdmin(admin.ModelAdmin):
 
 admin.site.register(CustomUser, CustomUserAdmin)
 admin.site.register(Regiao)
-admin.site.register(Escola, EscolaAdmin)
+admin.site.register(Empresa, EmpresaAdmin)
 admin.site.register(Visita)
-admin.site.register(Professor)
+admin.site.register(Contato)
 admin.site.register(Disciplina)

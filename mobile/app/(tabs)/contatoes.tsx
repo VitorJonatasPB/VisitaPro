@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { fetchProfessoresGlobais, ProfessorAPI } from '@/services/api';
+import { fetchContatoesGlobais, ContatoAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-export default function ProfessoresScreen() {
-  const { data: professores = [], isLoading: loading } = useQuery({
-    queryKey: ['professoresGlobal'],
-    queryFn: fetchProfessoresGlobais,
+export default function ContatoesScreen() {
+  const { data: contatoes = [], isLoading: loading } = useQuery({
+    queryKey: ['contatoesGlobal'],
+    queryFn: fetchContatoesGlobais,
   });
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -18,12 +18,12 @@ export default function ProfessoresScreen() {
     setExpandedId(prev => (prev === id ? null : id));
   };
 
-  const filteredProfessores = professores.filter(p => {
+  const filteredContatoes = contatoes.filter(p => {
     const q = searchQuery.toLowerCase();
-    return p.nome.toLowerCase().includes(q) || (p.escola_nome && p.escola_nome.toLowerCase().includes(q));
+    return p.nome.toLowerCase().includes(q) || (p.empresa_nome && p.empresa_nome.toLowerCase().includes(q));
   });
 
-  const renderProfessor = ({ item }: { item: ProfessorAPI }) => {
+  const renderContato = ({ item }: { item: ContatoAPI }) => {
     const isExpanded = expandedId === item.id;
 
     return (
@@ -39,8 +39,8 @@ export default function ProfessoresScreen() {
             {item.matricula && (
                <Text style={styles.cardSubtitle}>Matrícula: {item.matricula}</Text>
             )}
-            {item.escola_nome && (
-               <Text style={[styles.cardSubtitle, { marginTop: 2, fontSize: 13, color: '#64748B' }]}>{item.escola_nome}</Text>
+            {item.empresa_nome && (
+               <Text style={[styles.cardSubtitle, { marginTop: 2, fontSize: 13, color: '#64748B' }]}>{item.empresa_nome}</Text>
             )}
           </View>
           <IconSymbol name={isExpanded ? 'chevron.up' : 'chevron.down'} size={20} color="#94A3B8" />
@@ -65,15 +65,15 @@ export default function ProfessoresScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Professores</Text>
-        <Text style={styles.subtitle}>Relacionados às suas escolas</Text>
+        <Text style={styles.title}>Contatoes</Text>
+        <Text style={styles.subtitle}>Relacionados às suas empresas</Text>
       </View>
 
       <View style={styles.searchContainer}>
         <IconSymbol name="magnifyingglass" size={20} color="#94A3B8" />
         <TextInput
           style={styles.searchInput}
-          placeholder="Buscar por nome ou escola..."
+          placeholder="Buscar por nome ou empresa..."
           placeholderTextColor="#64748B"
           value={searchQuery}
           onChangeText={setSearchQuery}
@@ -91,14 +91,14 @@ export default function ProfessoresScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredProfessores}
+          data={filteredContatoes}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderProfessor}
+          renderItem={renderContato}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
             <View style={styles.center}>
               <IconSymbol name="slash.circle" size={48} color="#475569" />
-              <Text style={styles.emptyText}>Você não tem professores vinculados.</Text>
+              <Text style={styles.emptyText}>Você não tem contatoes vinculados.</Text>
             </View>
           }
         />
