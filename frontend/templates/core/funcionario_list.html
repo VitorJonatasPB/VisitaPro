@@ -1,15 +1,15 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Contatoes - Visitas Corporativas{% endblock %}
+{% block title %}Funcionários - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h4 fw-bold mb-3 mb-md-0">Contatoes</h1>
+    <h1 class="h4 fw-bold mb-3 mb-md-0">Funcionários</h1>
     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
         {% if user.is_admin or user.is_superuser %}
         <div class="btn-group w-100 w-md-auto">
-            <a href="{% url 'core:contato_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
-                <i class="fas fa-plus me-2"></i> Novo Contato
+            <a href="{% url 'core:funcionario_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
+                <i class="fas fa-plus me-2"></i> Novo Funcionário
             </a>
             <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split w-auto" data-bs-toggle="dropdown" aria-expanded="false">
                 <span class="visually-hidden">Opções</span>
@@ -50,9 +50,9 @@
                 <thead class="table-light">
                     <tr>
                         <th>Nome</th>
-                        <th>Matrícula</th>
                         <th>Empresa</th>
-                        <th>Disciplinas</th>
+                        <th>Departamento</th>
+                        <th>Cargo</th>
                         <th>Telefone</th>
                         <th>E-mail</th>
                         {% if user.is_admin or user.is_superuser %}
@@ -61,30 +61,24 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for contato in contatoes %}
-                    <tr onclick="window.location.href='{% url 'core:contato_update' contato.id %}'" style="cursor: pointer;">
-                        <td title="{{ contato.nome }}"><strong>{{ contato.nome }}</strong></td>
-                        <td title="{{ contato.matricula|default:'-' }}">{{ contato.matricula|default:"-" }}</td>
-                        <td title="{{ contato.empresa.nome }}">{{ contato.empresa.nome }}</td>
-                        <td title="{% for d in contato.disciplinas.all %}{{ d.nome }}{% if not forloop.last %}, {% endif %}{% endfor %}">
-                            {% for d in contato.disciplinas.all %}
-                                <span class="badge bg-secondary">{{ d.nome }}</span>
-                            {% empty %}
-                                -
-                            {% endfor %}
-                        </td>
-                        <td title="{{ contato.telefone|default:'-' }}">{{ contato.telefone|default:"-" }}</td>
-                        <td title="{{ contato.email|default:'-' }}">{{ contato.email|default:"-" }}</td>
+                    {% for funcionario in funcionarios %}
+                    <tr onclick="window.location.href='{% url 'core:funcionario_update' funcionario.id %}'" style="cursor: pointer;">
+                        <td title="{{ funcionario.nome }}"><strong>{{ funcionario.nome }}</strong></td>
+                        <td title="{{ funcionario.empresa.nome }}">{{ funcionario.empresa.nome }}</td>
+                        <td title="{{ funcionario.departamento|default:'-' }}">{{ funcionario.departamento|default:"-" }}</td>
+                        <td title="{{ funcionario.cargo|default:'-' }}">{{ funcionario.cargo|default:"-" }}</td>
+                        <td title="{{ funcionario.telefone|default:'-' }}">{{ funcionario.telefone|default:"-" }}</td>
+                        <td title="{{ funcionario.email|default:'-' }}">{{ funcionario.email|default:"-" }}</td>
                         {% if user.is_admin or user.is_superuser %}
                         <td class="text-end">
-                            <a href="{% url 'core:contato_update' contato.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
-                            <a href="{% url 'core:contato_delete' contato.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
+                            <a href="{% url 'core:funcionario_update' funcionario.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'core:funcionario_delete' funcionario.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
                         </td>
                         {% endif %}
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="7" class="text-center py-4">Nenhum contato cadastrado.</td>
+                        <td colspan="7" class="text-center py-4">Nenhum funcionario cadastrado.</td>
                     </tr>
                     {% endfor %}
                 </tbody>
@@ -97,10 +91,10 @@
 <div class="modal fade" id="importModal" tabindex="-1" aria-labelledby="importModalLabel" aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
-            <form action="{% url 'core:importar_contatoes' %}" method="POST" enctype="multipart/form-data">
+            <form action="{% url 'core:importar_funcionarios' %}" method="POST" enctype="multipart/form-data">
                 {% csrf_token %}
                 <div class="modal-header bg-primary text-white">
-                    <h5 class="modal-title" id="importModalLabel"><i class="fas fa-file-import me-2"></i> Importar Contatoes</h5>
+                    <h5 class="modal-title" id="importModalLabel"><i class="fas fa-file-import me-2"></i> Importar Funcionários</h5>
                     <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
                 </div>
                 <div class="modal-body">
@@ -108,12 +102,12 @@
                         <h6 class="alert-heading fw-bold mb-1"><i class="fas fa-info-circle me-1"></i> Instruções:</h6>
                         <p class="mb-1 small">A planilha (.csv ou .xlsx - Excel/Google Sheets) deve conter as seguintes colunas obrigatórias:</p>
                         <ul class="mb-0 small">
-                            <li><strong>nome</strong>: Nome do(a) contato(a)</li>
+                            <li><strong>nome</strong>: Nome do(a) funcionario(a)</li>
                             <li><strong>matricula</strong>: Matrícula (se houver)</li>
                             <li><strong>empresa</strong>: Nome EXATO da empresa</li>
                             <li><strong>disciplinas</strong>: Disciplinas separadas por vírgula</li>
-                            <li><strong>telefone</strong>: Telefone de contato</li>
-                            <li><strong>email</strong>: Email do contato</li>
+                            <li><strong>telefone</strong>: Telefone de funcionario</li>
+                            <li><strong>email</strong>: Email do funcionario</li>
                         </ul>
                     </div>
                     <div class="mb-3">

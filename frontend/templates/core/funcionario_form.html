@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
 
-{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Contato - Visitas Corporativas{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Funcionário - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h4 fw-bold">{% if object %}Editar{% else %}Novo{% endif %} Contato</h1>
+    <h1 class="h4 fw-bold">{% if object %}Editar{% else %}Novo{% endif %} Funcionário</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'core:contato_list' %}" class="btn btn-sm btn-secondary">
+        <a href="{% url 'core:funcionario_list' %}" class="btn btn-sm btn-secondary">
             <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
     </div>
@@ -25,24 +25,23 @@
                 </div>
 
                 <div class="col-md-6 mb-3">
-                    <label for="{{ form.matricula.id_for_label }}" class="form-label">{{ form.matricula.label }}</label>
-                    {{ form.matricula }}
-                    {{ form.matricula.errors }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
                     <label for="{{ form.empresa.id_for_label }}" class="form-label">{{ form.empresa.label }}</label>
                     {{ form.empresa }}
                     {{ form.empresa.errors }}
                 </div>
                 
-                <div class="col-md-12 mb-3">
-                    <label for="{{ form.disciplinas.id_for_label }}" class="form-label">{{ form.disciplinas.label }}</label>
-                    {{ form.disciplinas }}
-                    <div class="form-text">Segure Ctrl (ou Cmd) para selecionar múltiplas disciplinas.</div>
-                    {{ form.disciplinas.errors }}
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.departamento.id_for_label }}" class="form-label">{{ form.departamento.label }}</label>
+                    {{ form.departamento }}
+                    {{ form.departamento.errors }}
                 </div>
-
+                
+                <div class="col-md-6 mb-3">
+                    <label for="{{ form.cargo.id_for_label }}" class="form-label">{{ form.cargo.label }}</label>
+                    {{ form.cargo }}
+                    {{ form.cargo.errors }}
+                </div>
+                
                 <div class="col-md-6 mb-3">
                     <label for="{{ form.telefone.id_for_label }}" class="form-label">{{ form.telefone.label }}</label>
                     {{ form.telefone }}

@@ -1,12 +1,12 @@
 {% extends 'core/base.html' %}
 
-{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Consultor - Visitas Corporativas{% endblock %}
+{% block title %}{% if object %}Editar{% else %}Novo{% endif %} Assessor - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h2">{% if object %}Editar{% else %}Novo{% endif %} Consultor</h1>
+    <h1 class="h2">{% if object %}Editar{% else %}Novo{% endif %} Assessor</h1>
     <div class="btn-toolbar mb-2 mb-md-0">
-        <a href="{% url 'core:consultor_list' %}" class="btn btn-sm btn-secondary">
+        <a href="{% url 'core:assessor_list' %}" class="btn btn-sm btn-secondary">
             <i class="fas fa-arrow-left me-1"></i> Voltar
         </a>
     </div>
@@ -28,7 +28,7 @@
                         {{ field }}
                         <div>
                             <div class="fw-bold text-muted small">Cor do Pin no Mapa</div>
-                            <div class="text-muted small">Este pin representará as empresas deste consultor no mapa do Dashboard.</div>
+                            <div class="text-muted small">Este pin representará as empresas deste assessor no mapa do Dashboard.</div>
                         </div>
                     </div>
 

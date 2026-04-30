@@ -5,7 +5,7 @@ from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 
-from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Contato, VisitaFoto, Empresa
+from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Funcionario, VisitaFoto, Empresa
 from .api_serializers import (
     VisitaAgendaSerializer,
     VisitaDetalheSerializer,
@@ -15,7 +15,7 @@ from .api_serializers import (
     RelatorioPayloadSerializer,
     UserSerializer,
     BugReportSerializer,
-    ContatoSerializer,
+    FuncionarioSerializer,
     EmpresaSerializer,
 )
 import json
@@ -25,7 +25,7 @@ import json
 @permission_classes([IsAuthenticated])
 def agenda_hoje(request):
     """
-    Retorna as visitas de uma data para o consultor autenticado.
+    Retorna as visitas de uma data para o assessor autenticado.
     GET /api/visitas/agenda/?data=YYYY-MM-DD
     """
     data_str = request.query_params.get('data')
@@ -37,7 +37,7 @@ def agenda_hoje(request):
     else:
         target_date = date.today()
 
-    visitas = Visita.objects.filter(consultor=request.user, data=target_date).select_related('empresa')
+    visitas = Visita.objects.filter(assessor=request.user, data=target_date).select_related('empresa')
     serializer = VisitaAgendaSerializer(visitas, many=True)
     return Response(serializer.data)
 
@@ -45,7 +45,7 @@ def agenda_hoje(request):
 @permission_classes([IsAuthenticated])
 def agenda_mes(request):
     """
-    Retorna as visitas de um mês específico para o consultor autenticado.
+    Retorna as visitas de um mês específico para o assessor autenticado.
     GET /api/visitas/mes/?ano=YYYY&mes=MM
     """
     ano_str = request.query_params.get('ano')
@@ -59,7 +59,7 @@ def agenda_mes(request):
         ano, mes = hoje.year, hoje.month
 
     visitas = Visita.objects.filter(
-        consultor=request.user, 
+        assessor=request.user, 
         data__year=ano, 
         data__month=mes
     ).select_related('empresa')
@@ -76,7 +76,7 @@ def detalhe_visita(request, visita_id):
     GET /api/visitas/<id>/
     """
     try:
-        visita = Visita.objects.get(id=visita_id, consultor=request.user)
+        visita = Visita.objects.get(id=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     serializer = VisitaDetalheSerializer(visita)
@@ -89,23 +89,23 @@ def calendario_visitas(request):
     Retorna uma lista de datas futuras e passadas que contêm visitas.
     GET /api/visitas/calendario/
     """
-    datas = Visita.objects.filter(consultor=request.user).values_list('data', flat=True).distinct()
+    datas = Visita.objects.filter(assessor=request.user).values_list('data', flat=True).distinct()
     return Response([d.isoformat() for d in datas])
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def contatoes_empresa(request, visita_id):
+def funcionarios_empresa(request, visita_id):
     """
-    Retorna os contatoes da empresa atrelada à visita.
-    GET /api/visitas/<id>/contatoes/
+    Retorna os funcionários da empresa atrelada à visita.
+    GET /api/visitas/<id>/funcionarios/
     """
     try:
-        visita = Visita.objects.get(pk=visita_id, consultor=request.user)
+        visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     
-    contatoes = Contato.objects.filter(empresa=visita.empresa)
-    serializer = ContatoSerializer(contatoes, many=True)
+    funcionarios = Funcionario.objects.filter(empresa=visita.empresa)
+    serializer = FuncionarioSerializer(funcionarios, many=True)
     return Response(serializer.data)
 
 
@@ -129,7 +129,7 @@ def fazer_checkin(request, visita_id):
     POST /api/visitas/<id>/checkin/
     """
     try:
-        visita = Visita.objects.get(pk=visita_id, consultor=request.user)
+        visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -157,7 +157,7 @@ def fazer_checkout(request, visita_id):
     POST /api/visitas/<id>/checkout/
     """
     try:
-        visita = Visita.objects.get(pk=visita_id, consultor=request.user)
+        visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -184,7 +184,7 @@ def enviar_relatorio(request, visita_id):
     POST /api/visitas/<id>/responder/
     """
     try:
-        visita = Visita.objects.get(pk=visita_id, consultor=request.user)
+        visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
         return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
@@ -273,7 +273,7 @@ def reportar_bug(request):
 @permission_classes([IsAuthenticated])
 def lista_empresas(request):
     """
-    Retorna as empresas vinculadas ao consultor.
+    Retorna as empresas vinculadas ao assessor.
     GET /api/empresas/
     """
     user = request.user
@@ -281,7 +281,7 @@ def lista_empresas(request):
     if user.is_superuser or getattr(user, 'is_admin', False):
         empresas = Empresa.objects.all()
     else:
-        empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+        empresas = Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
     
     serializer = EmpresaSerializer(empresas, many=True)
     return Response(serializer.data)
@@ -289,19 +289,19 @@ def lista_empresas(request):
 
 @api_view(['GET'])
 @permission_classes([IsAuthenticated])
-def lista_contatoes(request):
+def lista_funcionarios(request):
     """
-    Retorna os contatoes das empresas vinculadas ao consultor.
-    GET /api/contatoes/
+    Retorna os funcionários das empresas vinculadas ao assessor.
+    GET /api/funcionarios/
     """
     user = request.user
     from django.db.models import Q
     if user.is_superuser or getattr(user, 'is_admin', False):
-        contatoes = Contato.objects.all()
+        funcionarios = Funcionario.objects.all()
     else:
-        contatoes = Contato.objects.filter(Q(empresa__consultor=user) | Q(empresa__consultores_autorizados=user)).distinct()
+        funcionarios = Funcionario.objects.filter(Q(empresa__assessor=user) | Q(empresa__assessores_autorizados=user)).distinct()
     
-    serializer = ContatoSerializer(contatoes, many=True)
+    serializer = FuncionarioSerializer(funcionarios, many=True)
     return Response(serializer.data)
 
 @api_view(['POST'])
@@ -332,7 +332,7 @@ def criar_agendamento(request):
 
     visita = Visita.objects.create(
         empresa=empresa,
-        consultor=request.user,
+        assessor=request.user,
         data=data_obj,
         horario=horario_obj,
         status='agendada'

@@ -1,10 +1,10 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Contato, Empresa
+from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Funcionario, Empresa
 
 
 class VisitaAgendaSerializer(serializers.ModelSerializer):
-    """Serializer resumido para exibição na Agenda do consultor."""
+    """Serializer resumido para exibição na Agenda do assessor."""
     empresa_nome = serializers.ReadOnlyField(source='empresa.nome')
     empresa_lat = serializers.ReadOnlyField(source='empresa.latitude')
     empresa_lng = serializers.ReadOnlyField(source='empresa.longitude')
@@ -18,12 +18,10 @@ class VisitaAgendaSerializer(serializers.ModelSerializer):
 
 
 class EmpresaSerializer(serializers.ModelSerializer):
-    regiao_nome = serializers.ReadOnlyField(source='regiao.nome')
-
     class Meta:
         model = Empresa
         fields = [
-            'id', 'nome', 'regiao_nome', 'telefone', 'email', 
+            'id', 'nome', 'telefone', 'email',
             'status', 'frequencia_recomendada_dias', 'ultima_visita',
             'latitude', 'longitude'
         ]
@@ -75,10 +73,10 @@ class RelatorioPayloadSerializer(serializers.Serializer):
     )
 
 
-class ContatoSerializer(serializers.ModelSerializer):
+class FuncionarioSerializer(serializers.ModelSerializer):
     empresa_nome = serializers.ReadOnlyField(source='empresa.nome')
     class Meta:
-        model = Contato
+        model = Funcionario
         fields = ['id', 'nome', 'matricula', 'empresa_nome', 'telefone', 'email']
 
 

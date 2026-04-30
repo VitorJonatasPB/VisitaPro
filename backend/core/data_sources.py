@@ -9,14 +9,14 @@ Para adicionar uma nova tabela/fonte:
 Nenhuma migração ou alteração de model/form é necessária.
 """
 
-from .models import Contato
+from .models import Funcionario
 
 
 DATA_SOURCES = {
-    "contatoes": {
-        "label": "Contatoes da Empresa",
+    "funcionarios": {
+        "label": "Funcionários da Empresa",
         "resolver": lambda visita: list(
-            Contato.objects.filter(empresa=visita.empresa).values_list(
+            Funcionario.objects.filter(empresa=visita.empresa).values_list(
                 "nome", flat=True
             )
         ),

@@ -17,86 +17,129 @@
         <form method="post">
             {% csrf_token %}
             
-            <div class="row">
-                <div class="col-md-12 mb-3">
-                    <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
-                    <input type="text" name="nome" value="{% if object %}{{ object.nome }}{% endif %}" class="form-control" id="{{ form.nome.id_for_label }}" required>
-                    {{ form.nome.errors }}
-                </div>
-                
-                <div class="col-md-12 mb-3">
-                    <label for="{{ form.regiao.id_for_label }}" class="form-label">{{ form.regiao.label }}</label>
-                    <select name="regiao" class="form-select" id="{{ form.regiao.id_for_label }}" required>
-                        {% for reg in form.regiao.field.queryset %}
-                            <option value="{{ reg.id }}" {% if object and object.regiao_id == reg.id %}selected{% endif %}>{{ reg }}</option>
-                        {% endfor %}
-                    </select>
-                    {{ form.regiao.errors }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.telefone.id_for_label }}" class="form-label">{{ form.telefone.label }}</label>
-                    <input type="text" name="telefone" value="{% if object and object.telefone %}{{ object.telefone }}{% endif %}" class="form-control" id="{{ form.telefone.id_for_label }}">
-                    {{ form.telefone.errors }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
-                    <input type="email" name="email" value="{% if object and object.email %}{{ object.email }}{% endif %}" class="form-control" id="{{ form.email.id_for_label }}">
-                    {{ form.email.errors }}
-                </div>
-                
-                {% if user.is_admin or user.is_superuser %}
-                <div class="col-md-8 mb-3">
-                    <label for="{{ form.consultor.id_for_label }}" class="form-label">{{ form.consultor.label }}</label>
-                    <select name="consultor" class="form-select" id="{{ form.consultor.id_for_label }}">
-                        <option value="">---------</option>
-                        {% for cons in form.consultor.field.queryset %}
-                            <option value="{{ cons.id }}" {% if object and object.consultor_id == cons.id %}selected{% endif %}>{{ cons }}</option>
-                        {% endfor %}
-                    </select>
-                    {{ form.consultor.errors }}
-                </div>
-                {% endif %}
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
-                    <select name="status" class="form-select" id="{{ form.status.id_for_label }}" required>
-                        <option value="A" {% if object and object.status == 'A' %}selected{% endif %}>Ativa</option>
-                        <option value="I" {% if object and object.status == 'I' %}selected{% endif %}>Inativa</option>
-                    </select>
-                    {{ form.status.errors }}
+            <ul class="nav nav-tabs mb-3" id="empresaTabs" role="tablist">
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link active" id="pessoais-tab" data-bs-toggle="tab" data-bs-target="#pessoais" type="button" role="tab" aria-controls="pessoais" aria-selected="true">Informações Gerais</button>
+                </li>
+                <li class="nav-item" role="presentation">
+                    <button class="nav-link" id="endereco-tab" data-bs-toggle="tab" data-bs-target="#endereco" type="button" role="tab" aria-controls="endereco" aria-selected="false">Endereço</button>
+                </li>
+            </ul>
+
+            <div class="tab-content" id="empresaTabsContent">
+                <!-- Aba: Informações Gerais -->
+                <div class="tab-pane fade show active" id="pessoais" role="tabpanel" aria-labelledby="pessoais-tab">
+                    <div class="row">
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.nome.id_for_label }}" class="form-label">{{ form.nome.label }}</label>
+                            <input type="text" name="nome" value="{% if object %}{{ object.nome }}{% endif %}" class="form-control" id="{{ form.nome.id_for_label }}" required>
+                            {{ form.nome.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.cnpj_cpf.id_for_label }}" class="form-label">{{ form.cnpj_cpf.label }}</label>
+                            <input type="text" name="cnpj_cpf" value="{% if object and object.cnpj_cpf %}{{ object.cnpj_cpf }}{% endif %}" class="form-control cnpj-cpf-mask" id="{{ form.cnpj_cpf.id_for_label }}">
+                            {{ form.cnpj_cpf.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.telefone.id_for_label }}" class="form-label">{{ form.telefone.label }}</label>
+                            <input type="text" name="telefone" value="{% if object and object.telefone %}{{ object.telefone }}{% endif %}" class="form-control" id="{{ form.telefone.id_for_label }}">
+                            {{ form.telefone.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.email.id_for_label }}" class="form-label">{{ form.email.label }}</label>
+                            <input type="email" name="email" value="{% if object and object.email %}{{ object.email }}{% endif %}" class="form-control" id="{{ form.email.id_for_label }}">
+                            {{ form.email.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.status.id_for_label }}" class="form-label">{{ form.status.label }}</label>
+                            <select name="status" class="form-select" id="{{ form.status.id_for_label }}" required>
+                                <option value="A" {% if object and object.status == 'A' %}selected{% endif %}>Ativa</option>
+                                <option value="I" {% if object and object.status == 'I' %}selected{% endif %}>Inativa</option>
+                                <option value="N" {% if object and object.status == 'N' %}selected{% endif %}>Em Negociação</option>
+                            </select>
+                            {{ form.status.errors }}
+                        </div>
+                        
+                        {% if user.is_admin or user.is_superuser %}
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.assessor.id_for_label }}" class="form-label">{{ form.assessor.label }}</label>
+                            <select name="assessor" class="form-select" id="{{ form.assessor.id_for_label }}">
+                                <option value="">---------</option>
+                                {% for cons in form.assessor.field.queryset %}
+                                    <option value="{{ cons.id }}" {% if object and object.assessor_id == cons.id %}selected{% endif %}>{{ cons }}</option>
+                                {% endfor %}
+                            </select>
+                            {{ form.assessor.errors }}
+                        </div>
+                        
+                        <div class="col-md-12 mb-3">
+                            <label for="{{ form.assessores_autorizados.id_for_label }}" class="form-label">{{ form.assessores_autorizados.label }}</label>
+                            {{ form.assessores_autorizados }}
+                            <div class="form-text">Segure Ctrl (ou Cmd) para selecionar múltiplos.</div>
+                            {{ form.assessores_autorizados.errors }}
+                        </div>
+                        {% endif %}
+                    </div>
                 </div>
 
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.frequencia_recomendada_dias.id_for_label }}" class="form-label">{{ form.frequencia_recomendada_dias.label }}</label>
-                    <input type="number" name="frequencia_recomendada_dias" value="{% if object %}{{ object.frequencia_recomendada_dias }}{% else %}30{% endif %}" class="form-control" id="{{ form.frequencia_recomendada_dias.id_for_label }}" required>
-                    <div class="form-text">Em dias (ex: 30 para mensal).</div>
-                    {{ form.frequencia_recomendada_dias.errors }}
+                <!-- Aba: Endereço -->
+                <div class="tab-pane fade" id="endereco" role="tabpanel" aria-labelledby="endereco-tab">
+                    <div class="row">
+                        <div class="col-md-4 mb-3 mt-2">
+                            <label for="{{ form.cep.id_for_label }}" class="form-label">{{ form.cep.label }}</label>
+                            <input type="text" name="cep" value="{% if object and object.cep %}{{ object.cep }}{% endif %}" class="form-control cep-mask" id="{{ form.cep.id_for_label }}">
+                            {{ form.cep.errors }}
+                        </div>
+                        
+                        <div class="col-md-8 mb-3 mt-2">
+                            <label for="{{ form.rua.id_for_label }}" class="form-label">{{ form.rua.label }}</label>
+                            <input type="text" name="rua" value="{% if object and object.rua %}{{ object.rua }}{% endif %}" class="form-control" id="{{ form.rua.id_for_label }}">
+                            {{ form.rua.errors }}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.numero.id_for_label }}" class="form-label">{{ form.numero.label }}</label>
+                            <input type="text" name="numero" value="{% if object and object.numero %}{{ object.numero }}{% endif %}" class="form-control" id="{{ form.numero.id_for_label }}">
+                            {{ form.numero.errors }}
+                        </div>
+                        
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.bairro.id_for_label }}" class="form-label">{{ form.bairro.label }}</label>
+                            <input type="text" name="bairro" value="{% if object and object.bairro %}{{ object.bairro }}{% endif %}" class="form-control" id="{{ form.bairro.id_for_label }}">
+                            {{ form.bairro.errors }}
+                        </div>
+                        
+                        <div class="col-md-8 mb-3">
+                            <label for="{{ form.cidade.id_for_label }}" class="form-label">{{ form.cidade.label }}</label>
+                            <input type="text" name="cidade" value="{% if object and object.cidade %}{{ object.cidade }}{% endif %}" class="form-control" id="{{ form.cidade.id_for_label }}">
+                            {{ form.cidade.errors }}
+                        </div>
+                        
+                        <div class="col-md-4 mb-3">
+                            <label for="{{ form.estado.id_for_label }}" class="form-label">{{ form.estado.label }}</label>
+                            <input type="text" name="estado" value="{% if object and object.estado %}{{ object.estado }}{% endif %}" class="form-control" id="{{ form.estado.id_for_label }}" maxlength="2">
+                            {{ form.estado.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.latitude.id_for_label }}" class="form-label">{{ form.latitude.label }}</label>
+                            {{ form.latitude }}
+                            <div class="form-text">Coordenada (ex: -23.550520)</div>
+                            {{ form.latitude.errors }}
+                        </div>
+                        
+                        <div class="col-md-6 mb-3">
+                            <label for="{{ form.longitude.id_for_label }}" class="form-label">{{ form.longitude.label }}</label>
+                            {{ form.longitude }}
+                            <div class="form-text">Coordenada (ex: -46.633308)</div>
+                            {{ form.longitude.errors }}
+                        </div>
+                    </div>
                 </div>
-
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.latitude.id_for_label }}" class="form-label">{{ form.latitude.label }}</label>
-                    {{ form.latitude }}
-                    <div class="form-text">Coordenada (ex: -23.550520)</div>
-                    {{ form.latitude.errors }}
-                </div>
-                
-                <div class="col-md-6 mb-3">
-                    <label for="{{ form.longitude.id_for_label }}" class="form-label">{{ form.longitude.label }}</label>
-                    {{ form.longitude }}
-                    <div class="form-text">Coordenada (ex: -46.633308)</div>
-                    {{ form.longitude.errors }}
-                </div>
-                
-                {% if user.is_admin or user.is_superuser %}
-                <div class="col-md-12 mb-3">
-                    <label for="{{ form.consultores_autorizados.id_for_label }}" class="form-label">{{ form.consultores_autorizados.label }}</label>
-                    {{ form.consultores_autorizados }}
-                    <div class="form-text">Segure Ctrl (ou Cmd) para selecionar múltiplos.</div>
-                    {{ form.consultores_autorizados.errors }}
-                </div>
-                {% endif %}
             </div>
             
             <div class="mt-4 pt-2 border-top">
@@ -107,4 +150,61 @@
         </form>
     </div>
 </div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const input = document.querySelector('.cnpj-cpf-mask');
+    if (input) {
+        input.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            
+            if (value.length <= 11) {
+                // CPF mask
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d)/, '$1.$2');
+                value = value.replace(/(\d{3})(\d{1,2})$/, '$1-$2');
+            } else {
+                // CNPJ mask
+                value = value.replace(/^(\d{2})(\d)/, '$1.$2');
+                value = value.replace(/^(\d{2})\.(\d{3})(\d)/, '$1.$2.$3');
+                value = value.replace(/\.(\d{3})(\d)/, '.$1/$2');
+                value = value.replace(/(\d{4})(\d)/, '$1-$2');
+            }
+            
+            e.target.value = value.substring(0, 18);
+        });
+    }
+
+    const cepInput = document.querySelector('.cep-mask');
+    if (cepInput) {
+        cepInput.addEventListener('input', function(e) {
+            let value = e.target.value.replace(/\D/g, '');
+            if (value.length > 5) {
+                value = value.replace(/^(\d{5})(\d)/, '$1-$2');
+            }
+            e.target.value = value.substring(0, 9);
+        });
+
+        cepInput.addEventListener('blur', function(e) {
+            let cep = e.target.value.replace(/\D/g, '');
+            if (cep.length === 8) {
+                fetch(`https://viacep.com.br/ws/${cep}/json/`)
+                    .then(response => response.json())
+                    .then(data => {
+                        if (!data.erro) {
+                            document.getElementById('id_rua').value = data.logradouro;
+                            document.getElementById('id_bairro').value = data.bairro;
+                            document.getElementById('id_cidade').value = data.localidade;
+                            document.getElementById('id_estado').value = data.uf;
+                            document.getElementById('id_numero').focus();
+                        }
+                    })
+                    .catch(error => console.error('Erro ao buscar CEP:', error));
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

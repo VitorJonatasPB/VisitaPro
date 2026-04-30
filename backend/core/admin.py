@@ -3,11 +3,11 @@ import urllib.request
 import urllib.parse
 from django.contrib import admin, messages
 from django.conf import settings
-from .models import Contato, Disciplina, Regiao, Empresa, Visita, CustomUser
+from .models import Disciplina, Empresa, Visita, CustomUser, Funcionario
 
 class EmpresaAdmin(admin.ModelAdmin):
-    list_display = ('nome', 'regiao', 'status', 'latitude', 'longitude')
-    list_filter = ('regiao', 'status')
+    list_display = ('nome', 'status', 'latitude', 'longitude')
+    list_filter = ('status',)
     search_fields = ('nome',)
 
 def preview_cor(obj):
@@ -16,14 +16,14 @@ preview_cor.short_description = 'Cor no Mapa'
 preview_cor.allow_tags = True
 
 class CustomUserAdmin(admin.ModelAdmin):
-    list_display = ('username', 'first_name', 'last_name', 'email', 'is_consultor', 'is_admin', 'preview_cor_inline')
-    list_filter = ('is_consultor', 'is_admin')
+    list_display = ('username', 'first_name', 'last_name', 'email', 'is_assessor', 'is_admin', 'preview_cor_inline')
+    list_filter = ('is_assessor', 'is_admin')
     search_fields = ('username', 'first_name', 'last_name', 'email')
     fieldsets = (
         ('Dados de Acesso', {'fields': ('username', 'password')}),
         ('Informações Pessoais', {'fields': ('first_name', 'last_name', 'email', 'telefone', 'foto')}),
-        ('Permissões', {'fields': ('is_consultor', 'is_admin', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
-        ('Personalização do Mapa', {'fields': ('cor_mapa',), 'description': 'Escolha a cor dos pins das empresas deste consultor no mapa.'}),
+        ('Permissões', {'fields': ('is_assessor', 'is_admin', 'is_active', 'is_staff', 'is_superuser', 'groups', 'user_permissions')}),
+        ('Personalização do Mapa', {'fields': ('cor_mapa',), 'description': 'Escolha a cor dos pins das empresas deste assessor no mapa.'}),
     )
 
     def preview_cor_inline(self, obj):
@@ -32,8 +32,7 @@ class CustomUserAdmin(admin.ModelAdmin):
     preview_cor_inline.allow_tags = True
 
 admin.site.register(CustomUser, CustomUserAdmin)
-admin.site.register(Regiao)
 admin.site.register(Empresa, EmpresaAdmin)
 admin.site.register(Visita)
-admin.site.register(Contato)
+admin.site.register(Funcionario)
 admin.site.register(Disciplina)

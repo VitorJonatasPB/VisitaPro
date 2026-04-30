@@ -2,10 +2,10 @@ from django.urls import path
 from . import api_views
 
 urlpatterns = [
-    # Agenda do consultor (visitas do dia)
+    # Agenda do assessor (visitas do dia)
     path('visitas/agenda/', api_views.agenda_hoje, name='api-agenda'),
 
-    # Agenda do consultor (visitas do mês)
+    # Agenda do assessor (visitas do mês)
     path('visitas/mes/', api_views.agenda_mes, name='api-agenda-mes'),
 
     # Detalhe de uma visita específica
@@ -22,13 +22,13 @@ urlpatterns = [
     path('visitas/<int:visita_id>/checkin/', api_views.fazer_checkin, name='api-checkin'),
     path('visitas/<int:visita_id>/checkout/', api_views.fazer_checkout, name='api-checkout'),
     path('visitas/<int:visita_id>/responder/', api_views.enviar_relatorio, name='api-responder'),
-    path('visitas/<int:visita_id>/contatoes/', api_views.contatoes_empresa, name='api-contatoes'),
+    path('visitas/<int:visita_id>/funcionarios/', api_views.funcionarios_empresa, name='api-funcionarios'),
 
     # Meu Perfil e Bugs
     path('users/me/', api_views.meu_perfil, name='api-meu-perfil'),
     path('bugs/', api_views.reportar_bug, name='api-reportar-bug'),
 
-    # Listagem global do consultor
+    # Listagem global do assessor
     path('empresas/', api_views.lista_empresas, name='api-lista-empresas'),
-    path('contatoes/', api_views.lista_contatoes, name='api-lista-contatoes'),
+    path('funcionarios/', api_views.lista_funcionarios, name='api-lista-funcionarios'),
 ]

@@ -36,24 +36,8 @@
 <div class="card mb-3">
   <div class="card-body py-2">
     <form method="GET" class="row g-2 align-items-center">
-      <div class="col-md-3">
+      <div class="col-md-2">
         <input type="text" name="nome" class="form-control form-control-sm" placeholder="Nome" value="{{ request.GET.nome }}">
-      </div>
-      <div class="col-md-2">
-        <select name="regiao" class="form-select form-select-sm">
-          <option value="">Região</option>
-          {% for r in regioes_list %}
-          <option value="{{ r.id }}" {% if request.GET.regiao == r.id|stringformat:"s" %}selected{% endif %}>{{ r.nome }}</option>
-          {% endfor %}
-        </select>
-      </div>
-      <div class="col-md-2">
-        <select name="cidade" class="form-select form-select-sm">
-          <option value="">Cidade</option>
-          {% for cid in cidades_list %}
-          <option value="{{ cid }}" {% if request.GET.cidade == cid %}selected{% endif %}>{{ cid }}</option>
-          {% endfor %}
-        </select>
       </div>
       <div class="col-md-2">
         <select name="status" class="form-select form-select-sm">
@@ -62,12 +46,18 @@
           <option value="I" {% if request.GET.status == 'I' %}selected{% endif %}>Inativa</option>
         </select>
       </div>
-      {% if user.is_admin or user.is_superuser %}
       <div class="col-md-2">
-        <select name="consultor" class="form-select form-select-sm">
-          <option value="">Consultor</option>
-          {% for c in consultores_list %}
-          <option value="{{ c.id }}" {% if request.GET.consultor == c.id|stringformat:"s" %}selected{% endif %}>{{ c.username }}</option>
+        <input type="text" name="cidade" class="form-control form-control-sm" placeholder="Cidade" value="{{ request.GET.cidade }}">
+      </div>
+      <div class="col-md-2">
+        <input type="text" name="estado" class="form-control form-control-sm" placeholder="Estado (Ex: SP)" value="{{ request.GET.estado }}" maxlength="2">
+      </div>
+      {% if user.is_admin or user.is_superuser %}
+      <div class="col-md-3">
+        <select name="assessor" class="form-select form-select-sm">
+          <option value="">Assessor</option>
+          {% for c in assessores_list %}
+          <option value="{{ c.id }}" {% if request.GET.assessor == c.id|stringformat:"s" %}selected{% endif %}>{{ c.username }}</option>
           {% endfor %}
         </select>
       </div>
@@ -86,12 +76,11 @@
         <thead class="table-light">
           <tr>
             <th>Nome</th>
-            <th>CDE / DDZ</th>
-            <th>Cidade</th>
+            <th>CNPJ/CPF</th>
             <th>Telefone</th>
             <th>Status</th>
             {% if user.is_admin or user.is_superuser %}
-            <th>Consultor</th>
+            <th>Assessor</th>
             <th class="text-end">Ações</th>
             {% endif %}
           </tr>
@@ -100,21 +89,22 @@
           {% for empresa in empresas %}
           <tr onclick="window.location.href='{% url 'core:empresa_update' empresa.id %}'" style="cursor: pointer;">
             <td title="{{ empresa.nome }}"><strong>{{ empresa.nome }}</strong></td>
-            <td title="{{ empresa.regiao.nome }}">{{ empresa.regiao.nome }}</td>
-            <td title="{{ empresa.regiao.cidade|default:'-' }}">{{ empresa.regiao.cidade|default:"-" }}</td>
+            <td title="{{ empresa.cnpj_cpf|default:'-' }}">{{ empresa.cnpj_cpf|default:"-" }}</td>
             <td title="{{ empresa.telefone|default:'-' }}">{{ empresa.telefone|default:"-" }}</td>
             <td>
               {% if empresa.status == 'A' %}
               <span class="badge bg-success">Ativa</span>
-              {% else %}
+              {% elif empresa.status == 'I' %}
               <span class="badge bg-danger">Inativa</span>
+              {% elif empresa.status == 'N' %}
+              <span class="badge bg-warning text-dark">Em Negociação</span>
               {% endif %}
             </td>
             {% if user.is_admin or user.is_superuser %}
             <td>
-              {% if empresa.consultor %}
+              {% if empresa.assessor %}
               <span class="badge" style="background-color: rgba(99, 102, 241, 0.2); color: #818cf8; border: 1px solid rgba(99, 102, 241, 0.5); padding: 0.4rem 0.6rem;">
-                {{ empresa.consultor.get_full_name|default:empresa.consultor.username }}
+                {{ empresa.assessor.get_full_name|default:empresa.assessor.username }}
               </span>
               {% else %}
               <span class="text-muted small">Nenhum</span>
@@ -165,11 +155,10 @@
                         <p class="mb-1 small">A planilha (.csv ou .xlsx - Excel/Google Sheets) deve conter as seguintes colunas obrigatórias:</p>
                         <ul class="mb-0 small">
                             <li><strong>nome</strong>: Nome da empresa</li>
-                            <li><strong>regiao</strong>: Nome da CDE/DDZ (ex: CDE 1)</li>
-                            <li><strong>telefone</strong>: Telefone de contato</li>
+                            <li><strong>telefone</strong>: Telefone de funcionario</li>
                             <li><strong>email</strong>: Email da empresa</li>
                             <li><strong>status</strong>: A (Ativa) ou I (Inativa)</li>
-                            <li><strong>consultor_username</strong>: Username do consultor responsável (deixe em branco se não houver)</li>
+                            <li><strong>assessor_username</strong>: Username do assessor responsável (deixe em branco se não houver)</li>
                             <li><strong>latitude</strong>: (Opcional) Coordenada Y (ex: -23.550520)</li>
                             <li><strong>longitude</strong>: (Opcional) Coordenada X (ex: -46.633308)</li>
                         </ul>

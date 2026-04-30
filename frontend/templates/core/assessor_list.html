@@ -1,13 +1,13 @@
 {% extends 'core/base.html' %}
 
-{% block title %}Consultores - Visitas Corporativas{% endblock %}
+{% block title %}Assessores - Visitas Corporativas{% endblock %}
 
 {% block content %}
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pt-3 pb-2 mb-3 border-bottom">
-    <h1 class="h4 fw-bold mb-3 mb-md-0">Consultores</h1>
+    <h1 class="h4 fw-bold mb-3 mb-md-0">Assessores</h1>
     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-        <a href="{% url 'core:consultor_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
-            <i class="fas fa-plus me-2"></i> Novo Consultor
+        <a href="{% url 'core:assessor_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
+            <i class="fas fa-plus me-2"></i> Novo Assessor
         </a>
     </div>
 </div>
@@ -16,7 +16,7 @@
     <div class="card-body py-2">
         <form method="GET" class="row g-2 align-items-center">
             <div class="col-md-5">
-                <input type="text" name="nome" class="form-control form-control-sm" placeholder="Buscar por Nome do Consultor..." value="{{ request.GET.nome }}">
+                <input type="text" name="nome" class="form-control form-control-sm" placeholder="Buscar por Nome do Assessor..." value="{{ request.GET.nome }}">
             </div>
             <div class="col-md-1">
                 <button type="submit" class="btn btn-sm btn-primary w-100"><i class="fas fa-search"></i></button>
@@ -39,26 +39,26 @@
                     </tr>
                 </thead>
                 <tbody>
-                    {% for consultor in consultores %}
+                    {% for assessor in assessores %}
                     <tr>
-                        <td title="{{ consultor.username }}">{{ consultor.username }}</td>
-                        <td title="{{ consultor.get_full_name }}">{{ consultor.get_full_name }}</td>
-                        <td title="{{ consultor.email }}">{{ consultor.email }}</td>
+                        <td title="{{ assessor.username }}">{{ assessor.username }}</td>
+                        <td title="{{ assessor.get_full_name }}">{{ assessor.get_full_name }}</td>
+                        <td title="{{ assessor.email }}">{{ assessor.email }}</td>
                         <td>
-                            {% if consultor.is_active %}
+                            {% if assessor.is_active %}
                                 <span class="badge bg-success">Ativo</span>
                             {% else %}
                                 <span class="badge bg-danger">Inativo</span>
                             {% endif %}
                         </td>
                         <td class="text-end">
-                            <a href="{% url 'core:consultor_update' consultor.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
-                            <a href="{% url 'core:consultor_delete' consultor.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
+                            <a href="{% url 'core:assessor_update' assessor.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            <a href="{% url 'core:assessor_delete' assessor.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
                         </td>
                     </tr>
                     {% empty %}
                     <tr>
-                        <td colspan="5" class="text-center py-4">Nenhum consultor cadastrado.</td>
+                        <td colspan="5" class="text-center py-4">Nenhum assessor cadastrado.</td>
                     </tr>
                     {% endfor %}
                 </tbody>

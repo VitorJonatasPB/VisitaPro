@@ -9,7 +9,7 @@ urlpatterns = [
     
     # Dashboards
     path('admin-panel/', views.DashboardAdminView.as_view(), name='dashboard_admin'),
-    path('consultor-panel/', views.DashboardConsultorView.as_view(), name='dashboard_consultor'),
+    path('assessor-panel/', views.DashboardAssessorView.as_view(), name='dashboard_assessor'),
     
     # Rota raiz redireciona para login
     path('', views.CustomLoginView.as_view(), name='index'),
@@ -18,11 +18,6 @@ urlpatterns = [
     path('manifest.json', views.ManifestView.as_view(), name='manifest'),
     path('serviceworker.js', views.ServiceWorkerView.as_view(), name='serviceworker'),
 
-    # Região
-    path('regioes/', views.RegiaoListView.as_view(), name='regiao_list'),
-    path('regioes/nova/', views.RegiaoCreateView.as_view(), name='regiao_create'),
-    path('regioes/<int:pk>/editar/', views.RegiaoUpdateView.as_view(), name='regiao_update'),
-    path('regioes/<int:pk>/excluir/', views.RegiaoDeleteView.as_view(), name='regiao_delete'),
 
     # Grupos (Novo Módulo de Permissões)
     path('grupos/', views.GroupListView.as_view(), name='group_list'),
@@ -36,11 +31,11 @@ urlpatterns = [
     path('administradores/<int:pk>/editar/', views.AdminUserUpdateView.as_view(), name='admin_user_update'),
     path('administradores/<int:pk>/excluir/', views.AdminUserDeleteView.as_view(), name='admin_user_delete'),
 
-    # Consultor
-    path('consultores/', views.ConsultorListView.as_view(), name='consultor_list'),
-    path('consultores/novo/', views.ConsultorCreateView.as_view(), name='consultor_create'),
-    path('consultores/<int:pk>/editar/', views.ConsultorUpdateView.as_view(), name='consultor_update'),
-    path('consultores/<int:pk>/excluir/', views.ConsultorDeleteView.as_view(), name='consultor_delete'),
+    # Assessor
+    path('assessores/', views.AssessorListView.as_view(), name='assessor_list'),
+    path('assessores/novo/', views.AssessorCreateView.as_view(), name='assessor_create'),
+    path('assessores/<int:pk>/editar/', views.AssessorUpdateView.as_view(), name='assessor_update'),
+    path('assessores/<int:pk>/excluir/', views.AssessorDeleteView.as_view(), name='assessor_delete'),
 
     # Empresa
     path('empresas/', views.EmpresaListView.as_view(), name='empresa_list'),
@@ -62,16 +57,16 @@ urlpatterns = [
     path('perguntas/<int:pk>/editar/', views.PerguntaUpdateView.as_view(), name='pergunta_update'),
     path('perguntas/<int:pk>/excluir/', views.PerguntaDeleteView.as_view(), name='pergunta_delete'),
 
-    # Configuração PWA (Mobile) - Convertido para Módulo do Consultor (Relatório)
+    # Configuração PWA (Mobile) - Convertido para Módulo do Assessor (Relatório)
     path('agenda/<int:pk>/relatorio/', views.RelatorioVisitaView.as_view(), name='visita_relatorio'),
 
-    # Contato
-    path('contatoes/', views.ContatoListView.as_view(), name='contato_list'),
-    path('contatoes/novo/', views.ContatoCreateView.as_view(), name='contato_create'),
-    path('contatoes/<int:pk>/editar/', views.ContatoUpdateView.as_view(), name='contato_update'),
-    path('contatoes/<int:pk>/excluir/', views.ContatoDeleteView.as_view(), name='contato_delete'),
+    # Funcionários
+    path('funcionarios/', views.FuncionarioListView.as_view(), name='funcionario_list'),
+    path('funcionarios/novo/', views.FuncionarioCreateView.as_view(), name='funcionario_create'),
+    path('funcionarios/<int:pk>/editar/', views.FuncionarioUpdateView.as_view(), name='funcionario_update'),
+    path('funcionarios/<int:pk>/excluir/', views.FuncionarioDeleteView.as_view(), name='funcionario_delete'),
 
     # Imports
     path('importar/empresas/', views.importar_empresas, name='importar_empresas'),
-    path('importar/contatoes/', views.importar_contatoes, name='importar_contatoes'),
+    path('importar/funcionarios/', views.importar_funcionarios, name='importar_funcionarios'),
 ]

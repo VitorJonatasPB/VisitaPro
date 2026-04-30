@@ -212,7 +212,7 @@
     {% if user.is_authenticated %}
     <!-- Navbar Mobile (Visível apenas em telas menores) -->
     <nav class="navbar navbar-dark d-md-none px-3" style="background-color: #171C29; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_consultor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><i class="fas fa-school text-primary me-2"></i> Visitas</a>
+      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_assessor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><i class="fas fa-school text-primary me-2"></i> Visitas</a>
       <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -247,13 +247,11 @@
               >
               <a href="{% url 'core:empresa_list' %}"
                  class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Empresas</a>
-              <a href="{% url 'core:contato_list' %}"
-                 class="{% if 'contato' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Contatoes</a>
-              <a href="{% url 'core:consultor_list' %}"
-                 class="{% if 'consultor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-users me-2"></i> Consultores</a>
-              <a href="{% url 'core:regiao_list' %}"
-                 class="{% if 'regiao' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-map-marked-alt me-2"></i> Regiões</a>
-              
+              <a href="{% url 'core:funcionario_list' %}"
+                 class="{% if 'funcionario' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-id-badge me-2"></i> Funcionários</a>
+              <a href="{% url 'core:assessor_list' %}"
+                 class="{% if 'assessor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-users me-2"></i> Assessores</a>
+
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
               <a href="{% url 'core:agenda' %}"
@@ -268,12 +266,12 @@
               <a href="{% url 'core:admin_user_list' %}" class="{% if 'admin_user' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-user-lock me-2"></i> Usuários Admin</a>
               <a href="{% url 'core:group_list' %}" class="{% if 'group' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-shield-alt me-2"></i> Permissões e Grupos</a>
               {% else %}
-              <a href="{% url 'core:dashboard_consultor' %}"
-                 class="{% if request.resolver_match.url_name == 'dashboard_consultor' %}active{% endif %}"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
+              <a href="{% url 'core:dashboard_assessor' %}"
+                 class="{% if request.resolver_match.url_name == 'dashboard_assessor' %}active{% endif %}"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
               <a href="{% url 'core:empresa_list' %}"
                  class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Minhas Empresas</a>
-              <a href="{% url 'core:contato_list' %}"
-                 class="{% if 'contato' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Contatoes</a>
+              <a href="{% url 'core:funcionario_list' %}"
+                 class="{% if 'funcionario' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Funcionários</a>
               
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
@@ -354,6 +352,39 @@
                   });
               }
           });
+
+          // ─── Enter → próximo campo (global, todos os formulários) ────────────
+          document.querySelectorAll('form').forEach(function(form) {
+              form.addEventListener('keydown', function(e) {
+                  if (e.key !== 'Enter') return;
+                  const tag = e.target.tagName.toLowerCase();
+                  if (tag === 'textarea' || tag === 'button' || tag === 'select') return;
+
+                  e.preventDefault();
+
+                  const focusaveis = Array.from(form.querySelectorAll(
+                      'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
+                  ));
+                  const idx = focusaveis.indexOf(e.target);
+                  if (idx === -1) return;
+
+                  for (let i = idx + 1; i < focusaveis.length; i++) {
+                      const proximo = focusaveis[i];
+                      const abaDoProximo = proximo.closest('.tab-pane');
+                      if (abaDoProximo && !abaDoProximo.classList.contains('active')) {
+                          const botaoAba = document.querySelector('[data-bs-target="#' + abaDoProximo.id + '"]');
+                          if (botaoAba) {
+                              botaoAba.click();
+                              setTimeout(function() { proximo.focus(); }, 180);
+                              return;
+                          }
+                      }
+                      proximo.focus();
+                      return;
+                  }
+              });
+          });
+          // ────────────────────────────────────────────────────────────────────
       });
     </script>
     {% block extra_js %}{% endblock %}

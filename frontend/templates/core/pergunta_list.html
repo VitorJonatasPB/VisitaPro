@@ -246,14 +246,14 @@ document.addEventListener("DOMContentLoaded", function() {
 <script src="https://cdn.jsdelivr.net/npm/select2@4.1.0-rc.0/dist/js/select2.min.js"></script>
 <script>
     $(document).ready(function() {
-        $('#simulador_contatoes').select2({
+        $('#simulador_funcionarios').select2({
             theme: 'bootstrap-5',
             placeholder: "Toque e procure os nomes...",
             allowClear: true,
             width: '100%',
             language: {
                 noResults: function() {
-                    return "Nenhum contato encontrado";
+                    return "Nenhum funcionario encontrado";
                 }
             }
         });

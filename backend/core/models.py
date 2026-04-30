@@ -3,7 +3,7 @@ from django.contrib.auth.models import AbstractUser
 from django.conf import settings
 
 class CustomUser(AbstractUser):
-    is_consultor = models.BooleanField(default=False)
+    is_assessor = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     foto = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True)
     telefone = models.CharField(max_length=20, null=True, blank=True)
@@ -15,38 +15,89 @@ class CustomUser(AbstractUser):
     def __str__(self):
         return f"{self.username} ({self.get_full_name()})"
 
-class Regiao(models.Model):
-    nome = models.CharField(max_length=100, unique=True, verbose_name="Nome (CDE / DDZ)")
-    cidade = models.CharField(max_length=100, verbose_name="Cidade")
-    secretaria = models.CharField(max_length=150, blank=True, null=True, help_text="Ex: SEMED", verbose_name="Secretaria")
-    
-    class Meta:
-        verbose_name = "CDE / DDZ"
-        verbose_name_plural = "CDEs / DDZs"
-
-    def __str__(self):
-        return f"{self.nome} - {self.cidade}"
-
 class Empresa(models.Model):
     STATUS_CHOICES = [
         ('A', 'Ativa'),
         ('I', 'Inativa'),
+        ('N', 'Em Negociação'),
     ]
     
     nome = models.CharField(max_length=150)
-    regiao = models.ForeignKey(Regiao, on_delete=models.CASCADE, related_name='empresas', verbose_name="CDE / DDZ")
     telefone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
-    consultor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, related_name='empresas')
+    cnpj_cpf = models.CharField(max_length=18, blank=True, null=True, verbose_name="CNPJ/CPF")
+    assessor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.SET_NULL, null=True, blank=True, related_name='empresas')
     status = models.CharField(max_length=1, choices=STATUS_CHOICES, default='A')
-    frequencia_recomendada_dias = models.PositiveIntegerField(default=30)
-    consultores_autorizados = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='empresas_autorizadas', blank=True)
+    assessores_autorizados = models.ManyToManyField(settings.AUTH_USER_MODEL, related_name='empresas_autorizadas', blank=True)
     ultima_visita = models.DateField(null=True, blank=True)
+    cep = models.CharField(max_length=10, blank=True, null=True, verbose_name="CEP")
+    rua = models.CharField(max_length=255, blank=True, null=True, verbose_name="Rua")
+    numero = models.CharField(max_length=20, blank=True, null=True, verbose_name="Número")
+    bairro = models.CharField(max_length=100, blank=True, null=True, verbose_name="Bairro")
+    cidade = models.CharField(max_length=100, blank=True, null=True, verbose_name="Cidade")
+    estado = models.CharField(max_length=2, blank=True, null=True, verbose_name="Estado")
     latitude = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: -23.550520")
     longitude = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: -46.633308")
+    data_conversao = models.DateField(null=True, blank=True, verbose_name="Data de Conversão", help_text="Data em que a empresa passou de 'Em Negociação' para 'Ativa'")
     
     def __str__(self):
         return self.nome
+
+    def save(self, *args, **kwargs):
+        if not self.latitude or not self.longitude:
+            self.geocodificar_pelo_google()
+            
+        # Rastreamento de conversão: se está mudando de 'N' para 'A'
+        if self.pk:
+            try:
+                old_instance = Empresa.objects.get(pk=self.pk)
+                if old_instance.status == 'N' and self.status == 'A':
+                    from django.utils import timezone
+                    self.data_conversao = timezone.now().date()
+            except Empresa.DoesNotExist:
+                pass
+                
+        super().save(*args, **kwargs)
+
+    def geocodificar_pelo_google(self):
+        import requests
+        from django.conf import settings
+        
+        api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', None)
+        if not api_key:
+            return
+
+        partes = []
+        if self.rua: 
+            r = self.rua
+            if self.numero: r += f", {self.numero}"
+            partes.append(r)
+        if self.cidade: partes.append(self.cidade)
+        if self.estado: partes.append(self.estado)
+        partes.append("Brasil")
+        
+        query = ", ".join(partes)
+        
+        if not partes or len(partes) <= 1:
+            if self.cep:
+                query = self.cep
+            else:
+                return
+
+        try:
+            url = f"https://maps.googleapis.com/maps/api/geocode/json?address={query}&key={api_key}"
+            response = requests.get(url, timeout=5)
+            data = response.json()
+            
+            if data['status'] == 'OK':
+                location = data['results'][0]['geometry']['location']
+                self.latitude = str(location['lat'])
+                self.longitude = str(location['lng'])
+                print(f"[GOOGLE API] Sucesso: {self.nome} -> {self.latitude}, {self.longitude}")
+            else:
+                print(f"[GOOGLE API] Erro ou nada encontrado para {self.nome}: {data['status']}")
+        except Exception as e:
+            print(f"[GOOGLE API] Falha na requisição para {self.nome}: {e}")
 
 class Visita(models.Model):
     STATUS_CHOICES = [
@@ -56,7 +107,7 @@ class Visita(models.Model):
     ]
 
     empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='visitas')
-    consultor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='visitas')
+    assessor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='visitas')
     data = models.DateField()
     horario = models.TimeField()
     status = models.CharField(max_length=20, choices=STATUS_CHOICES, default='agendada')
@@ -64,7 +115,7 @@ class Visita(models.Model):
     relatorio = models.TextField(blank=True, null=True, help_text="Relatório preenchido pelo consultor")
     nome_responsavel = models.CharField(max_length=200, blank=True, null=True, help_text="Nome do responsável que assinou")
     assinatura = models.TextField(blank=True, null=True, help_text="Assinatura digitalizada em Base64")
-    contatoes_atendidos = models.ManyToManyField('Contato', related_name='visitas_participadas', blank=True)
+    contatoes_atendidos = models.ManyToManyField('Funcionario', related_name='visitas_participadas', blank=True)
     
     checkin_time = models.DateTimeField(blank=True, null=True)
     checkin_lat = models.CharField(max_length=50, blank=True, null=True)
@@ -109,18 +160,21 @@ class Disciplina(models.Model):
     def __str__(self):
         return self.nome
 
-class Contato(models.Model):
+class Funcionario(models.Model):
     nome = models.CharField(max_length=150)
     matricula = models.CharField(max_length=50, blank=True, null=True, verbose_name="Matrícula")
-    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='contatoes')
-    disciplinas = models.ManyToManyField(Disciplina, related_name='contatoes', blank=True)
+    empresa = models.ForeignKey(Empresa, on_delete=models.CASCADE, related_name='funcionarios')
+    departamento = models.CharField(max_length=100, blank=True, null=True)
+    cargo = models.CharField(max_length=100, blank=True, null=True)
     telefone = models.CharField(max_length=20, blank=True, null=True)
     email = models.EmailField(blank=True, null=True)
     criado_em = models.DateTimeField(auto_now_add=True)
     atualizado_em = models.DateTimeField(auto_now=True)
     
     class Meta:
-        verbose_name_plural = "Contatoes"
+        verbose_name = "Funcionário"
+        verbose_name_plural = "Funcionários"
+        db_table = 'core_contato'  # Mantemos o nome da tabela no banco para evitar migração
         
     def __str__(self):
         return f"{self.nome} ({self.matricula})" if self.matricula else self.nome

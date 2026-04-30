@@ -99,10 +99,10 @@
     <div class="btn-toolbar mb-2 mb-md-0 d-flex gap-2">
         {% if user.is_admin or user.is_superuser %}
         <form id="filtro-form" method="GET" action="{% url 'core:agenda' %}">
-            <select id="filtro-consultor" name="consultor" class="form-select form-select-sm" onchange="document.getElementById('filtro-form').submit()">
-                <option value="">Todos os Consultores</option>
-                {% for c in consultores_list %}
-                <option value="{{ c.id }}" {% if consultor_id_selecionado == c.id %}selected{% endif %}>{{ c.username }}</option>
+            <select id="filtro-assessor" name="assessor" class="form-select form-select-sm" onchange="document.getElementById('filtro-form').submit()">
+                <option value="">Todos os Assessores</option>
+                {% for c in assessores_list %}
+                <option value="{{ c.id }}" {% if assessor_id_selecionado == c.id %}selected{% endif %}>{{ c.username }}</option>
                 {% endfor %}
             </select>
         </form>
@@ -155,7 +155,7 @@
                                             <i class="fas fa-school text-muted"></i>
                                             <div>
                                                 <div class="fw-bold text-white">{{ visita.empresa.nome }}</div>
-                                                <div class="text-muted" style="font-size: 0.85rem;">{{ visita.consultor.get_full_name|default:visita.consultor.username }}</div>
+                                                <div class="text-muted" style="font-size: 0.85rem;">{{ visita.assessor.get_full_name|default:visita.assessor.username }}</div>
                                             </div>
                                         </div>
                                         <div class="time-badge shadow-sm">
@@ -186,7 +186,7 @@
             <h5 class="mb-0 fw-bold">Lista de Agendamentos</h5>
             <form id="form-periodo" method="GET" action="{% url 'core:agenda' %}">
                 <input type="hidden" name="data" value="{{ data_selecionada|date:'Y-m-d' }}">
-                {% if consultor_id_selecionado %}<input type="hidden" name="consultor" value="{{ consultor_id_selecionado }}">{% endif %}
+                {% if assessor_id_selecionado %}<input type="hidden" name="assessor" value="{{ assessor_id_selecionado }}">{% endif %}
                 <select name="periodo" class="form-select form-select-sm border-secondary text-muted bg-transparent shadow-none" style="min-width: 120px;" onchange="document.getElementById('form-periodo').submit();">
                     <option value="mes" {% if periodo == 'mes' %}selected{% endif %}>Deste Mês</option>
                     <option value="ano" {% if periodo == 'ano' %}selected{% endif %}>Deste Ano</option>
@@ -218,13 +218,12 @@
                                         </div>
                                         <div>
                                             <div class="fw-bold text-white">{{ visita.empresa.nome }}</div>
-                                            <div class="text-muted small">{{ visita.empresa.regiao.cidade|default:"Não informada" }}</div>
                                         </div>
                                     </div>
                                 </td>
                                 <td>
-                                    <div class="text-white">{{ visita.consultor.get_full_name|default:visita.consultor.username }}</div>
-                                    <div class="text-muted small">Consultor(a)</div>
+                                    <div class="text-white">{{ visita.assessor.get_full_name|default:visita.assessor.username }}</div>
+                                    <div class="text-muted small">Assessor(a)</div>
                                 </td>
                                 <td>
                                     <div class="text-white">{{ visita.data|date:"d/m/Y" }}</div>
@@ -284,16 +283,17 @@
         var apiVisitasUrl = '{% url "core:api_visitas" %}';
         
         var urlParams = new URLSearchParams(window.location.search);
-        var consultorId = urlParams.get('consultor');
-        if (consultorId) {
-            apiVisitasUrl += '?consultor=' + consultorId;
+        var assessorId = urlParams.get('assessor');
+        if (assessorId) {
+            apiVisitasUrl += '?assessor=' + assessorId;
         }
 
         var calendar = new FullCalendar.Calendar(calendarEl, {
             initialView: 'dayGridMonth',
             fixedWeekCount: false,
             locale: 'pt-br',
-            aspectRatio: 0.85, // Aumenta a altura livre das células para os horários caberem melhor
+            height: 'auto',
+            aspectRatio: 1.35, // Proporção maior para diminuir a altura
             headerToolbar: {
                 left: 'prev',
                 center: 'title',

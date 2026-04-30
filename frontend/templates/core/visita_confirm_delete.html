@@ -16,7 +16,7 @@
         <ul>
             <li><strong>Data:</strong> {{ object.data|date:"d/m/Y" }}</li>
             <li><strong>Horário:</strong> {{ object.horario|time:"H:i" }}</li>
-            <li><strong>Consultor Designado:</strong> {{ object.consultor.get_full_name|default:object.consultor.username }}</li>
+            <li><strong>Assessor Designado:</strong> {{ object.assessor.get_full_name|default:object.assessor.username }}</li>
         </ul>
         <p class="text-muted small">Esta ação não poderá ser desfeita.</p>
         

@@ -8,8 +8,8 @@ from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse
 import json
 from django.conf import settings
-from .models import Regiao, Empresa, Visita, CustomUser, Contato, Disciplina, PerguntaRelatorio, RespostaRelatorio
-from .forms import RegiaoForm, ConsultorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, ContatoForm, DisciplinaForm, PerguntaRelatorioForm, GroupForm
+from .models import Empresa, Visita, CustomUser, Funcionario, Disciplina, PerguntaRelatorio, RespostaRelatorio
+from .forms import AssessorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, FuncionarioForm, DisciplinaForm, PerguntaRelatorioForm, GroupForm
 from django.contrib.auth.models import Group
 import pandas as pd
 from django.contrib import messages
@@ -22,12 +22,12 @@ class CustomLoginView(LoginView):
         user = self.request.user
         if getattr(user, 'is_admin', False) or user.is_superuser:
             return reverse_lazy('core:dashboard_admin')
-        elif getattr(user, 'is_consultor', False):
-            return reverse_lazy('core:dashboard_consultor')
+        elif getattr(user, 'is_assessor', False):
+            return reverse_lazy('core:dashboard_assessor')
         # Fallback para admin se for superuser sem os campos booleanos marcados
         if user.is_superuser:
             return reverse_lazy('core:dashboard_admin')
-        return reverse_lazy('core:dashboard_consultor')
+        return reverse_lazy('core:dashboard_assessor')
 
 def custom_logout(request):
     logout(request)
@@ -37,9 +37,9 @@ class AdminRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
         return self.request.user.is_superuser or self.request.user.is_admin
         
-class ConsultorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
+class AssessorRequiredMixin(LoginRequiredMixin, UserPassesTestMixin):
     def test_func(self):
-        return self.request.user.is_consultor
+        return self.request.user.is_assessor
 
 class DashboardAdminView(AdminRequiredMixin, TemplateView):
     template_name = 'core/dashboard_admin.html'
@@ -53,82 +53,90 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         mes_atual = hoje.month
         ano_atual = hoje.year
 
-        # Filtro de Consultor
-        consultor_id = self.request.GET.get('consultor_id')
+        # Filtro de Assessor
+        assessor_id = self.request.GET.get('assessor_id')
         
         # Lista para o Select
-        context['consultores_lista'] = CustomUser.objects.filter(is_consultor=True, is_active=True).order_by('first_name', 'username')
-        context['consultor_id_selecionado'] = consultor_id
+        context['assessores_lista'] = CustomUser.objects.filter(is_assessor=True, is_active=True).order_by('first_name', 'username')
+        context['assessor_id_selecionado'] = assessor_id
         
-        # Consultor Atual e Iniciais
+        # Assessor Atual e Iniciais
         iniciais = "TD"
         user_foto_url = None
-        if consultor_id:
+        if assessor_id:
             try:
-                consultor_obj = CustomUser.objects.get(id=int(consultor_id))
-                if consultor_obj.first_name:
-                    iniciais = consultor_obj.first_name[0].upper()
-                    if consultor_obj.last_name:
-                        iniciais += consultor_obj.last_name[0].upper()
+                assessor_obj = CustomUser.objects.get(id=int(assessor_id))
+                if assessor_obj.first_name:
+                    iniciais = assessor_obj.first_name[0].upper()
+                    if assessor_obj.last_name:
+                        iniciais += assessor_obj.last_name[0].upper()
                 else:
-                    iniciais = consultor_obj.username[:2].upper()
-                user_foto_url = consultor_obj.foto.url if consultor_obj.foto else None
+                    iniciais = assessor_obj.username[:2].upper()
+                user_foto_url = assessor_obj.foto.url if assessor_obj.foto else None
             except CustomUser.DoesNotExist:
-                consultor_id = None
+                assessor_id = None
                 user_foto_url = None
         
         context['user_initials'] = iniciais
         context['user_foto_url'] = user_foto_url
         
-        # Filtrar as métricas gerais baseado ou não em consultor
+        # Filtrar as métricas gerais baseado ou não em assessor
         visitas_do_mes = Visita.objects.filter(data__year=ano_atual, data__month=mes_atual)
-        if consultor_id:
-            visitas_do_mes = visitas_do_mes.filter(consultor_id=consultor_id)
+        if assessor_id:
+            visitas_do_mes = visitas_do_mes.filter(assessor_id=assessor_id)
             
         context['agendadas_mes'] = visitas_do_mes.filter(status='agendada').count()
         context['visitas_realizadas_mes'] = visitas_do_mes.filter(status='realizada').count()
         context['canceladas_mes'] = visitas_do_mes.filter(status='cancelada').count()
-        context['consultores_ativos'] = CustomUser.objects.filter(is_consultor=True, is_active=True).count()
+        context['assessores_ativos'] = CustomUser.objects.filter(is_assessor=True, is_active=True).count()
         
         from django.db.models import Q
         empresas_qs = Empresa.objects.all()
-        if consultor_id:
-            empresas_qs = empresas_qs.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
+        if assessor_id:
+            empresas_qs = empresas_qs.filter(Q(assessor_id=assessor_id) | Q(visitas__assessor_id=assessor_id)).distinct()
         context['total_empresas'] = empresas_qs.count()
         
-        from .models import Contato
-        contatoes_qs = Contato.objects.all()
-        if consultor_id:
-            contatoes_qs = contatoes_qs.filter(empresa__in=empresas_qs).distinct()
-        context['total_contatoes'] = contatoes_qs.count()
+        from .models import Funcionario
+        funcionarios_qs = Funcionario.objects.all()
+        if assessor_id:
+            funcionarios_qs = funcionarios_qs.filter(empresa__in=empresas_qs).distinct()
+        context['total_funcionarios'] = funcionarios_qs.count()
         
         # Últimas visitas
         ultimas_visitas = Visita.objects.all().order_by('-data', '-horario')
-        if consultor_id:
-            ultimas_visitas = ultimas_visitas.filter(consultor_id=consultor_id)
+        if assessor_id:
+            ultimas_visitas = ultimas_visitas.filter(assessor_id=assessor_id)
         context['ultimas_visitas'] = ultimas_visitas[:5]
+        context['empresas_recentes'] = empresas_qs.order_by('-id')[:5]
 
         # Empresas no Mapa (se tiver filtro, mostra só as dele)
         from django.db.models import Q
-        empresas = Empresa.objects.exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='')
-        if consultor_id:
-            empresas = empresas.filter(Q(consultor_id=consultor_id) | Q(visitas__consultor_id=consultor_id)).distinct()
+        empresas = Empresa.objects.all()
+        if assessor_id:
+            empresas = empresas.filter(Q(assessor_id=assessor_id) | Q(visitas__assessor_id=assessor_id)).distinct()
             
         empresas_mapa = []
         for e in empresas:
-            cor = e.consultor.cor_mapa if e.consultor and hasattr(e.consultor, 'cor_mapa') else '#3B82F6'
-            nome_consultor = e.consultor.get_full_name() or e.consultor.username if e.consultor else 'Sem consultor'
+            cor = e.assessor.cor_mapa if e.assessor and hasattr(e.assessor, 'cor_mapa') else '#3B82F6'
+            nome_assessor = e.assessor.get_full_name() or e.assessor.username if e.assessor else 'Sem assessor'
             empresas_mapa.append({
                 'nome': e.nome,
                 'lat': e.latitude,
                 'lng': e.longitude,
+                'cep': e.cep or '',
+                'rua': e.rua or '',
+                'numero': e.numero or '',
+                'bairro': e.bairro or '',
+                'cidade': e.cidade or '',
+                'estado': e.estado or '',
+                'status': e.get_status_display(),
                 'url': str(reverse_lazy('core:empresa_update', kwargs={'pk': e.id})),
                 'cor': cor,
-                'consultor': nome_consultor,
+                'assessor': nome_assessor,
             })
         context['empresas_mapa'] = json.dumps(empresas_mapa)
         
-        # Métrica p/ Gráfico de Colunas: Contatoes Atendidos nos últimos 6 meses
+        # Métrica p/ Gráfico de Colunas: Funcionários Atendidos nos últimos 6 meses
         grafico_labels = []
         grafico_data = []
         
@@ -140,48 +148,41 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
                 ano -= 1
                 
             visitas_mes_ano = Visita.objects.filter(data__year=ano, data__month=mes, status='realizada')
-            if consultor_id:
-                visitas_mes_ano = visitas_mes_ano.filter(consultor_id=consultor_id)
+            if assessor_id:
+                visitas_mes_ano = visitas_mes_ano.filter(assessor_id=assessor_id)
                 
             empresas_ids = set([v.empresa.id for v in visitas_mes_ano])
-            from .models import Contato
-            total_contatoes = Contato.objects.filter(empresa__id__in=empresas_ids).count()
+            total_empresas_visitadas = len(empresas_ids)
             
             nome_mes = calendar.month_abbr[mes]
             meses_ptbr = {1:'Jan', 2:'Fev', 3:'Mar', 4:'Abr', 5:'Mai', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Set', 10:'Out', 11:'Nov', 12:'Dez'}
             nome_mes_br = meses_ptbr.get(mes, '')
             
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
-            grafico_data.append(total_contatoes)
+            grafico_data.append(total_empresas_visitadas)
             
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Métrica p/ Gráfico de Rosca: % de Contatoes Atendidos no Total Geral
-        # Para isso, precisamos ver todos os contatoes que já participaram de pelo menos 1 visita realizada
-        import math
-        visitas_para_rosca = Visita.objects.filter(status='realizada')
-        if consultor_id:
-            visitas_para_rosca = visitas_para_rosca.filter(consultor_id=consultor_id)
+        # Gráfico de Rosca: Status das Empresas
+        empresas_qs = Empresa.objects.all()
+        if assessor_id:
+            empresas_qs = empresas_qs.filter(assessor_id=assessor_id)
             
-        contatoes_atendidos_ids = set()
-        for v in visitas_para_rosca:
-            for p in v.contatoes_atendidos.all():
-                contatoes_atendidos_ids.add(p.id)
-                
-        total_atendidos_unicos = len(contatoes_atendidos_ids)
-        total_contatoes_geral = context.get('total_contatoes', 0)
+        ativas = empresas_qs.filter(status='A').count()
+        inativas = empresas_qs.filter(status='I').count()
+        negociacao = empresas_qs.filter(status='N').count()
         
-        if total_contatoes_geral > 0:
-            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_contatoes_geral) * 100)
-        else:
-            porcentagem_atendidos = 0
-            
-        porcentagem_nao_atendidos = 100 - porcentagem_atendidos
+        context['rosca_ativas'] = ativas
+        context['rosca_inativas'] = inativas
+        context['rosca_negociacao'] = negociacao
         
-        context['rosca_atendidos'] = porcentagem_atendidos
-        context['rosca_nao_atendidos'] = porcentagem_nao_atendidos
-        context['total_atendidos_unicos'] = total_atendidos_unicos
+        # Conversão de Clientes (mês atual)
+        conversoes_mes = empresas_qs.filter(
+            data_conversao__year=hoje.year,
+            data_conversao__month=hoje.month
+        ).count()
+        context['conversoes_mes'] = conversoes_mes
         
         return context
 
@@ -207,63 +208,32 @@ class ServiceWorkerView(TemplateView):
         context['empresas_mapa'] = json.dumps(empresas_mapa)
         return context
 
-# -- CRUD REGIÃO --
-class RegiaoListView(AdminRequiredMixin, ListView):
-    model = Regiao
-    template_name = 'core/regiao_list.html'
-    context_object_name = 'regioes'
-
-    def get_queryset(self):
-        qs = super().get_queryset()
-        nome = self.request.GET.get('nome')
-        secretaria = self.request.GET.get('secretaria')
-        
-        if nome:
-            qs = qs.filter(nome__icontains=nome)
-        if secretaria:
-            qs = qs.filter(secretaria__icontains=secretaria)
-            
-        return qs
-
-    def get_context_data(self, **kwargs):
-        context = super().get_context_data(**kwargs)
-        context['secretarias_list'] = Regiao.objects.exclude(secretaria__isnull=True).exclude(secretaria__exact='').values_list('secretaria', flat=True).distinct().order_by('secretaria')
-        return context
-
-class RegiaoCreateView(AdminRequiredMixin, CreateView):
-    model = Regiao
-    form_class = RegiaoForm
-    template_name = 'core/regiao_form.html'
-    success_url = reverse_lazy('core:regiao_list')
-
-class RegiaoUpdateView(AdminRequiredMixin, UpdateView):
-    model = Regiao
-    form_class = RegiaoForm
-    template_name = 'core/regiao_form.html'
-    success_url = reverse_lazy('core:regiao_list')
-
-class RegiaoDeleteView(AdminRequiredMixin, DeleteView):
-    model = Regiao
-    template_name = 'core/regiao_confirm_delete.html'
-    success_url = reverse_lazy('core:regiao_list')
-
-class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
-    template_name = 'core/dashboard_consultor.html'
+class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
+    template_name = 'core/dashboard_assessor.html'
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
         from django.db.models import Q
-        empresas = Empresa.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).exclude(latitude__isnull=True).exclude(latitude__exact='').exclude(longitude__isnull=True).exclude(longitude__exact='').distinct()
+        empresas = Empresa.objects.filter(Q(assessor=user) | Q(visitas__assessor=user)).distinct()
         empresas_mapa = []
         for e in empresas:
             empresas_mapa.append({
                 'nome': e.nome,
-                'lat': e.latitude,
-                'lng': e.longitude,
+                'lat': e.latitude or '',
+                'lng': e.longitude or '',
+                'cep': e.cep or '',
+                'rua': e.rua or '',
+                'numero': e.numero or '',
+                'bairro': e.bairro or '',
+                'cidade': e.cidade or '',
+                'estado': e.estado or '',
+                'status': e.get_status_display(),
                 'url': str(reverse_lazy('core:empresa_update', kwargs={'pk': e.id}))
             })
         context['empresas_mapa'] = json.dumps(empresas_mapa)
+        context['empresas_recentes'] = empresas.order_by('-id')[:5]
+
         
         # Avatar (Iniciais)
         iniciais = ""
@@ -278,7 +248,7 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
         context['user_initials'] = iniciais
         context['user_foto_url'] = user.foto.url if user.foto else None
         
-        # Filtros de Visitas do Mês para Consultor
+        # Filtros de Visitas do Mês para Assessor
         from django.utils import timezone
         import datetime
         import calendar
@@ -287,29 +257,29 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
         mes_atual = hoje.month
         ano_atual = hoje.year
         
-        visitas_do_consultor_mes = Visita.objects.filter(
-            consultor=user, 
+        visitas_do_assessor_mes = Visita.objects.filter(
+            assessor=user, 
             data__year=ano_atual, 
             data__month=mes_atual
         )
         
-        context['visitas_agendadas_mes'] = visitas_do_consultor_mes.filter(status='agendada').count()
-        context['visitas_realizadas_mes'] = visitas_do_consultor_mes.filter(status='realizada').count()
-        context['visitas_canceladas_mes'] = visitas_do_consultor_mes.filter(status='cancelada').count()
+        context['visitas_agendadas_mes'] = visitas_do_assessor_mes.filter(status='agendada').count()
+        context['visitas_realizadas_mes'] = visitas_do_assessor_mes.filter(status='realizada').count()
+        context['visitas_canceladas_mes'] = visitas_do_assessor_mes.filter(status='cancelada').count()
         
         # Manteve para caso seja usado em outro lugar no front
-        context['proximas_visitas_mes'] = visitas_do_consultor_mes.filter(
+        context['proximas_visitas_mes'] = visitas_do_assessor_mes.filter(
             data__gte=hoje
         ).exclude(status='cancelada').count()
         
         context['visitas_hoje'] = Visita.objects.filter(
-            consultor=user,
+            assessor=user,
             data=hoje
         ).order_by('horario')
         
         context['total_empresas'] = empresas.count()
-        from .models import Contato
-        context['total_contatoes'] = Contato.objects.filter(empresa__in=empresas).distinct().count()
+        from .models import Funcionario
+        context['total_funcionarios'] = Funcionario.objects.filter(empresa__in=empresas).distinct().count()
         
         # Métrica p/ Gráfico de Pizza: Contatoes Atendidos nos últimos 6 meses
         grafico_labels = []
@@ -323,15 +293,12 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
                 mes += 12
                 ano -= 1
                 
-            # Buscar visitas 'realizadas' naquele mes/ano para o consultor
-            visitas_mes_ano = Visita.objects.filter(consultor=user, data__year=ano, data__month=mes, status='realizada')
+            # Buscar visitas 'realizadas' naquele mes/ano para o assessor
+            visitas_mes_ano = Visita.objects.filter(assessor=user, data__year=ano, data__month=mes, status='realizada')
             
             # Pegar o ID de todas as empresas dessas visitas
             empresas_ids = set([v.empresa.id for v in visitas_mes_ano])
-            
-            # Contar total de contatoes dessas empresas
-            from .models import Contato
-            total_contatoes = Contato.objects.filter(empresa__id__in=empresas_ids).count()
+            total_empresas_visitadas = len(empresas_ids)
             
             # Formatando o Nome do mes
             nome_mes = calendar.month_abbr[mes]  # ex: 'Jan', 'Feb' (Nota: por padrão pt-BR de locale, não tem no Django sem Babel, usaremos um mapa fixo p/ BR se preferível mas calendar é ok)
@@ -339,70 +306,65 @@ class DashboardConsultorView(ConsultorRequiredMixin, TemplateView):
             nome_mes_br = meses_ptbr.get(mes, '')
             
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
-            grafico_data.append(total_contatoes)
+            grafico_data.append(total_empresas_visitadas)
             
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Métrica p/ Gráfico de Rosca: % de Contatoes Atendidos no Total Geral do Consultor
-        import math
-        visitas_para_rosca = Visita.objects.filter(consultor=user, status='realizada')
+        # Gráfico de Rosca: Status das Empresas (Para o Assessor)
+        empresas_qs = empresas
         
-        contatoes_atendidos_ids = set()
-        for v in visitas_para_rosca:
-            for p in v.contatoes_atendidos.all():
-                contatoes_atendidos_ids.add(p.id)
-                
-        total_atendidos_unicos = len(contatoes_atendidos_ids)
-        total_contatoes_geral = context.get('total_contatoes', 0)
+        ativas = empresas_qs.filter(status='A').count()
+        inativas = empresas_qs.filter(status='I').count()
+        negociacao = empresas_qs.filter(status='N').count()
         
-        if total_contatoes_geral > 0:
-            porcentagem_atendidos = math.floor((total_atendidos_unicos / total_contatoes_geral) * 100)
-        else:
-            porcentagem_atendidos = 0
-            
-        porcentagem_nao_atendidos = 100 - porcentagem_atendidos
+        context['rosca_ativas'] = ativas
+        context['rosca_inativas'] = inativas
+        context['rosca_negociacao'] = negociacao
         
-        context['rosca_atendidos'] = porcentagem_atendidos
-        context['rosca_nao_atendidos'] = porcentagem_nao_atendidos
-        context['total_atendidos_unicos'] = total_atendidos_unicos
+        # Conversão de Clientes (mês atual)
+        conversoes_mes = empresas_qs.filter(
+            data_conversao__year=hoje.year,
+            data_conversao__month=hoje.month
+        ).count()
+        context['conversoes_mes'] = conversoes_mes
         
         return context
 
 # -- CRUD CONSULTOR (USER) --
-class ConsultorListView(AdminRequiredMixin, ListView):
+class AssessorListView(AdminRequiredMixin, ListView):
     model = CustomUser
-    template_name = 'core/consultor_list.html'
-    context_object_name = 'consultores'
+    template_name = 'core/assessor_list.html'
+    context_object_name = 'assessores'
     
     def get_queryset(self):
-        qs = CustomUser.objects.filter(is_consultor=True)
+        qs = CustomUser.objects.filter(is_assessor=True)
         nome = self.request.GET.get('nome')
         if nome:
             qs = qs.filter(first_name__icontains=nome) | qs.filter(username__icontains=nome)
         return qs
 
-class ConsultorCreateView(AdminRequiredMixin, CreateView):
+class AssessorCreateView(AdminRequiredMixin, CreateView):
     model = CustomUser
-    form_class = ConsultorForm
-    template_name = 'core/consultor_form.html'
-    success_url = reverse_lazy('core:consultor_list')
+    form_class = AssessorForm
+    template_name = 'core/assessor_form.html'
+    success_url = reverse_lazy('core:assessor_list')
 
     def form_valid(self, form):
-        # Antes de salvar no banco, definimos que este usuário É um consultor
-        form.instance.is_consultor = True 
+        # Antes de salvar no banco, definimos que este usuário É um assessor
+        form.instance.is_assessor = True 
         return super().form_valid(form)
 
-class ConsultorUpdateView(AdminRequiredMixin, UpdateView):
+class AssessorUpdateView(AdminRequiredMixin, UpdateView):
     model = CustomUser
-    form_class = ConsultorForm
-    template_name = 'core/consultor_form.html'
-    success_url = reverse_lazy('core:consultor_list')
+    form_class = AssessorForm
+    template_name = 'core/assessor_form.html'
+    success_url = reverse_lazy('core:assessor_list')
 
-class ConsultorDeleteView(AdminRequiredMixin, DeleteView):
+class AssessorDeleteView(AdminRequiredMixin, DeleteView):
     model = CustomUser
-    template_name = 'core/consultor_confirm_delete.html'
-    success_url = reverse_lazy('core:consultor_list')
+    template_name = 'core/assessor_confirm_delete.html'
+    success_url = reverse_lazy('core:assessor_list')
 
 # -- CRUD EMPRESA --
 class EmpresaListView(LoginRequiredMixin, ListView):
@@ -416,36 +378,34 @@ class EmpresaListView(LoginRequiredMixin, ListView):
         
         # Filtros GET
         nome = self.request.GET.get('nome')
-        regiao = self.request.GET.get('regiao')
-        cidade = self.request.GET.get('cidade')
         status = self.request.GET.get('status')
-        consultor_id = self.request.GET.get('consultor')
+        assessor_id = self.request.GET.get('assessor')
+
+        estado = self.request.GET.get('estado')
+        cidade = self.request.GET.get('cidade')
 
         if nome:
             qs = qs.filter(nome__icontains=nome)
-        if regiao:
-            qs = qs.filter(regiao_id=regiao)
-        if cidade:
-            qs = qs.filter(regiao__cidade__icontains=cidade)
         if status:
             qs = qs.filter(status=status)
-        if consultor_id:
-            qs = qs.filter(consultor_id=consultor_id)
+        if assessor_id:
+            qs = qs.filter(assessor_id=assessor_id)
+        if estado:
+            qs = qs.filter(estado__iexact=estado)
+        if cidade:
+            qs = qs.filter(cidade__icontains=cidade)
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            # Retorna apenas as empresas que esse consultor está designado como titular ou autorizado
+            # Retorna apenas as empresas que esse assessor está designado como titular ou autorizado
             from django.db.models import Q
-            qs = qs.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
+            qs = qs.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         user = self.request.user
-        context['regioes_list'] = Regiao.objects.all().order_name() if hasattr(Regiao.objects, 'order_name') else Regiao.objects.all().order_by('nome')
-        context['cidades_list'] = Regiao.objects.exclude(cidade__isnull=True).exclude(cidade__exact='').values_list('cidade', flat=True).distinct().order_by('cidade')
-        
         if user.is_superuser or getattr(user, 'is_admin', False):
-            context['consultores_list'] = CustomUser.objects.filter(is_consultor=True)
+            context['assessores_list'] = CustomUser.objects.filter(is_assessor=True)
         return context
 
 class EmpresaCreateView(AdminRequiredMixin, CreateView):
@@ -518,7 +478,7 @@ class VisitaListView(LoginRequiredMixin, ListView):
             qs = Visita.objects.filter(data=data_alvo).order_by('horario')
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            qs = qs.filter(consultor=user)
+            qs = qs.filter(assessor=user)
             
         return qs
 
@@ -545,7 +505,7 @@ class VisitaListView(LoginRequiredMixin, ListView):
         if user.is_superuser or getattr(user, 'is_admin', False):
             visitas = Visita.objects.all()
         else:
-            visitas = Visita.objects.filter(consultor=user)
+            visitas = Visita.objects.filter(assessor=user)
         
         dias_com_visita = list(set([v.data.strftime('%Y-%m-%d') for v in visitas if v.data]))
         import json
@@ -575,16 +535,16 @@ class AgendaView(LoginRequiredMixin, TemplateView):
         context['data_selecionada'] = hoje
         context['is_hoje'] = (hoje == timezone.now().date())
         
-        consultor_id = self.request.GET.get('consultor')
+        assessor_id = self.request.GET.get('assessor')
         
         if user.is_superuser or getattr(user, 'is_admin', False):
-            context['consultores_list'] = CustomUser.objects.filter(is_consultor=True)
+            context['assessores_list'] = CustomUser.objects.filter(is_assessor=True)
             visitas = Visita.objects.all().order_by('data', 'horario')
-            if consultor_id:
-                visitas = visitas.filter(consultor_id=consultor_id)
-                context['consultor_id_selecionado'] = int(consultor_id)
+            if assessor_id:
+                visitas = visitas.filter(assessor_id=assessor_id)
+                context['assessor_id_selecionado'] = int(assessor_id)
         else:
-            visitas = Visita.objects.filter(consultor=user).order_by('data', 'horario')
+            visitas = Visita.objects.filter(assessor=user).order_by('data', 'horario')
             
         periodo = self.request.GET.get('periodo', 'mes') # Por padrão foca no mês atual
         context['periodo'] = periodo
@@ -600,10 +560,10 @@ class AgendaView(LoginRequiredMixin, TemplateView):
         
         # Visitas da barra lateral (sempre do dia selecionado no calendário)
         visitas_para_hoje = Visita.objects.filter(data=hoje).order_by('data', 'horario')
-        if consultor_id and (user.is_superuser or getattr(user, 'is_admin', False)):
-            visitas_para_hoje = visitas_para_hoje.filter(consultor_id=consultor_id)
+        if assessor_id and (user.is_superuser or getattr(user, 'is_admin', False)):
+            visitas_para_hoje = visitas_para_hoje.filter(assessor_id=assessor_id)
         elif not (user.is_superuser or getattr(user, 'is_admin', False)):
-            visitas_para_hoje = visitas_para_hoje.filter(consultor=user)
+            visitas_para_hoje = visitas_para_hoje.filter(assessor=user)
             
         context['visitas_hoje'] = visitas_para_hoje
         return context
@@ -627,17 +587,17 @@ class VisitaCreateView(LoginRequiredMixin, CreateView):
             empresas = Empresa.objects.all()
         else:
             from django.db.models import Q
-            empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
-        empresa_consultor_map = {e.id: e.consultor.id for e in empresas if e.consultor}
-        context['empresa_consultor_map'] = json.dumps(empresa_consultor_map)
+            empresas = Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
+        empresa_assessor_map = {e.id: e.assessor.id for e in empresas if e.assessor}
+        context['empresa_assessor_map'] = json.dumps(empresa_assessor_map)
         context['is_edit'] = False
         return context
 
     def form_valid(self, form):
         user = self.request.user
-        # Se for consultor criando, força que ele seja o consultor da visita
+        # Se for assessor criando, força que ele seja o assessor da visita
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            form.instance.consultor = user
+            form.instance.assessor = user
         return super().form_valid(form)
 
 class VisitaUpdateView(AdminRequiredMixin, UpdateView):
@@ -658,9 +618,9 @@ class VisitaUpdateView(AdminRequiredMixin, UpdateView):
             empresas = Empresa.objects.all()
         else:
             from django.db.models import Q
-            empresas = Empresa.objects.filter(Q(consultor=user) | Q(consultores_autorizados=user)).distinct()
-        empresa_consultor_map = {e.id: e.consultor.id for e in empresas if e.consultor}
-        context['empresa_consultor_map'] = json.dumps(empresa_consultor_map)
+            empresas = Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
+        empresa_assessor_map = {e.id: e.assessor.id for e in empresas if e.assessor}
+        context['empresa_assessor_map'] = json.dumps(empresa_assessor_map)
         context['is_edit'] = True
 
         # Mapa de auditoria de GPS
@@ -681,15 +641,15 @@ class VisitaDeleteView(AdminRequiredMixin, DeleteView):
 class VisitasAPIView(LoginRequiredMixin, View):
     def get(self, request, *args, **kwargs):
         user = request.user
-        consultor_id = request.GET.get('consultor')
+        assessor_id = request.GET.get('assessor')
 
         if user.is_superuser or getattr(user, 'is_admin', False):
             visitas = Visita.objects.all()
-            if consultor_id:
-                visitas = visitas.filter(consultor_id=consultor_id)
+            if assessor_id:
+                visitas = visitas.filter(assessor_id=assessor_id)
         else:
             # Mostramos no calendário SOMENTE as visitas marcadas especificamente para ele
-            visitas = Visita.objects.filter(consultor=user)
+            visitas = Visita.objects.filter(assessor=user)
 
         events = []
         for v in visitas:
@@ -702,12 +662,12 @@ class VisitasAPIView(LoginRequiredMixin, View):
 
             events.append({
                 'id': v.id,
-                'title': f"{v.empresa.nome} ({v.consultor.username})",
+                'title': f"{v.empresa.nome} ({v.assessor.username})",
                 'start': f"{v.data.isoformat()}T{v.horario.isoformat()}",
                 'backgroundColor': color,
                 'borderColor': color,
                 'status': v.status,
-                'consultor': v.consultor.username
+                'assessor': v.assessor.username
             })
         
         return JsonResponse(events, safe=False)
@@ -723,7 +683,7 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
         user = self.request.user
         if user.is_superuser or getattr(user, 'is_admin', False):
             return Visita.objects.all()
-        return Visita.objects.filter(consultor=user)
+        return Visita.objects.filter(assessor=user)
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
@@ -784,11 +744,11 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
             )
         return response
 
-# -- CRUD CONTATO --
-class ContatoListView(LoginRequiredMixin, ListView):
-    model = Contato
-    template_name = 'core/contato_list.html'
-    context_object_name = 'contatoes'
+# -- CRUD FUNCIONÁRIO --
+class FuncionarioListView(LoginRequiredMixin, ListView):
+    model = Funcionario
+    template_name = 'core/funcionario_list.html'
+    context_object_name = 'funcionarios'
     
     def get_queryset(self):
         qs = super().get_queryset()
@@ -804,7 +764,7 @@ class ContatoListView(LoginRequiredMixin, ListView):
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
             from django.db.models import Q
-            qs = qs.filter(Q(empresa__consultor=user) | Q(empresa__visitas__consultor=user)).distinct()
+            qs = qs.filter(Q(empresa__assessor=user) | Q(empresa__visitas__assessor=user)).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
@@ -814,20 +774,20 @@ class ContatoListView(LoginRequiredMixin, ListView):
             context['empresas_list'] = Empresa.objects.all()
         else:
             from django.db.models import Q
-            context['empresas_list'] = Empresa.objects.filter(Q(consultor=user) | Q(visitas__consultor=user)).distinct()
+            context['empresas_list'] = Empresa.objects.filter(Q(assessor=user) | Q(visitas__assessor=user)).distinct()
         return context
 
-class ContatoCreateView(AdminRequiredMixin, CreateView):
-    model = Contato
-    form_class = ContatoForm
-    template_name = 'core/contato_form.html'
-    success_url = reverse_lazy('core:contato_list')
+class FuncionarioCreateView(AdminRequiredMixin, CreateView):
+    model = Funcionario
+    form_class = FuncionarioForm
+    template_name = 'core/funcionario_form.html'
+    success_url = reverse_lazy('core:funcionario_list')
 
-class ContatoUpdateView(LoginRequiredMixin, UpdateView):
-    model = Contato
-    form_class = ContatoForm
-    template_name = 'core/contato_form.html'
-    success_url = reverse_lazy('core:contato_list')
+class FuncionarioUpdateView(LoginRequiredMixin, UpdateView):
+    model = Funcionario
+    form_class = FuncionarioForm
+    template_name = 'core/funcionario_form.html'
+    success_url = reverse_lazy('core:funcionario_list')
 
     def get_form(self, form_class=None):
         form = super().get_form(form_class)
@@ -844,10 +804,10 @@ class ContatoUpdateView(LoginRequiredMixin, UpdateView):
             raise PermissionDenied("Apenas administradores podem editar.")
         return super().post(request, *args, **kwargs)
 
-class ContatoDeleteView(AdminRequiredMixin, DeleteView):
-    model = Contato
-    template_name = 'core/contato_confirm_delete.html'
-    success_url = reverse_lazy('core:contato_list')
+class FuncionarioDeleteView(AdminRequiredMixin, DeleteView):
+    model = Funcionario
+    template_name = 'core/funcionario_confirm_delete.html'
+    success_url = reverse_lazy('core:funcionario_list')
 
 import traceback
 
@@ -868,8 +828,8 @@ def importar_empresas(request):
                 messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
                 return redirect('core:empresa_list')
                 
-            required_cols = ['nome', 'regiao', 'telefone', 'email', 'status', 'consultor_username']
-            # We allow consultor_username to be empty for some
+            required_cols = ['nome', 'telefone', 'email', 'status', 'assessor_username']
+            # We allow assessor_username to be empty for some
             columns = df.columns.str.strip().str.lower()
             
             if not all(col in columns for col in required_cols):
@@ -879,24 +839,20 @@ def importar_empresas(request):
             sucesso = 0
             for index, row in df.iterrows():
                 try:
-                    regiao_nome = str(row['regiao']).strip() if pd.notna(row['regiao']) else ''
-                    if not regiao_nome: continue
-                    
-                    # Create or get regiao
-                    regiao_obj, _ = Regiao.objects.get_or_create(nome=regiao_nome, defaults={'cidade': 'Não informada'})
-                    
-                    # Get consultor
-                    username = str(row['consultor_username']).strip() if pd.notna(row['consultor_username']) else ''
-                    consultor_obj = CustomUser.objects.filter(username=username, is_consultor=True).first() if username else None
+                    nome_val = str(row['nome']).strip() if pd.notna(row['nome']) else ''
+                    if not nome_val: continue
+
+                    # Get assessor
+                    username = str(row['assessor_username']).strip() if pd.notna(row['assessor_username']) else ''
+                    assessor_obj = CustomUser.objects.filter(username=username, is_assessor=True).first() if username else None
                     
                     Empresa.objects.update_or_create(
-                        nome=str(row['nome']).strip(),
-                        regiao=regiao_obj,
+                        nome=nome_val,
                         defaults={
                             'telefone': str(row['telefone']) if pd.notna(row['telefone']) else '',
                             'email': str(row['email']) if pd.notna(row['email']) else '',
                             'status': str(row['status']).strip().upper() if pd.notna(row['status']) else 'A',
-                            'consultor': consultor_obj,
+                            'assessor': assessor_obj,
                             'latitude': str(row['latitude']).strip() if 'latitude' in columns and pd.notna(row['latitude']) else None,
                             'longitude': str(row['longitude']).strip() if 'longitude' in columns and pd.notna(row['longitude']) else None
                         }
@@ -913,7 +869,7 @@ def importar_empresas(request):
     return redirect('core:empresa_list')
 
 @login_required
-def importar_contatoes(request):
+def importar_funcionarios(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_admin', False)):
         messages.error(request, 'Sem permissão.')
         return redirect('core:contato_list')
@@ -950,7 +906,7 @@ def importar_contatoes(request):
                     nome_val = str(row['nome']).strip()
                     if not nome_val or nome_val == 'nan': continue
                     
-                    prof, created = Contato.objects.update_or_create(
+                    prof, created = Funcionario.objects.update_or_create(
                         nome=nome_val,
                         matricula=matricula_val,
                         empresa=empresa_obj,
@@ -970,7 +926,7 @@ def importar_contatoes(request):
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
                     continue
-            messages.success(request, f"{sucesso} contatoes importados com sucesso!")
+            messages.success(request, f"{sucesso} funcionários importados com sucesso!")
         except Exception as e:
             traceback.print_exc()
             messages.error(request, f"Erro ao processar arquivo: {str(e)}")
