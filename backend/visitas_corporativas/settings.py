@@ -12,12 +12,14 @@ import dj_database_url
 BASE_DIR = Path(__file__).resolve().parent.parent
 
 # Carrega variáveis de ambiente do arquivo .env (desenvolvimento local)
-load_dotenv(BASE_DIR.parent / '.env')
+load_dotenv(BASE_DIR.parent / ".env")
 
 # ---------------------------------------------------------------------------
 # Segurança
 # ---------------------------------------------------------------------------
-SECRET_KEY = os.environ.get("SECRET_KEY", "django-insecure-4tse_b7fs7lzkl4uq2vjj1qhucu^91qkmb$^k+$_a89h$^%0tq")
+SECRET_KEY = os.environ.get(
+    "SECRET_KEY", "django-insecure-4tse_b7fs7lzkl4uq2vjj1qhucu^91qkmb$^k+$_a89h$^%0tq"
+)
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
 ALLOWED_HOSTS = ["*"]
@@ -27,7 +29,7 @@ CSRF_TRUSTED_ORIGINS = [
     "http://127.0.0.1:8000",
     "http://localhost:8081",
     "https://*.ngrok-free.app",
-    "https://novorota99-production.up.railway.app",
+    "https://visitapro-production.up.railway.app",
     "https://*.loca.lt",
 ]
 
@@ -92,15 +94,15 @@ if not DATABASE_URL:
         "Formato: postgresql://usuario:senha@host:5432/nome_banco"
     )
 
-DATABASES = {
-    "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
-}
+DATABASES = {"default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)}
 
 # ---------------------------------------------------------------------------
 # Validação de senhas
 # ---------------------------------------------------------------------------
 AUTH_PASSWORD_VALIDATORS = [
-    {"NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"},
+    {
+        "NAME": "django.contrib.auth.password_validation.UserAttributeSimilarityValidator"
+    },
     {"NAME": "django.contrib.auth.password_validation.MinimumLengthValidator"},
     {"NAME": "django.contrib.auth.password_validation.CommonPasswordValidator"},
     {"NAME": "django.contrib.auth.password_validation.NumericPasswordValidator"},
