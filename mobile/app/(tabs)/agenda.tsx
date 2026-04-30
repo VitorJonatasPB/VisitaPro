@@ -6,7 +6,9 @@ import { Calendar, LocaleConfig } from 'react-native-calendars';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { carregarAgendaLocal } from '@/services/storage';
 import { sincronizarDoServidor } from '@/services/sync';
-import { VisitaAPI, clearTokens, fetchPerfil, UserAPI, API_BASE_URL, fetchAgenda, fetchCalendarioVisitas, fetchVisitasMes } from '@/services/api';
+import { VisitaAPI, clearTokens, fetchPerfil, UserAPI, API_BASE_URL, fetchAgenda, fetchCalendarioVisitas, fetchVisitasMes, checkJornadaStatus, iniciarJornada, finalizarJornada } from '@/services/api';
+import { getJornadaState, saveJornadaState, startTrackingJornada, stopTrackingJornada, JornadaState } from '@/services/location';
+import * as Location from 'expo-location';
 
 LocaleConfig.locales['pt-br'] = {
   monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
@@ -35,6 +37,9 @@ export default function AgendaScreen() {
   
   // Filtro de Dashboard
   const [filterMode, setFilterMode] = useState<'diario' | 'mensal'>('diario');
+
+  // Jornada
+  const [jornada, setJornada] = useState<JornadaState>({ status: 'nao_iniciada', km_total: 0 });
 
   const hoje = new Date().toLocaleDateString('pt-BR', {
     weekday: 'long',
@@ -107,11 +112,31 @@ export default function AgendaScreen() {
     }
   }, []);
 
+  const carregarJornada = useCallback(async () => {
+    try {
+      const jApi = await checkJornadaStatus();
+      setJornada({ status: jApi.status, km_total: jApi.km_total || 0 });
+      await saveJornadaState({ status: jApi.status, km_total: jApi.km_total || 0 });
+      if (jApi.status === 'em_andamento') {
+        startTrackingJornada((km) => setJornada(prev => ({ ...prev, km_total: km })));
+      } else {
+        stopTrackingJornada();
+      }
+    } catch (e) {
+      const jLocal = await getJornadaState();
+      setJornada(jLocal);
+      if (jLocal.status === 'em_andamento') {
+        startTrackingJornada((km) => setJornada(prev => ({ ...prev, km_total: km })));
+      }
+    }
+  }, []);
+
   useFocusEffect(
     useCallback(() => {
       carregarDados();
       carregarUser();
-    }, [carregarDados, carregarUser])
+      carregarJornada();
+    }, [carregarDados, carregarUser, carregarJornada])
   );
 
   const onRefresh = useCallback(async () => {
@@ -126,10 +151,56 @@ export default function AgendaScreen() {
         style: 'destructive',
         onPress: async () => {
           setMenuVisible(false);
+          await stopTrackingJornada();
           await clearTokens();
           router.replace('/');
         }
       }
+    ]);
+  };
+
+  const handleIniciarJornada = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Atenção', 'Permissão de localização é necessária para iniciar a jornada.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      await iniciarJornada(loc.coords.latitude, loc.coords.longitude);
+      
+      const novoEstado: JornadaState = {
+        status: 'em_andamento',
+        km_total: 0,
+        last_lat: loc.coords.latitude,
+        last_lng: loc.coords.longitude
+      };
+      setJornada(novoEstado);
+      await saveJornadaState(novoEstado);
+      
+      startTrackingJornada((km) => setJornada(prev => ({ ...prev, km_total: km })));
+      Alert.alert('🚗 Jornada Iniciada', 'Dirija com segurança! O aplicativo agora registrará a distância percorrida.');
+    } catch (e: any) {
+      Alert.alert('Erro', e.message || 'Não foi possível iniciar a jornada agora.');
+    }
+  };
+
+  const handleFinalizarJornada = async () => {
+    Alert.alert('Finalizar Dia', `Deseja encerrar o dia de trabalho? Total percorrido: ${jornada.km_total.toFixed(2)} km`, [
+      { text: 'Cancelar', style: 'cancel' },
+      { text: 'Finalizar', onPress: async () => {
+         try {
+           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+           await finalizarJornada(loc.coords.latitude, loc.coords.longitude, jornada.km_total);
+           await stopTrackingJornada();
+           const novoEstado: JornadaState = { status: 'finalizada', km_total: jornada.km_total };
+           setJornada(novoEstado);
+           await saveJornadaState(novoEstado);
+           Alert.alert('🏁 Dia Finalizado', 'Sua jornada foi encerrada e enviada com sucesso!');
+         } catch (e: any) {
+           Alert.alert('Erro', e.message || 'Não foi possível finalizar a jornada agora.');
+         }
+      }}
     ]);
   };
 
@@ -222,7 +293,34 @@ export default function AgendaScreen() {
           </TouchableOpacity>
         </View>
 
-
+        {/* Banner de Jornada */}
+        <View style={styles.jornadaContainer}>
+          <View style={styles.jornadaInfo}>
+            <Text style={styles.jornadaLabel}>JORNADA DIÁRIA</Text>
+            {jornada.status === 'em_andamento' ? (
+              <Text style={styles.jornadaValue}>{jornada.km_total.toFixed(2)} <Text style={{fontSize: 14}}>km</Text></Text>
+            ) : jornada.status === 'finalizada' ? (
+              <Text style={[styles.jornadaValue, {color: '#34D399'}]}>{jornada.km_total.toFixed(2)} km (Finalizada)</Text>
+            ) : (
+              <Text style={styles.jornadaValue}>0.00 km</Text>
+            )}
+          </View>
+          <View style={{ justifyContent: 'center' }}>
+             {jornada.status === 'nao_iniciada' ? (
+               <TouchableOpacity style={styles.jornadaBtnIniciar} onPress={handleIniciarJornada}>
+                 <Text style={styles.jornadaBtnText}>Iniciar Dia</Text>
+               </TouchableOpacity>
+             ) : jornada.status === 'em_andamento' ? (
+               <TouchableOpacity style={styles.jornadaBtnFinalizar} onPress={handleFinalizarJornada}>
+                 <Text style={styles.jornadaBtnText}>Finalizar Dia</Text>
+               </TouchableOpacity>
+             ) : (
+               <View style={styles.jornadaBtnDone}>
+                 <Text style={[styles.jornadaBtnText, {color: '#94A3B8'}]}>Concluído</Text>
+               </View>
+             )}
+          </View>
+        </View>
 
         {/* Toggle Mensal / Diário */}
         <View style={styles.toggleContainer}>
@@ -490,6 +588,56 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94A3B8',
     marginTop: 4,
+  },
+  jornadaContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    backgroundColor: '#1E293B',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
+    alignItems: 'center',
+  },
+  jornadaInfo: {
+    flex: 1,
+  },
+  jornadaLabel: {
+    color: '#94A3B8',
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 4,
+  },
+  jornadaValue: {
+    color: '#F8FAFC',
+    fontSize: 26,
+    fontWeight: 'bold',
+  },
+  jornadaBtnIniciar: {
+    backgroundColor: '#3B82F6',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  jornadaBtnFinalizar: {
+    backgroundColor: '#EF4444',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  jornadaBtnDone: {
+    backgroundColor: 'transparent',
+    borderWidth: 1,
+    borderColor: '#334155',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 8,
+  },
+  jornadaBtnText: {
+    color: '#FFF',
+    fontWeight: 'bold',
+    fontSize: 14,
   },
   avatarContainer: {
     padding: 2,

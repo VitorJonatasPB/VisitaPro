@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.utils import timezone
-from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Funcionario, Empresa
+from .models import Visita, PerguntaRelatorio, RespostaRelatorio, VisitaFoto, CustomUser, BugReport, Funcionario, Empresa, Jornada
 
 
 class VisitaAgendaSerializer(serializers.ModelSerializer):
@@ -98,3 +98,9 @@ class BugReportSerializer(serializers.ModelSerializer):
         model = BugReport
         fields = ['id', 'descricao', 'device_info', 'criado_em', 'resolvido']
         read_only_fields = ['id', 'criado_em', 'resolvido']
+
+class JornadaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Jornada
+        fields = ['id', 'data', 'inicio_time', 'inicio_lat', 'inicio_lng', 'fim_time', 'fim_lat', 'fim_lng', 'km_total', 'status']
+        read_only_fields = ['id', 'data', 'inicio_time']

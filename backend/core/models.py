@@ -229,3 +229,18 @@ class BugReport(models.Model):
     def __str__(self):
         status = "Resolvido" if self.resolvido else "Pendente"
         return f"Bug #{self.id} reportado por {self.usuario} - {status}"
+
+class Jornada(models.Model):
+    assessor = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='jornadas')
+    data = models.DateField(auto_now_add=True)
+    inicio_time = models.DateTimeField(auto_now_add=True)
+    inicio_lat = models.CharField(max_length=50, blank=True, null=True)
+    inicio_lng = models.CharField(max_length=50, blank=True, null=True)
+    fim_time = models.DateTimeField(blank=True, null=True)
+    fim_lat = models.CharField(max_length=50, blank=True, null=True)
+    fim_lng = models.CharField(max_length=50, blank=True, null=True)
+    km_total = models.FloatField(default=0.0, help_text="Quilometragem total percorrida no dia")
+    status = models.CharField(max_length=20, choices=[('em_andamento', 'Em Andamento'), ('finalizada', 'Finalizada')], default='em_andamento')
+
+    def __str__(self):
+        return f"Jornada de {self.assessor.username} em {self.data} - {self.km_total}km"

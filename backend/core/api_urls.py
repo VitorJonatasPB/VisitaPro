@@ -31,4 +31,10 @@ urlpatterns = [
     # Listagem global do assessor
     path('empresas/', api_views.lista_empresas, name='api-lista-empresas'),
     path('funcionarios/', api_views.lista_funcionarios, name='api-lista-funcionarios'),
+
+    # Jornada Diária
+    path('jornada/status/', api_views.status_jornada, name='api-status-jornada'),
+    path('jornada/iniciar/', api_views.iniciar_jornada, name='api-iniciar-jornada'),
+    path('jornada/sincronizar/', api_views.sincronizar_jornada, name='api-sincronizar-jornada'),
+    path('jornada/finalizar/', api_views.finalizar_jornada, name='api-finalizar-jornada'),
 ]

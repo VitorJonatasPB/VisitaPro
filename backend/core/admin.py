@@ -3,7 +3,7 @@ import urllib.request
 import urllib.parse
 from django.contrib import admin, messages
 from django.conf import settings
-from .models import Disciplina, Empresa, Visita, CustomUser, Funcionario
+from .models import Disciplina, Empresa, Visita, CustomUser, Funcionario, Jornada
 
 class EmpresaAdmin(admin.ModelAdmin):
     list_display = ('nome', 'status', 'latitude', 'longitude')
@@ -36,3 +36,4 @@ admin.site.register(Empresa, EmpresaAdmin)
 admin.site.register(Visita)
 admin.site.register(Funcionario)
 admin.site.register(Disciplina)
+admin.site.register(Jornada)

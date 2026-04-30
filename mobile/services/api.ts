@@ -21,6 +21,10 @@ export const ENDPOINTS = {
   bugs: '/api/bugs/',
   empresasGlobal: '/api/empresas/',
   contatoesGlobal: '/api/contatoes/',
+  jornadaStatus: '/api/jornada/status/',
+  jornadaIniciar: '/api/jornada/iniciar/',
+  jornadaSincronizar: '/api/jornada/sincronizar/',
+  jornadaFinalizar: '/api/jornada/finalizar/',
 };
 
 // ---------- Helpers de Token ----------
@@ -417,4 +421,38 @@ export async function fetchEmpresasGlobais(): Promise<EmpresaAPI[]> {
 
 export async function fetchContatoesGlobais(): Promise<ContatoAPI[]> {
   return request<ContatoAPI[]>(ENDPOINTS.contatoesGlobal, 'GET');
+}
+
+// ---------- Jornada Diária ----------
+
+export interface JornadaAPI {
+  id?: number;
+  status: 'nao_iniciada' | 'em_andamento' | 'finalizada';
+  km_total?: number;
+  inicio_time?: string;
+  fim_time?: string;
+}
+
+export async function checkJornadaStatus(): Promise<JornadaAPI> {
+  try {
+    return await request<JornadaAPI>(ENDPOINTS.jornadaStatus, 'GET');
+  } catch (err: any) {
+    if (err.isNetworkError) {
+      // Se offline, lemos do storage local mais tarde
+      throw err;
+    }
+    throw err;
+  }
+}
+
+export async function iniciarJornada(lat: number, lng: number): Promise<JornadaAPI> {
+  return await request<JornadaAPI>(ENDPOINTS.jornadaIniciar, 'POST', { lat, lng });
+}
+
+export async function sincronizarJornadaKm(km_total: number): Promise<JornadaAPI> {
+  return await request<JornadaAPI>(ENDPOINTS.jornadaSincronizar, 'POST', { km_total });
+}
+
+export async function finalizarJornada(lat: number, lng: number, km_total: number): Promise<JornadaAPI> {
+  return await request<JornadaAPI>(ENDPOINTS.jornadaFinalizar, 'POST', { lat, lng, km_total });
 }

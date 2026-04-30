@@ -17,6 +17,7 @@ from .api_serializers import (
     BugReportSerializer,
     FuncionarioSerializer,
     EmpresaSerializer,
+    JornadaSerializer,
 )
 import json
 
@@ -339,3 +340,85 @@ def criar_agendamento(request):
     )
 
     return Response({'status': 'agendamento criado com sucesso', 'id': visita.id}, status=status.HTTP_201_CREATED)
+
+@api_view(['GET'])
+@permission_classes([IsAuthenticated])
+def status_jornada(request):
+    from .models import Jornada
+    hoje = date.today()
+    jornada = Jornada.objects.filter(assessor=request.user, data=hoje).last()
+    if jornada:
+        serializer = JornadaSerializer(jornada)
+        return Response(serializer.data)
+    return Response({'status': 'nao_iniciada'}, status=200)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def iniciar_jornada(request):
+    from .models import Jornada
+    hoje = date.today()
+    
+    # Verifica se já tem jornada hoje e se está em andamento
+    jornada = Jornada.objects.filter(assessor=request.user, data=hoje).last()
+    if jornada and jornada.status == 'em_andamento':
+        serializer = JornadaSerializer(jornada)
+        return Response(serializer.data)
+    
+    lat = request.data.get('lat')
+    lng = request.data.get('lng')
+    
+    jornada = Jornada.objects.create(
+        assessor=request.user,
+        inicio_lat=lat,
+        inicio_lng=lng
+    )
+    serializer = JornadaSerializer(jornada)
+    return Response(serializer.data, status=201)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def sincronizar_jornada(request):
+    from .models import Jornada
+    hoje = date.today()
+    jornada = Jornada.objects.filter(assessor=request.user, data=hoje, status='em_andamento').last()
+    
+    if not jornada:
+        return Response({'error': 'Nenhuma jornada em andamento encontrada.'}, status=404)
+        
+    km_atual = request.data.get('km_total', 0.0)
+    
+    # Apenas atualiza se for maior para não retroceder
+    if float(km_atual) > jornada.km_total:
+        jornada.km_total = float(km_atual)
+        jornada.save(update_fields=['km_total'])
+        
+    serializer = JornadaSerializer(jornada)
+    return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def finalizar_jornada(request):
+    from .models import Jornada
+    from django.utils import timezone
+    hoje = date.today()
+    jornada = Jornada.objects.filter(assessor=request.user, data=hoje, status='em_andamento').last()
+    
+    if not jornada:
+        return Response({'error': 'Nenhuma jornada em andamento encontrada.'}, status=404)
+        
+    lat = request.data.get('lat')
+    lng = request.data.get('lng')
+    km_total = request.data.get('km_total')
+    
+    jornada.fim_time = timezone.now()
+    jornada.fim_lat = lat
+    jornada.fim_lng = lng
+    jornada.status = 'finalizada'
+    
+    if km_total is not None and float(km_total) > jornada.km_total:
+        jornada.km_total = float(km_total)
+        
+    jornada.save(update_fields=['fim_time', 'fim_lat', 'fim_lng', 'status', 'km_total'])
+    
+    serializer = JornadaSerializer(jornada)
+    return Response(serializer.data)

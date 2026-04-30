@@ -1,0 +1,9 @@
+[build]
+builder = "nixpacks"
+
+[deploy]
+startCommand = "cd backend && python manage.py collectstatic --noinput && python manage.py migrate && gunicorn visitas_corporativas.wsgi:application --bind 0.0.0.0:$PORT"
+healthcheckPath = "/admin/"
+healthcheckTimeout = 60
+restartPolicyType = "on_failure"
+restartPolicyMaxRetries = 3
