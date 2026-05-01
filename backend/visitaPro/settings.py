@@ -134,6 +134,15 @@ if frontend_static.exists():
     STATICFILES_DIRS.append(frontend_static)
 STATIC_ROOT = BASE_DIR / "staticfiles"
 
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
+
 # ---------------------------------------------------------------------------
 # Arquivos de mídia
 # ---------------------------------------------------------------------------

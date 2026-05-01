@@ -328,7 +328,7 @@ const styles = StyleSheet.create({
     borderColor: '#3B82F6',
   },
   rememberMeText: {
-    color: '#E2E8F0',
+    color: '#3B82F6',
     fontSize: 14,
   },
   forgotPasswordTextInline: {
