@@ -1,7 +1,7 @@
 import os
 import django
 
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_corporativas.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitaPro.settings')
 django.setup()
 
 from django.contrib.auth.models import Group, Permission

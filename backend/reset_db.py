@@ -14,7 +14,7 @@ from dotenv import load_dotenv
 
 # Configura ambiente Django
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_corporativas.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitaPro.settings')
 load_dotenv(Path(__file__).resolve().parent.parent / '.env')
 
 django.setup()

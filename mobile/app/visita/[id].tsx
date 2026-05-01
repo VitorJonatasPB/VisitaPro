@@ -9,7 +9,7 @@ import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { carregarAgendaLocal, carregarPerguntasLocal, adicionarNaFila } from '@/services/storage';
-import { realizarCheckin, realizarCheckout, enviarRelatorio, VisitaAPI, PerguntaAPI, fetchContatoesEmpresa, ContatoAPI, fetchVisitaById, fetchPerguntas } from '@/services/api';
+import { realizarCheckin, realizarCheckout, enviarRelatorio, VisitaAPI, PerguntaAPI, fetchFuncionariosEmpresa, FuncionarioAPI, fetchVisitaById, fetchPerguntas } from '@/services/api';
 import { processarFilaDeSincronismo } from '@/services/sync';
 import SignatureScreen from 'react-native-signature-canvas';
 import * as DocumentPicker from 'expo-document-picker';
@@ -25,9 +25,9 @@ export default function VisitaDetalheScreen() {
   const [assinatura, setAssinatura] = useState<string | null>(null);
   const [showSignModal, setShowSignModal] = useState(false);
 
-  // Fase 6: Contatoes e Fotos
-  const [contatoes, setContatoes] = useState<ContatoAPI[]>([]);
-  const [contatoesSelecionados, setContatoesSelecionados] = useState<number[]>([]);
+  // Fase 6: Funcionários e Fotos
+  const [funcionarios, setFuncionarios] = useState<FuncionarioAPI[]>([]);
+  const [funcionariosSelecionados, setFuncionariosSelecionados] = useState<number[]>([]);
   const [fotos, setFotos] = useState<string[]>([]);
 
   // Novo layout: Navegação interna e Docs
@@ -68,13 +68,13 @@ export default function VisitaDetalheScreen() {
       setPerguntas(pergsLocal);
     }
 
-    // 4. Carregar contatoes vinculados à empresa
+    // 4. Carregar funcionários vinculados à empresa
     if (visitaEncontrada) {
       try {
-        const profs = await fetchContatoesEmpresa(visitaEncontrada.id);
-        setContatoes(profs);
+        const profs = await fetchFuncionariosEmpresa(visitaEncontrada.id);
+        setFuncionarios(profs);
       } catch (e) {
-        console.log('Erro ao carregar contatoes da empresa:', e);
+        console.log('Erro ao carregar funcionários da empresa:', e);
       }
     }
 
@@ -188,7 +188,7 @@ export default function VisitaDetalheScreen() {
             if (gps) {
               chOutResult = await realizarCheckout(visita.id, gps.lat, gps.lng);
             }
-            const relResult = await enviarRelatorio(visita.id, respostasArray, assinatura, contatoesSelecionados, fotos);
+            const relResult = await enviarRelatorio(visita.id, respostasArray, assinatura, funcionariosSelecionados, fotos);
             
             if ((relResult && (relResult as any).offline) || (chOutResult && (chOutResult as any).offline)) {
                Alert.alert('📶 Salvo Offline', 'Relatório e check-out salvos. Serão enviados quando houver internet.', [
@@ -394,18 +394,18 @@ export default function VisitaDetalheScreen() {
             
             {perguntas.map(renderCampoPergunta)}
 
-            {/* Contatoes Atendidos */}
-            {contatoes.length > 0 && (
+            {/* Funcionários Atendidos */}
+            {funcionarios.length > 0 && (
               <View style={styles.fieldContainer}>
-                <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 8 }]}>👥 Contatoes Atendidos</Text>
+                <Text style={[styles.sectionTitle, { marginTop: 10, marginBottom: 8 }]}>👥 Funcionários Atendidos</Text>
                 <View style={styles.opcoesContainer}>
-                  {contatoes.map((prof) => {
-                    const isSelected = contatoesSelecionados.includes(prof.id);
+                  {funcionarios.map((prof) => {
+                    const isSelected = funcionariosSelecionados.includes(prof.id);
                     return (
                       <TouchableOpacity
                         key={prof.id}
                         style={[styles.opcaoBtn, isSelected && styles.opcaoBtnSelected]}
-                        onPress={() => setContatoesSelecionados(prev => isSelected ? prev.filter(p => p !== prof.id) : [...prev, prof.id])}
+                        onPress={() => setFuncionariosSelecionados(prev => isSelected ? prev.filter(p => p !== prof.id) : [...prev, prof.id])}
                       >
                         <Text style={[styles.opcaoText, isSelected && styles.opcaoTextSelected]}>{prof.nome}</Text>
                       </TouchableOpacity>

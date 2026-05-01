@@ -71,7 +71,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "visitas_corporativas.urls"
+ROOT_URLCONF = "visitaPro.urls"
 
 TEMPLATES = [
     {
@@ -88,7 +88,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "visitas_corporativas.wsgi.application"
+WSGI_APPLICATION = "visitaPro.wsgi.application"
 
 # ---------------------------------------------------------------------------
 # Banco de Dados — APENAS PostgreSQL (Google Cloud ou Railway)

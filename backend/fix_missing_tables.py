@@ -13,7 +13,7 @@ import django
 
 # Configura o ambiente Django
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
-os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitas_corporativas.settings')
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'visitaPro.settings')
 
 # Carrega .env manualmente antes do setup
 from pathlib import Path
