@@ -17,21 +17,29 @@ load_dotenv(BASE_DIR.parent / ".env")
 # ---------------------------------------------------------------------------
 # Segurança
 # ---------------------------------------------------------------------------
-SECRET_KEY = os.environ.get(
-    "SECRET_KEY", "django-insecure-4tse_b7fs7lzkl4uq2vjj1qhucu^91qkmb$^k+$_a89h$^%0tq"
-)
 DEBUG = os.environ.get("DEBUG", "True") == "True"
 
+# Em produção (DEBUG=False), SECRET_KEY deve estar na variável de ambiente
+_default_secret = "django-insecure-4tse_b7fs7lzkl4uq2vjj1qhucu^91qkmb$^k+$_a89h$^%0tq"
+SECRET_KEY = os.environ.get("SECRET_KEY", _default_secret if DEBUG else None)
+if not SECRET_KEY:
+    raise Exception("❌ Defina a variável de ambiente SECRET_KEY em produção!")
+
 ALLOWED_HOSTS = ["*"]
+
+# O Railway injeta RAILWAY_PUBLIC_DOMAIN automaticamente em cada environment.
+# Assim staging e production funcionam sem precisar hardcodar a URL.
+_railway_domain = os.environ.get("RAILWAY_PUBLIC_DOMAIN", "")
 
 CSRF_TRUSTED_ORIGINS = [
     "http://localhost:8000",
     "http://127.0.0.1:8000",
     "http://localhost:8081",
     "https://*.ngrok-free.app",
-    "https://visitapro-production.up.railway.app",
     "https://*.loca.lt",
 ]
+if _railway_domain:
+    CSRF_TRUSTED_ORIGINS.append(f"https://{_railway_domain}")
 
 # ---------------------------------------------------------------------------
 # Aplicações instaladas
