@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { router } from 'expo-router';
 import { addToQueue, getQueue } from './queue';
 
-export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL || 'https://novorota99-production.up.railway.app';
+export const API_BASE_URL = process.env.EXPO_PUBLIC_API_URL as string;
 
 export const ENDPOINTS = {
   token: '/api/token/',
@@ -16,11 +16,11 @@ export const ENDPOINTS = {
   checkout: (id: number) => `/api/visitas/${id}/checkout/`,
   responder: (id: number) => `/api/visitas/${id}/responder/`,
   calendario: '/api/visitas/calendario/',
-  contatoes: (id: number) => `/api/visitas/${id}/contatoes/`,
+  contatoes: (id: number) => `/api/visitas/${id}/funcionarios/`,
   perfil: '/api/users/me/',
   bugs: '/api/bugs/',
   empresasGlobal: '/api/empresas/',
-  contatoesGlobal: '/api/contatoes/',
+  contatoesGlobal: '/api/funcionarios/',
   jornadaStatus: '/api/jornada/status/',
   jornadaIniciar: '/api/jornada/iniciar/',
   jornadaSincronizar: '/api/jornada/sincronizar/',
