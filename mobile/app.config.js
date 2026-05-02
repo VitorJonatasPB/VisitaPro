@@ -1,6 +1,8 @@
-{
+const IS_STANING = process.env.APP_VARIANT === 'staning';
+
+export default {
   "expo": {
-    "name": "mobile",
+    "name": IS_STANING ? "VisitaPro (STG)" : "VisitaPro",
     "slug": "mobile",
     "version": "1.0.0",
     "orientation": "portrait",
@@ -9,7 +11,8 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": IS_STANING ? "com.vitor.jonatas.mobile.staning" : "com.vitor.jonatas.mobile"
     },
     "android": {
       "adaptiveIcon": {
@@ -21,7 +24,7 @@
       "edgeToEdgeEnabled": true,
       "predictiveBackGestureEnabled": false,
       "softwareKeyboardLayoutMode": "pan",
-      "package": "com.vitor.jonatas.mobile"
+      "package": IS_STANING ? "com.vitor.jonatas.mobile.staning" : "com.vitor.jonatas.mobile"
     },
     "web": {
       "output": "static",
@@ -59,4 +62,4 @@
       "url": "https://u.expo.dev/ea7b177f-0465-4dce-b304-6032dc316c68"
     }
   }
-}
+};

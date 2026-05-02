@@ -16,12 +16,14 @@
         "buildType": "apk"
       },
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://visitapro-staning.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://visitapro-staning.up.railway.app",
+        "APP_VARIANT": "staning"
       }
     },
     "production": {
       "env": {
-        "EXPO_PUBLIC_API_URL": "https://visitapro-production.up.railway.app"
+        "EXPO_PUBLIC_API_URL": "https://visitapro-production.up.railway.app",
+        "APP_VARIANT": "production"
       }
     }
   },
