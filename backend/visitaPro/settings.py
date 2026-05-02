@@ -11,8 +11,18 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carrega variáveis de ambiente do arquivo .env (desenvolvimento local)
-load_dotenv(BASE_DIR.parent / ".env")
+# Descobre em qual ambiente estamos rodando (padrão é carregar o .env comum)
+env_name = os.environ.get("ENVIRONMENT", "")
+
+if env_name == "staning":
+    load_dotenv(BASE_DIR.parent / ".env.staning")
+    print("🚀 Carregando ambiente: STANING (.env.staning)")
+elif env_name == "production":
+    load_dotenv(BASE_DIR.parent / ".env.production")
+    print("🚀 Carregando ambiente: PRODUCTION (.env.production)")
+else:
+    load_dotenv(BASE_DIR.parent / ".env")
+    print("🚀 Carregando ambiente: DEFAULT (.env)")
 
 # ---------------------------------------------------------------------------
 # Segurança
