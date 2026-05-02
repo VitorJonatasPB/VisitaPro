@@ -2,13 +2,13 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { fetchContatoesGlobais, ContatoAPI } from '@/services/api';
+import { fetchFuncionariosGlobais, FuncionarioAPI } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 
-export default function ContatoesScreen() {
-  const { data: contatoes = [], isLoading: loading } = useQuery({
-    queryKey: ['contatoesGlobal'],
-    queryFn: fetchContatoesGlobais,
+export default function FuncionariosScreen() {
+  const { data: funcionarios = [], isLoading: loading } = useQuery({
+    queryKey: ['funcionariosGlobal'],
+    queryFn: fetchFuncionariosGlobais,
   });
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -18,12 +18,12 @@ export default function ContatoesScreen() {
     setExpandedId(prev => (prev === id ? null : id));
   };
 
-  const filteredContatoes = contatoes.filter(p => {
+  const filteredFuncionarios = funcionarios.filter(p => {
     const q = searchQuery.toLowerCase();
     return p.nome.toLowerCase().includes(q) || (p.empresa_nome && p.empresa_nome.toLowerCase().includes(q));
   });
 
-  const renderContato = ({ item }: { item: ContatoAPI }) => {
+  const renderFuncionario = ({ item }: { item: FuncionarioAPI }) => {
     const isExpanded = expandedId === item.id;
 
     return (
@@ -65,7 +65,7 @@ export default function ContatoesScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Contatoes</Text>
+        <Text style={styles.title}>Funcionários</Text>
         <Text style={styles.subtitle}>Relacionados às suas empresas</Text>
       </View>
 
@@ -91,14 +91,14 @@ export default function ContatoesScreen() {
         </View>
       ) : (
         <FlatList
-          data={filteredContatoes}
+          data={filteredFuncionarios}
           keyExtractor={(item) => item.id.toString()}
-          renderItem={renderContato}
+          renderItem={renderFuncionario}
           contentContainerStyle={styles.listContainer}
           ListEmptyComponent={
             <View style={styles.center}>
               <IconSymbol name="slash.circle" size={48} color="#475569" />
-              <Text style={styles.emptyText}>Você não tem contatoes vinculados.</Text>
+              <Text style={styles.emptyText}>Você não tem funcionários vinculados.</Text>
             </View>
           }
         />

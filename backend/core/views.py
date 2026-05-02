@@ -18,6 +18,15 @@ class CustomLoginView(LoginView):
     template_name = 'core/login.html'
     redirect_authenticated_user = True
     
+    def form_valid(self, form):
+        response = super().form_valid(form)
+        remember_me = self.request.POST.get('remember_me')
+        if not remember_me:
+            self.request.session.set_expiry(0)
+        else:
+            self.request.session.set_expiry(1209600) # 2 weeks
+        return response
+    
     def get_success_url(self):
         user = self.request.user
         if getattr(user, 'is_admin', False) or user.is_superuser:

@@ -11,8 +11,18 @@ import dj_database_url
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
-# Carrega variáveis de ambiente do arquivo .env (desenvolvimento local)
-load_dotenv(BASE_DIR.parent / ".env")
+# Descobre em qual ambiente estamos rodando (padrão é carregar o .env comum)
+env_name = os.environ.get("ENVIRONMENT", "")
+
+if env_name == "staning":
+    load_dotenv(BASE_DIR.parent / ".env.staning")
+    print("🚀 Carregando ambiente: STANING (.env.staning)")
+elif env_name == "production":
+    load_dotenv(BASE_DIR.parent / ".env.production")
+    print("🚀 Carregando ambiente: PRODUCTION (.env.production)")
+else:
+    load_dotenv(BASE_DIR.parent / ".env")
+    print("🚀 Carregando ambiente: DEFAULT (.env)")
 
 # ---------------------------------------------------------------------------
 # Segurança
@@ -71,7 +81,7 @@ MIDDLEWARE = [
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
 ]
 
-ROOT_URLCONF = "visitas_corporativas.urls"
+ROOT_URLCONF = "visitaPro.urls"
 
 TEMPLATES = [
     {
@@ -88,7 +98,7 @@ TEMPLATES = [
     },
 ]
 
-WSGI_APPLICATION = "visitas_corporativas.wsgi.application"
+WSGI_APPLICATION = "visitaPro.wsgi.application"
 
 # ---------------------------------------------------------------------------
 # Banco de Dados — APENAS PostgreSQL (Google Cloud ou Railway)
@@ -133,6 +143,15 @@ frontend_static = BASE_DIR.parent / "frontend" / "static"
 if frontend_static.exists():
     STATICFILES_DIRS.append(frontend_static)
 STATIC_ROOT = BASE_DIR / "staticfiles"
+
+STORAGES = {
+    "default": {
+        "BACKEND": "django.core.files.storage.FileSystemStorage",
+    },
+    "staticfiles": {
+        "BACKEND": "whitenoise.storage.CompressedManifestStaticFilesStorage",
+    },
+}
 
 # ---------------------------------------------------------------------------
 # Arquivos de mídia

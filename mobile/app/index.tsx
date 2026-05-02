@@ -4,6 +4,8 @@ import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { login, getAccessToken } from '@/services/api';
 import * as LocalAuthentication from 'expo-local-authentication';
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { Ionicons } from '@expo/vector-icons';
 
 const { width } = Dimensions.get('window');
 
@@ -13,6 +15,7 @@ export default function LoginScreen() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [checkingBiometrics, setCheckingBiometrics] = useState(true);
+  const [rememberMe, setRememberMe] = useState(true);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -26,8 +29,25 @@ export default function LoginScreen() {
   );
 
   useEffect(() => {
+    carregarCredenciais();
     verificarBiometria();
   }, []);
+
+  const carregarCredenciais = async () => {
+    try {
+      const savedUser = await AsyncStorage.getItem('saved_username');
+      const savedPass = await AsyncStorage.getItem('saved_password');
+      if (savedUser && savedPass) {
+        setUsername(savedUser);
+        setPassword(savedPass);
+        setRememberMe(true);
+      } else {
+        setRememberMe(false);
+      }
+    } catch (e) {
+      console.warn('Erro ao carregar credenciais:', e);
+    }
+  };
 
   const verificarBiometria = async () => {
     try {
@@ -72,6 +92,15 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(username, password);
+      
+      if (rememberMe) {
+        await AsyncStorage.setItem('saved_username', username);
+        await AsyncStorage.setItem('saved_password', password);
+      } else {
+        await AsyncStorage.removeItem('saved_username');
+        await AsyncStorage.removeItem('saved_password');
+      }
+
       router.replace('/(tabs)');
     } catch (error: any) {
       const msg = error.message || '';
@@ -146,6 +175,23 @@ export default function LoginScreen() {
           />
         </View>
 
+        <View style={styles.rememberMeContainer}>
+          <TouchableOpacity 
+            style={styles.checkboxContainer} 
+            onPress={() => setRememberMe(!rememberMe)}
+            activeOpacity={0.7}
+          >
+            <View style={[styles.checkbox, rememberMe && styles.checkboxChecked]}>
+              {rememberMe && <Ionicons name="checkmark" size={14} color="#FFF" />}
+            </View>
+            <Text style={styles.rememberMeText}>Lembrar-me</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity onPress={() => router.push('/recuperar-senha')}>
+            <Text style={styles.forgotPasswordTextInline}>Esqueci a senha?</Text>
+          </TouchableOpacity>
+        </View>
+
         <TouchableOpacity 
           style={[styles.button, loading && { opacity: 0.7 }]} 
           onPress={handleLogin}
@@ -156,13 +202,6 @@ export default function LoginScreen() {
           ) : (
             <Text style={styles.buttonText}>Entrar</Text>
           )}
-        </TouchableOpacity>
-
-        <TouchableOpacity 
-          style={styles.forgotPassword} 
-          onPress={() => router.push('/recuperar-senha')}
-        >
-          <Text style={styles.forgotPasswordText}>Esqueceu a senha?</Text>
         </TouchableOpacity>
       </View>
     </KeyboardAvoidingView>
@@ -262,12 +301,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     letterSpacing: 0.5,
   },
-  forgotPassword: {
-    marginTop: 20,
+  rememberMeContainer: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 20,
+    marginTop: -5,
+  },
+  checkboxContainer: {
+    flexDirection: 'row',
     alignItems: 'center',
   },
-  forgotPasswordText: {
-    color: '#94A3B8',
+  checkbox: {
+    width: 20,
+    height: 20,
+    borderRadius: 6,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.2)',
+    marginRight: 8,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
+  },
+  checkboxChecked: {
+    backgroundColor: '#3B82F6',
+    borderColor: '#3B82F6',
+  },
+  rememberMeText: {
+    color: '#3B82F6',
     fontSize: 14,
+  },
+  forgotPasswordTextInline: {
+    color: '#3B82F6',
+    fontSize: 14,
+    fontWeight: '500',
   },
 });

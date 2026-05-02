@@ -16,11 +16,11 @@ export const ENDPOINTS = {
   checkout: (id: number) => `/api/visitas/${id}/checkout/`,
   responder: (id: number) => `/api/visitas/${id}/responder/`,
   calendario: '/api/visitas/calendario/',
-  contatoes: (id: number) => `/api/visitas/${id}/funcionarios/`,
+  funcionarios: (id: number) => `/api/visitas/${id}/funcionarios/`,
   perfil: '/api/users/me/',
   bugs: '/api/bugs/',
   empresasGlobal: '/api/empresas/',
-  contatoesGlobal: '/api/funcionarios/',
+  funcionariosGlobal: '/api/funcionarios/',
   jornadaStatus: '/api/jornada/status/',
   jornadaIniciar: '/api/jornada/iniciar/',
   jornadaSincronizar: '/api/jornada/sincronizar/',
@@ -294,7 +294,7 @@ export interface RespostaPayload {
   resposta: string;
 }
 
-export interface ContatoAPI {
+export interface FuncionarioAPI {
   id: number;
   nome: string;
   matricula: string | null;
@@ -303,15 +303,15 @@ export interface ContatoAPI {
   email?: string | null;
 }
 
-export async function fetchContatoesEmpresa(visitaId: number): Promise<ContatoAPI[]> {
-  return request<ContatoAPI[]>(ENDPOINTS.contatoes(visitaId), 'GET');
+export async function fetchFuncionariosEmpresa(visitaId: number): Promise<FuncionarioAPI[]> {
+  return request<FuncionarioAPI[]>(ENDPOINTS.funcionarios(visitaId), 'GET');
 }
 
 export async function enviarRelatorio(
   visitaId: number, 
   respostas: RespostaPayload[], 
   assinatura?: string, 
-  contatoes?: number[],
+  funcionarios?: number[],
   fotos?: string[]
 ) {
   const formData = new FormData();
@@ -320,7 +320,7 @@ export async function enviarRelatorio(
   const payloadStr = JSON.stringify({
     respostas,
     assinatura,
-    contatoes_atendidos: contatoes
+    contatoes_atendidos: funcionarios
   });
   formData.append('payload', payloadStr);
 
@@ -338,7 +338,7 @@ export async function enviarRelatorio(
 
   // Se tem fotos, manda FormData. Se não, manda o objeto JSON comum do payload.
   const hasFotos = fotos && fotos.length > 0;
-  const finalPayload = hasFotos ? formData : { respostas, assinatura, contatoes_atendidos: contatoes };
+  const finalPayload = hasFotos ? formData : { respostas, assinatura, contatoes_atendidos: funcionarios };
 
   try {
     return await request(ENDPOINTS.responder(visitaId), 'POST', finalPayload);
@@ -413,14 +413,14 @@ export async function reportBug(data: BugReportAPI): Promise<any> {
   }
 }
 
-// ---------- Empresas e Contatoes Globais ----------
+// ---------- Empresas e Funcionários Globais ----------
 
 export async function fetchEmpresasGlobais(): Promise<EmpresaAPI[]> {
   return request<EmpresaAPI[]>(ENDPOINTS.empresasGlobal, 'GET');
 }
 
-export async function fetchContatoesGlobais(): Promise<ContatoAPI[]> {
-  return request<ContatoAPI[]>(ENDPOINTS.contatoesGlobal, 'GET');
+export async function fetchFuncionariosGlobais(): Promise<FuncionarioAPI[]> {
+  return request<FuncionarioAPI[]>(ENDPOINTS.funcionariosGlobal, 'GET');
 }
 
 // ---------- Jornada Diária ----------
