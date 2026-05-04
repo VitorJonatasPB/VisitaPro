@@ -21,7 +21,7 @@ export default function TabLayout() {
         }
       }}>
       <Tabs.Screen
-        name="agenda"
+        name="index"
         options={{
           title: 'Agenda',
           tabBarIcon: ({ color }) => <FontAwesome5 size={24} name="calendar-alt" color={color} />,
@@ -35,7 +35,7 @@ export default function TabLayout() {
         }}
       />
       <Tabs.Screen
-        name="contatoes"
+        name="funcionarios"
         options={{
           title: 'Funcionários',
           tabBarIcon: ({ color }) => <FontAwesome5 size={24} name="chalkboard-teacher" color={color} />,
