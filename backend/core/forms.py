@@ -24,6 +24,12 @@ class GroupForm(forms.ModelForm):
             ),
         }
 
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "permissions" in self.fields:
+            from django.contrib.auth.models import Permission
+            self.fields["permissions"].queryset = Permission.objects.select_related("content_type").all()
+
 
 class AssessorForm(forms.ModelForm):
     password = forms.CharField(
@@ -109,6 +115,12 @@ class AdminUserForm(forms.ModelForm):
                 attrs={"class": "form-select", "style": "height: 150px;"}
             ),
         }
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        if "user_permissions" in self.fields:
+            from django.contrib.auth.models import Permission
+            self.fields["user_permissions"].queryset = Permission.objects.select_related("content_type").all()
 
     def save(self, commit=True):
         user = super().save(commit=False)

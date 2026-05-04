@@ -27,13 +27,12 @@ else:
 # ---------------------------------------------------------------------------
 # Segurança
 # ---------------------------------------------------------------------------
-DEBUG = os.environ.get("DEBUG", "True") == "True"
+DEBUG = os.environ.get("DEBUG", "False") == "True"
 
-# Em produção (DEBUG=False), SECRET_KEY deve estar na variável de ambiente
-_default_secret = "django-insecure-4tse_b7fs7lzkl4uq2vjj1qhucu^91qkmb$^k+$_a89h$^%0tq"
-SECRET_KEY = os.environ.get("SECRET_KEY", _default_secret if DEBUG else None)
+# A SECRET_KEY deve vir do ambiente (arquivo .env ou variáveis do Railway)
+SECRET_KEY = os.environ.get("SECRET_KEY")
 if not SECRET_KEY:
-    raise Exception("❌ Defina a variável de ambiente SECRET_KEY em produção!")
+    raise Exception("❌ Defina a variável de ambiente SECRET_KEY!")
 
 ALLOWED_HOSTS = ["*"]
 
