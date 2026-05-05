@@ -213,7 +213,7 @@
     {% if user.is_authenticated %}
     <!-- Navbar Mobile (Visível apenas em telas menores) -->
     <nav class="navbar navbar-dark d-md-none px-3" style="background-color: #171C29; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_assessor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><img src="{% static 'img/logo_web_sem_fundo.png' %}" alt="VisitaPro Logo" style="height: 48px; object-fit: contain;"></a>
+      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_assessor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><img src="{% static 'img/logo_web_sem_fundo.png' %}" alt="VisitaPro Logo" style="height: 56px; object-fit: contain;"></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -231,7 +231,7 @@
           </div>
           <div class="offcanvas-body flex-column">
             <div class="text-center mb-4 d-none d-md-block">
-              <img src="{% static 'img/logo_web_sem_fundo.png' %}" alt="VisitaPro Logo" style="max-width: 100%; max-height: 78px; object-fit: contain; margin-bottom: 12px;">
+              <img src="{% static 'img/logo_web_sem_fundo.png' %}" alt="VisitaPro Logo" style="max-width: 100%; max-height: 92px; object-fit: contain; margin-bottom: 14px;">
               <br>
               <small>{{ user.get_full_name|default:user.username }}</small>
             </div>

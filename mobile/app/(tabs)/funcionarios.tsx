@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+Ôªøimport React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
@@ -22,10 +22,10 @@ export default function FuncionariosScreen() {
   const router = useRouter();
 
   const toggleExpand = (id: number) => {
-    setExpandedId(prev => (prev === id ? null : id));
+    setExpandedId((prev) => (prev === id ? null : id));
   };
 
-  const filteredFuncionarios = funcionarios.filter(p => {
+  const filteredFuncionarios = funcionarios.filter((p) => {
     const q = searchQuery.toLowerCase();
     return p.nome.toLowerCase().includes(q) || (p.empresa_nome && p.empresa_nome.toLowerCase().includes(q));
   });
@@ -34,20 +34,14 @@ export default function FuncionariosScreen() {
     const isExpanded = expandedId === item.id;
 
     return (
-      <TouchableOpacity
-        style={styles.card}
-        activeOpacity={0.7}
-        onPress={() => toggleExpand(item.id)}
-      >
+      <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => toggleExpand(item.id)}>
         <View style={styles.cardHeader}>
           <IconSymbol name="person.fill" size={24} color="#10B981" />
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>{item.nome}</Text>
-            {item.matricula && (
-               <Text style={styles.cardSubtitle}>MatrÌcula: {item.matricula}</Text>
-            )}
+            {item.matricula && <Text style={styles.cardSubtitle}>{'Matr√≠cula'}: {item.matricula}</Text>}
             {item.empresa_nome && (
-               <Text style={[styles.cardSubtitle, { marginTop: 2, fontSize: 13, color: '#64748B' }]}>{item.empresa_nome}</Text>
+              <Text style={[styles.cardSubtitle, { marginTop: 2, fontSize: 13, color: '#64748B' }]}>{item.empresa_nome}</Text>
             )}
           </View>
           <IconSymbol name={isExpanded ? 'chevron.up' : 'chevron.down'} size={20} color="#94A3B8" />
@@ -73,14 +67,11 @@ export default function FuncionariosScreen() {
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
-          <Text style={styles.title}>Funcion·rios</Text>
-          <Text style={styles.subtitle}>Relacionados ‡s suas empresas</Text>
+          <Text style={styles.title}>{'Funcion√°rios'}</Text>
+          <Text style={styles.subtitle}>{'Relacionados as suas empresas'}</Text>
         </View>
         {user?.permissoes_mobile?.pode_cadastrar_funcionario && (
-          <TouchableOpacity
-            style={styles.addButton}
-            onPress={() => router.push('/novo-funcionario')}
-          >
+          <TouchableOpacity style={styles.addButton} onPress={() => router.push('/novo-funcionario')}>
             <IconSymbol name="plus" size={24} color="#FFF" />
           </TouchableOpacity>
         )}
@@ -115,7 +106,7 @@ export default function FuncionariosScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <IconSymbol name="slash.circle" size={48} color="#475569" />
-              <Text style={styles.emptyText}>VocÍ n„o tem funcion·rios vinculados.</Text>
+              <Text style={styles.emptyText}>{'Voc√™ n√£o tem funcion√°rios vinculados.'}</Text>
             </View>
           }
         />

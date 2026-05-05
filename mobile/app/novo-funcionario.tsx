@@ -1,13 +1,17 @@
-import React, { useMemo, useState } from 'react';
+﻿import React, { useEffect, useMemo, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { criarFuncionario, fetchEmpresasGlobais } from '@/services/api';
+import { criarFuncionario, fetchEmpresasGlobais, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useQuery } from '@tanstack/react-query';
 
 export default function NovoFuncionarioScreen() {
   const router = useRouter();
+  const { data: user, isLoading: loadingPerfil } = useQuery({
+    queryKey: ['userPerfil'],
+    queryFn: fetchPerfil,
+  });
   const { data: empresas = [] } = useQuery({
     queryKey: ['empresasGlobal'],
     queryFn: fetchEmpresasGlobais,
@@ -21,6 +25,15 @@ export default function NovoFuncionarioScreen() {
   const [departamento, setDepartamento] = useState('');
   const [salvando, setSalvando] = useState(false);
 
+  const semPermissao = !loadingPerfil && !user?.permissoes_mobile?.pode_cadastrar_funcionario;
+
+  useEffect(() => {
+    if (!semPermissao) return;
+    Alert.alert('Acesso negado', 'Somente administradores podem cadastrar funcionários no aplicativo.', [
+      { text: 'OK', onPress: () => router.back() }
+    ]);
+  }, [semPermissao, router]);
+
   const empresaSelecionadaNome = useMemo(() => {
     const empresa = empresas.find(e => e.id === empresaId);
     return empresa?.nome || 'Selecionar empresa';
@@ -28,7 +41,7 @@ export default function NovoFuncionarioScreen() {
 
   const handleEscolherEmpresa = () => {
     if (empresas.length === 0) {
-      Alert.alert('Sem empresas', 'Nenhuma empresa dispon�vel para vincular.');
+      Alert.alert('Sem empresas', 'Nenhuma empresa disponível para vincular.');
       return;
     }
 
@@ -39,18 +52,18 @@ export default function NovoFuncionarioScreen() {
 
     Alert.alert(
       'Selecionar empresa',
-      `Toque em uma op��o:\n\n${texto}`,
+      `Toque em uma opção:\n\n${texto}`,
       proximas.map(e => ({ text: e.nome, onPress: () => setEmpresaId(e.id) }))
     );
   };
 
   const handleSalvar = async () => {
     if (!nome.trim()) {
-      Alert.alert('Campo obrigat�rio', 'Informe o nome do funcion�rio.');
+      Alert.alert('Campo obrigatório', 'Informe o nome do funcionário.');
       return;
     }
     if (!empresaId) {
-      Alert.alert('Campo obrigat�rio', 'Selecione uma empresa.');
+      Alert.alert('Campo obrigatório', 'Selecione uma empresa.');
       return;
     }
 
@@ -64,15 +77,29 @@ export default function NovoFuncionarioScreen() {
         departamento.trim() || undefined,
         cargo.trim() || undefined,
       );
-      Alert.alert('Sucesso', 'Funcion�rio cadastrado com sucesso.', [
+      Alert.alert('Sucesso', 'Funcionário cadastrado com sucesso.', [
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (e: any) {
-      Alert.alert('Erro', e.message || 'N�o foi poss�vel cadastrar o funcion�rio.');
+      Alert.alert('Erro', e.message || 'Não foi possível cadastrar o funcionário.');
     } finally {
       setSalvando(false);
     }
   };
+
+  if (loadingPerfil) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#10B981" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (semPermissao) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -82,7 +109,7 @@ export default function NovoFuncionarioScreen() {
             <TouchableOpacity style={styles.backBtn} onPress={() => router.back()}>
               <IconSymbol name="chevron.left" size={18} color="#E2E8F0" />
             </TouchableOpacity>
-            <Text style={styles.title}>Novo Funcion�rio</Text>
+            <Text style={styles.title}>Novo Funcionário</Text>
           </View>
 
           <View style={styles.formCard}>
@@ -135,14 +162,14 @@ export default function NovoFuncionarioScreen() {
             <TextInput
               value={departamento}
               onChangeText={setDepartamento}
-              placeholder="Ex: Pedag�gico"
+              placeholder="Ex: Pedagógico"
               placeholderTextColor="#64748B"
               style={styles.input}
             />
           </View>
 
           <TouchableOpacity style={[styles.saveButton, salvando && styles.disabled]} onPress={handleSalvar} disabled={salvando}>
-            {salvando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Cadastrar Funcion�rio</Text>}
+            {salvando ? <ActivityIndicator color="#FFF" /> : <Text style={styles.saveButtonText}>Cadastrar Funcionário</Text>}
           </TouchableOpacity>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -203,4 +230,5 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   disabled: { opacity: 0.7 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

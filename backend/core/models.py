@@ -1,6 +1,7 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+import requests
 
 class CustomUser(AbstractUser):
     is_assessor = models.BooleanField(default=False)
@@ -68,8 +69,32 @@ class Empresa(models.Model):
                 
         super().save(*args, **kwargs)
 
+    def preencher_endereco_pelo_cep(self, sobrescrever=False):
+        cep_limpo = "".join(ch for ch in (self.cep or "") if ch.isdigit())
+        if len(cep_limpo) != 8:
+            return False
+
+        if not sobrescrever and any([self.rua, self.bairro, self.cidade, self.estado]):
+            return False
+
+        try:
+            response = requests.get(f"https://viacep.com.br/ws/{cep_limpo}/json/", timeout=5)
+            response.raise_for_status()
+            data = response.json()
+        except Exception:
+            return False
+
+        if data.get("erro"):
+            return False
+
+        self.cep = f"{cep_limpo[:5]}-{cep_limpo[5:]}"
+        self.rua = (data.get("logradouro") or "").strip()
+        self.bairro = (data.get("bairro") or "").strip()
+        self.cidade = (data.get("localidade") or "").strip()
+        self.estado = (data.get("uf") or "").strip().upper()
+        return True
+
     def geocodificar_pelo_google(self):
-        import requests
         from django.conf import settings
         
         api_key = getattr(settings, 'GOOGLE_MAPS_API_KEY', None)
@@ -146,7 +171,7 @@ class Visita(models.Model):
         verbose_name_plural = "Visitas"
 
     def __str__(self):
-        return f"Visita {self.empresa.nome} - {self.data} ({self.consultor.username})"
+        return f"Visita {self.empresa.nome} - {self.data} ({self.assessor.username})"
 
 class VisitaFoto(models.Model):
     visita = models.ForeignKey(Visita, on_delete=models.CASCADE, related_name='fotos')

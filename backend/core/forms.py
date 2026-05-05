@@ -32,6 +32,14 @@ class GroupForm(forms.ModelForm):
 
 
 class AssessorForm(forms.ModelForm):
+    grupo_permissao = forms.ModelChoiceField(
+        queryset=Group.objects.none(),
+        required=False,
+        empty_label=None,
+        label="Grupo de permissões",
+        widget=forms.Select(attrs={"class": "form-select"}),
+        help_text="Define o grupo de permissões aplicado a este assessor.",
+    )
     password = forms.CharField(
         widget=forms.PasswordInput(attrs={"class": "form-control"}),
         required=False,
@@ -69,8 +77,54 @@ class AssessorForm(forms.ModelForm):
         }
 
     def __init__(self, *args, **kwargs):
+        self.user = kwargs.pop("user", None)
         super().__init__(*args, **kwargs)
+        self.order_fields([
+            "username",
+            "first_name",
+            "last_name",
+            "email",
+            "grupo_permissao",
+            "foto",
+            "cor_mapa",
+            "is_active",
+            "password",
+        ])
         self.fields["cor_mapa"].help_text = ""
+        self.fields["grupo_permissao"].queryset = Group.objects.order_by("name")
+
+        grupo_assessores = self._get_or_create_default_group()
+        grupo_atual = self.instance.groups.order_by("name").first() if self.instance.pk else None
+        self.fields["grupo_permissao"].initial = grupo_atual or grupo_assessores
+
+        if self.user and not (getattr(self.user, "is_admin", False) or self.user.is_superuser):
+            self.fields["grupo_permissao"].disabled = True
+            self.fields["grupo_permissao"].help_text = "Somente administradores podem alterar este grupo."
+
+    def _get_or_create_default_group(self):
+        grupo_assessores = Group.objects.filter(name__iexact="Assessores").first()
+        if grupo_assessores:
+            return grupo_assessores
+
+        grupo_consultores = Group.objects.filter(name__iexact="Consultores").first()
+        grupo_assessores = Group.objects.create(name="Assessores")
+        if grupo_consultores:
+            grupo_assessores.permissions.set(grupo_consultores.permissions.all())
+        return grupo_assessores
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        qs = User.objects.filter(username__iexact=username)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Já existe um usuário com esse nome de usuário.")
+        return username
+
+    def clean_grupo_permissao(self):
+        if self.fields["grupo_permissao"].disabled:
+            return self.instance.groups.order_by("name").first() or self._get_or_create_default_group()
+        return self.cleaned_data.get("grupo_permissao") or self._get_or_create_default_group()
 
     def save(self, commit=True):
         user = super().save(commit=False)
@@ -79,6 +133,7 @@ class AssessorForm(forms.ModelForm):
             user.set_password(self.cleaned_data["password"])
         if commit:
             user.save()
+            user.groups.set([self.cleaned_data.get("grupo_permissao") or self._get_or_create_default_group()])
         return user
 
 
@@ -121,6 +176,15 @@ class AdminUserForm(forms.ModelForm):
         if "user_permissions" in self.fields:
             from django.contrib.auth.models import Permission
             self.fields["user_permissions"].queryset = Permission.objects.select_related("content_type").all()
+
+    def clean_username(self):
+        username = (self.cleaned_data.get("username") or "").strip()
+        qs = User.objects.filter(username__iexact=username)
+        if self.instance.pk:
+            qs = qs.exclude(pk=self.instance.pk)
+        if qs.exists():
+            raise forms.ValidationError("Já existe um usuário com esse nome de usuário.")
+        return username
 
     def save(self, commit=True):
         user = super().save(commit=False)

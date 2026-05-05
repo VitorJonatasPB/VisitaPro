@@ -1,20 +1,34 @@
-import React, { useState } from 'react';
+ï»¿import React, { useEffect, useState } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, TextInput, Alert, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { criarEmpresa } from '@/services/api';
+import { criarEmpresa, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useQuery } from '@tanstack/react-query';
 
 export default function NovaEmpresaScreen() {
   const router = useRouter();
+  const { data: user, isLoading: loadingPerfil } = useQuery({
+    queryKey: ['userPerfil'],
+    queryFn: fetchPerfil,
+  });
   const [nome, setNome] = useState('');
   const [telefone, setTelefone] = useState('');
   const [email, setEmail] = useState('');
   const [salvando, setSalvando] = useState(false);
 
+  const semPermissao = !loadingPerfil && !user?.permissoes_mobile?.pode_cadastrar_empresa;
+
+  useEffect(() => {
+    if (!semPermissao) return;
+    Alert.alert('Acesso negado', 'Somente administradores podem cadastrar empresas no aplicativo.', [
+      { text: 'OK', onPress: () => router.back() }
+    ]);
+  }, [semPermissao, router]);
+
   const handleSalvar = async () => {
     if (!nome.trim()) {
-      Alert.alert('Campo obrigatório', 'Informe o nome da empresa.');
+      Alert.alert('Campo obrigatÃ³rio', 'Informe o nome da empresa.');
       return;
     }
 
@@ -25,11 +39,25 @@ export default function NovaEmpresaScreen() {
         { text: 'OK', onPress: () => router.back() }
       ]);
     } catch (e: any) {
-      Alert.alert('Erro', e.message || 'Não foi possível cadastrar a empresa.');
+      Alert.alert('Erro', e.message || 'NÃ£o foi possÃ­vel cadastrar a empresa.');
     } finally {
       setSalvando(false);
     }
   };
+
+  if (loadingPerfil) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color="#3B82F6" />
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (semPermissao) {
+    return null;
+  }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
@@ -124,4 +152,5 @@ const styles = StyleSheet.create({
   },
   saveButtonText: { color: '#FFF', fontSize: 16, fontWeight: 'bold' },
   disabled: { opacity: 0.7 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
 });

@@ -1,9 +1,11 @@
-from datetime import date
+﻿from datetime import date
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
+from django.db.models import Q
+from django.utils import timezone
 
 from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Funcionario, VisitaFoto, Empresa
 from .api_serializers import (
@@ -20,6 +22,16 @@ from .api_serializers import (
     JornadaSerializer,
 )
 import json
+
+
+def _is_admin(user):
+    return user.is_superuser or getattr(user, 'is_admin', False)
+
+
+def _empresas_visiveis_para_usuario(user):
+    if _is_admin(user):
+        return Empresa.objects.all()
+    return Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
 
 
 @api_view(['GET'])
@@ -46,7 +58,7 @@ def agenda_hoje(request):
 @permission_classes([IsAuthenticated])
 def agenda_mes(request):
     """
-    Retorna as visitas de um mês específico para o assessor autenticado.
+    Retorna as visitas de um mÃªs especÃ­fico para o assessor autenticado.
     GET /api/visitas/mes/?ano=YYYY&mes=MM
     """
     ano_str = request.query_params.get('ano')
@@ -60,7 +72,7 @@ def agenda_mes(request):
         ano, mes = hoje.year, hoje.month
 
     visitas = Visita.objects.filter(
-        assessor=request.user, 
+        assessor=request.user,
         data__year=ano, 
         data__month=mes
     ).select_related('empresa')
@@ -73,13 +85,13 @@ def agenda_mes(request):
 @permission_classes([IsAuthenticated])
 def detalhe_visita(request, visita_id):
     """
-    Retorna o detalhe de uma visita específica pelo ID.
+    Retorna o detalhe de uma visita especÃ­fica pelo ID.
     GET /api/visitas/<id>/
     """
     try:
         visita = Visita.objects.get(id=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
-        return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Visita nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     serializer = VisitaDetalheSerializer(visita)
     return Response(serializer.data)
 
@@ -87,7 +99,7 @@ def detalhe_visita(request, visita_id):
 @permission_classes([IsAuthenticated])
 def calendario_visitas(request):
     """
-    Retorna uma lista de datas futuras e passadas que contêm visitas.
+    Retorna uma lista de datas futuras e passadas que contÃªm visitas.
     GET /api/visitas/calendario/
     """
     datas = Visita.objects.filter(assessor=request.user).values_list('data', flat=True).distinct()
@@ -97,13 +109,13 @@ def calendario_visitas(request):
 @permission_classes([IsAuthenticated])
 def funcionarios_empresa(request, visita_id):
     """
-    Retorna os funcionários da empresa atrelada à visita.
+    Retorna os funcionÃ¡rios da empresa atrelada Ã  visita.
     GET /api/visitas/<id>/funcionarios/
     """
     try:
         visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
-        return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Visita nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
     
     funcionarios = Funcionario.objects.filter(empresa=visita.empresa)
     serializer = FuncionarioSerializer(funcionarios, many=True)
@@ -114,7 +126,7 @@ def funcionarios_empresa(request, visita_id):
 @permission_classes([IsAuthenticated])
 def perguntas_ativas(request):
     """
-    Retorna todas as perguntas de relatório ativas.
+    Retorna todas as perguntas de relatÃ³rio ativas.
     GET /api/perguntas/
     """
     perguntas = PerguntaRelatorio.objects.filter(ativa=True)
@@ -132,7 +144,7 @@ def fazer_checkin(request, visita_id):
     try:
         visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
-        return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Visita nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = CheckinSerializer(data=request.data)
     if not serializer.is_valid():
@@ -160,7 +172,7 @@ def fazer_checkout(request, visita_id):
     try:
         visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
-        return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Visita nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
     serializer = CheckoutSerializer(data=request.data)
     if not serializer.is_valid():
@@ -181,20 +193,20 @@ def fazer_checkout(request, visita_id):
 @permission_classes([IsAuthenticated])
 def enviar_relatorio(request, visita_id):
     """
-    Recebe as respostas do relatório, assinatura, contatoes e múltiplas fotos via FormData.
+    Recebe as respostas do relatÃ³rio, assinatura, contatoes e mÃºltiplas fotos via FormData.
     POST /api/visitas/<id>/responder/
     """
     try:
         visita = Visita.objects.get(pk=visita_id, assessor=request.user)
     except Visita.DoesNotExist:
-        return Response({'error': 'Visita não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Visita nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
 
     # Verifica se os dados vieram como JSON puro ou como FormData com JSON em string 'payload'
     if 'payload' in request.data:
         try:
             payload = json.loads(request.data['payload'])
         except json.JSONDecodeError:
-            return Response({'error': 'Payload JSON inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+            return Response({'error': 'Payload JSON invÃ¡lido.'}, status=status.HTTP_400_BAD_REQUEST)
     else:
         payload = request.data
 
@@ -232,14 +244,14 @@ def enviar_relatorio(request, visita_id):
     for f in fotos:
         VisitaFoto.objects.create(visita=visita, imagem=f)
 
-    return Response({'status': 'relatório salvo com sucesso'})
+    return Response({'status': 'relatÃ³rio salvo com sucesso'})
 
 
 @api_view(['GET', 'PATCH'])
 @permission_classes([IsAuthenticated])
 def meu_perfil(request):
     """
-    Retorna e atualiza as informações do usuário atual.
+    Retorna e atualiza as informaÃ§Ãµes do usuÃ¡rio atual.
     GET /api/users/me/
     PATCH /api/users/me/
     """
@@ -260,7 +272,7 @@ def meu_perfil(request):
 @permission_classes([IsAuthenticated])
 def reportar_bug(request):
     """
-    Recebe um relatório de erro/bug do aplicativo mobile.
+    Recebe um relatÃ³rio de erro/bug do aplicativo mobile.
     POST /api/bugs/
     """
     serializer = BugReportSerializer(data=request.data)
@@ -278,11 +290,7 @@ def lista_empresas(request):
     GET /api/empresas/
     """
     user = request.user
-    from django.db.models import Q
-    if user.is_superuser or getattr(user, 'is_admin', False):
-        empresas = Empresa.objects.all()
-    else:
-        empresas = Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
+    empresas = _empresas_visiveis_para_usuario(user)
     
     serializer = EmpresaSerializer(empresas, many=True)
     return Response(serializer.data)
@@ -292,15 +300,16 @@ def lista_empresas(request):
 @permission_classes([IsAuthenticated])
 def lista_funcionarios(request):
     """
-    Retorna os funcionários das empresas vinculadas ao assessor.
+    Retorna os funcionÃ¡rios das empresas vinculadas ao assessor.
     GET /api/funcionarios/
     """
     user = request.user
-    from django.db.models import Q
-    if user.is_superuser or getattr(user, 'is_admin', False):
+    if _is_admin(user):
         funcionarios = Funcionario.objects.all()
     else:
-        funcionarios = Funcionario.objects.filter(Q(empresa__assessor=user) | Q(empresa__assessores_autorizados=user)).distinct()
+        funcionarios = Funcionario.objects.filter(
+            Q(empresa__assessor=user) | Q(empresa__assessores_autorizados=user)
+        ).distinct()
     
     serializer = FuncionarioSerializer(funcionarios, many=True)
     return Response(serializer.data)
@@ -312,28 +321,41 @@ def criar_agendamento(request):
     Cria um novo agendamento no mobile.
     POST /api/visitas/novo/
     """
+    user = request.user
     empresa_id = request.data.get('empresa_id')
     data_str = request.data.get('data')
     horario_str = request.data.get('horario')
 
+    if not (_is_admin(user) or getattr(user, 'is_assessor', False) or user.has_perm('core.add_visita')):
+        return Response({'error': 'VocÃª nÃ£o tem permissÃ£o para criar agendamentos.'}, status=status.HTTP_403_FORBIDDEN)
+
     if not empresa_id or not data_str or not horario_str:
-        return Response({'error': 'empresa_id, data e horario são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'empresa_id, data e horario sÃ£o obrigatÃ³rios.'}, status=status.HTTP_400_BAD_REQUEST)
 
     try:
-        empresa = Empresa.objects.get(id=empresa_id)
+        empresa = _empresas_visiveis_para_usuario(user).get(id=empresa_id)
     except Empresa.DoesNotExist:
-        return Response({'error': 'Empresa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Empresa nÃ£o encontrada ou sem acesso.'}, status=status.HTTP_404_NOT_FOUND)
 
     try:
         from datetime import datetime
         data_obj = datetime.strptime(data_str, '%Y-%m-%d').date()
         horario_obj = datetime.strptime(horario_str, '%H:%M').time()
     except ValueError:
-        return Response({'error': 'Formato de data ou horário inválido.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Formato de data ou horÃ¡rio invÃ¡lido.'}, status=status.HTTP_400_BAD_REQUEST)
+
+    if not _is_admin(user):
+        hoje = timezone.now().date()
+        meses_diff = (data_obj.year - hoje.year) * 12 + data_obj.month - hoje.month
+        if meses_diff != 1:
+            return Response(
+                {'error': 'VocÃª sÃ³ pode agendar visitas exatamente para o prÃ³ximo mÃªs.'},
+                status=status.HTTP_400_BAD_REQUEST,
+            )
 
     visita = Visita.objects.create(
         empresa=empresa,
-        assessor=request.user,
+        assessor=user,
         data=data_obj,
         horario=horario_obj,
         status='agendada'
@@ -358,7 +380,7 @@ def iniciar_jornada(request):
     from .models import Jornada
     hoje = date.today()
     
-    # Verifica se já tem jornada hoje e se está em andamento
+    # Verifica se jÃ¡ tem jornada hoje e se estÃ¡ em andamento
     jornada = Jornada.objects.filter(assessor=request.user, data=hoje).last()
     if jornada and jornada.status == 'em_andamento':
         serializer = JornadaSerializer(jornada)
@@ -387,7 +409,7 @@ def sincronizar_jornada(request):
         
     km_atual = request.data.get('km_total', 0.0)
     
-    # Apenas atualiza se for maior para não retroceder
+    # Apenas atualiza se for maior para nÃ£o retroceder
     if float(km_atual) > jornada.km_total:
         jornada.km_total = float(km_atual)
         jornada.save(update_fields=['km_total'])
@@ -430,22 +452,22 @@ def criar_empresa(request):
     Cria uma nova empresa via mobile.
     POST /api/empresas/nova/
     """
-    if not request.user.has_perm('core.add_empresa'):
-        return Response({'error': 'Permissão negada.'}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_admin(request.user):
+        return Response({'error': 'Somente administradores podem cadastrar empresas.'}, status=status.HTTP_403_FORBIDDEN)
         
     nome = request.data.get('nome')
     if not nome:
-        return Response({'error': 'Nome da empresa é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Nome da empresa Ã© obrigatÃ³rio.'}, status=status.HTTP_400_BAD_REQUEST)
         
     empresa = Empresa.objects.create(
         nome=nome,
         telefone=request.data.get('telefone', ''),
         email=request.data.get('email', ''),
         assessor=request.user,
-        status='Em Negociação'
+        status='N'
     )
     
-    # Adicionar o usuário também na lista de autorizados, caso a regra de negócio exija
+    # Adicionar o usuÃ¡rio tambÃ©m na lista de autorizados, caso a regra de negÃ³cio exija
     empresa.assessores_autorizados.add(request.user)
     
     return Response({'status': 'empresa criada com sucesso', 'id': empresa.id}, status=status.HTTP_201_CREATED)
@@ -454,22 +476,22 @@ def criar_empresa(request):
 @permission_classes([IsAuthenticated])
 def criar_funcionario(request):
     """
-    Cria um novo funcionário via mobile.
+    Cria um novo funcionÃ¡rio via mobile.
     POST /api/funcionarios/novo/
     """
-    if not request.user.has_perm('core.add_funcionario'):
-        return Response({'error': 'Permissão negada.'}, status=status.HTTP_403_FORBIDDEN)
+    if not _is_admin(request.user):
+        return Response({'error': 'Somente administradores podem cadastrar funcionários.'}, status=status.HTTP_403_FORBIDDEN)
         
     nome = request.data.get('nome')
     empresa_id = request.data.get('empresa_id')
     
     if not nome or not empresa_id:
-        return Response({'error': 'Nome e empresa_id são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+        return Response({'error': 'Nome e empresa_id sÃ£o obrigatÃ³rios.'}, status=status.HTTP_400_BAD_REQUEST)
         
     try:
-        empresa = Empresa.objects.get(id=empresa_id)
+        empresa = _empresas_visiveis_para_usuario(request.user).get(id=empresa_id)
     except Empresa.DoesNotExist:
-        return Response({'error': 'Empresa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        return Response({'error': 'Empresa nÃ£o encontrada.'}, status=status.HTTP_404_NOT_FOUND)
         
     funcionario = Funcionario.objects.create(
         nome=nome,
@@ -480,4 +502,5 @@ def criar_funcionario(request):
         cargo=request.data.get('cargo', '')
     )
     
-    return Response({'status': 'funcionário criado com sucesso', 'id': funcionario.id}, status=status.HTTP_201_CREATED)
+    return Response({'status': 'funcionÃ¡rio criado com sucesso', 'id': funcionario.id}, status=status.HTTP_201_CREATED)
+

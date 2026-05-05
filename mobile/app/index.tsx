@@ -1,5 +1,17 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, Alert, ActivityIndicator, BackHandler } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  KeyboardAvoidingView,
+  Platform,
+  Dimensions,
+  Alert,
+  ActivityIndicator,
+  BackHandler,
+} from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { login, getAccessToken } from '@/services/api';
@@ -56,7 +68,6 @@ export default function LoginScreen() {
       const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
       if (hasHardware && isEnrolled) {
-        // Tenta autenticar
         const result = await LocalAuthentication.authenticateAsync({
           promptMessage: 'Desbloqueie o VisitasPro',
           fallbackLabel: 'Usar Senha',
@@ -66,11 +77,10 @@ export default function LoginScreen() {
         if (result.success) {
           router.replace('/(tabs)');
         } else {
-          // Se falhar ou cancelar, deixa tentar com usuário/senha normal
           setCheckingBiometrics(false);
         }
       } else {
-        // Sessão existe mas sem biometria, enviamos direto!
+        // Sessão existe mas sem biometria, enviamos direto
         router.replace('/(tabs)');
       }
     } catch (e) {
@@ -92,7 +102,7 @@ export default function LoginScreen() {
     setLoading(true);
     try {
       await login(username, password);
-      
+
       if (rememberMe) {
         await AsyncStorage.setItem('saved_username', username);
         await AsyncStorage.setItem('saved_password', password);
@@ -106,18 +116,18 @@ export default function LoginScreen() {
       const msg = error.message || '';
       if (msg.includes('esgotado') || msg.includes('AbortError')) {
         Alert.alert(
-          '⏱️ Tempo Esgotado',
-          'O servidor não respondeu a tempo.\n\nVerifique:\n• O servidor Django está rodando com 0.0.0.0:8000?\n• O celular está no mesmo Wi-Fi do computador?\n• O IP no app está correto?'
+          'Tempo Esgotado',
+          'O servidor não respondeu a tempo.\n\nVerifique:\n- O servidor Django está rodando com 0.0.0.0:8000?\n- O celular está no mesmo Wi-Fi do computador?\n- O IP no app está correto?'
         );
       } else if (msg.includes('conectar') || msg.includes('Network')) {
         Alert.alert(
-          '🔌 Sem Conexão',
-          'Não foi possível alcançar o servidor.\n\nVerifique:\n• O servidor está rodando?\n• O IP configurado no app está correto?'
+          'Sem Conexão',
+          'Não foi possível alcançar o servidor.\n\nVerifique:\n- O servidor está rodando?\n- O IP configurado no app está correto?'
         );
       } else if (msg.includes('401') || msg.includes('credenciais') || msg.includes('No active account')) {
-        Alert.alert('🔐 Acesso Negado', 'Usuário ou senha incorretos.');
+        Alert.alert('Acesso Negado', 'Usuário ou senha incorretos.');
       } else {
-        Alert.alert('❌ Erro no Login', msg || 'Falha desconhecida ao conectar.');
+        Alert.alert('Erro no Login', msg || 'Falha desconhecida ao conectar.');
       }
     } finally {
       setLoading(false);
@@ -135,12 +145,12 @@ export default function LoginScreen() {
   }
 
   return (
-    <KeyboardAvoidingView 
-      style={styles.container} 
+    <KeyboardAvoidingView
+      style={styles.container}
       behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
     >
       <StatusBar style="light" />
-      
+
       {/* Círculos de Fundo Estilizados */}
       <View style={[styles.circle, styles.circleTop]} />
       <View style={[styles.circle, styles.circleBottom]} />
@@ -176,8 +186,8 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.rememberMeContainer}>
-          <TouchableOpacity 
-            style={styles.checkboxContainer} 
+          <TouchableOpacity
+            style={styles.checkboxContainer}
             onPress={() => setRememberMe(!rememberMe)}
             activeOpacity={0.7}
           >
@@ -192,8 +202,8 @@ export default function LoginScreen() {
           </TouchableOpacity>
         </View>
 
-        <TouchableOpacity 
-          style={[styles.button, loading && { opacity: 0.7 }]} 
+        <TouchableOpacity
+          style={[styles.button, loading && { opacity: 0.7 }]}
           onPress={handleLogin}
           disabled={loading}
         >
@@ -211,7 +221,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#0F172A', // Slate 900 (Dark Modern)
+    backgroundColor: '#0F172A',
     justifyContent: 'center',
     alignItems: 'center',
   },
@@ -223,21 +233,21 @@ const styles = StyleSheet.create({
   circleTop: {
     width: width * 1.5,
     height: width * 1.5,
-    backgroundColor: '#3B82F6', // Blue 500
+    backgroundColor: '#3B82F6',
     top: -width * 0.8,
     right: -width * 0.2,
   },
   circleBottom: {
     width: width,
     height: width,
-    backgroundColor: '#8B5CF6', // Purple 500
+    backgroundColor: '#8B5CF6',
     bottom: -width * 0.4,
     left: -width * 0.3,
   },
   formContainer: {
     width: '85%',
     maxWidth: 400,
-    backgroundColor: 'rgba(30, 41, 59, 0.7)', // Slate 800 with opacity
+    backgroundColor: 'rgba(30, 41, 59, 0.7)',
     padding: 30,
     borderRadius: 24,
     borderWidth: 1,
@@ -260,21 +270,21 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     fontSize: 16,
-    color: '#94A3B8', // Slate 400
+    color: '#94A3B8',
     marginTop: 8,
   },
   inputContainer: {
     marginBottom: 20,
   },
   label: {
-    color: '#E2E8F0', // Slate 200
+    color: '#E2E8F0',
     fontSize: 14,
     fontWeight: '600',
     marginBottom: 8,
     marginLeft: 4,
   },
   input: {
-    backgroundColor: 'rgba(15, 23, 42, 0.6)', // Slate 900
+    backgroundColor: 'rgba(15, 23, 42, 0.6)',
     color: '#FFFFFF',
     borderRadius: 12,
     paddingHorizontal: 16,
@@ -284,7 +294,7 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255, 255, 255, 0.05)',
   },
   button: {
-    backgroundColor: '#2563EB', // Blue 600
+    backgroundColor: '#2563EB',
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: 'center',

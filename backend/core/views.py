@@ -1,4 +1,4 @@
-from django.shortcuts import render, redirect
+﻿from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -6,6 +6,7 @@ from django.urls import reverse_lazy
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
 from django.http import JsonResponse, HttpResponse
+from django.db import IntegrityError
 import json
 from django.conf import settings
 from .models import Empresa, Visita, CustomUser, Funcionario, PerguntaRelatorio, RespostaRelatorio
@@ -91,7 +92,7 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         context['user_initials'] = iniciais
         context['user_foto_url'] = user_foto_url
         
-        # Filtrar as métricas gerais baseado ou não em assessor
+        # Filtrar as mÃ©tricas gerais baseado ou nÃ£o em assessor
         visitas_do_mes = Visita.objects.filter(data__year=ano_atual, data__month=mes_atual)
         if assessor_id:
             visitas_do_mes = visitas_do_mes.filter(assessor_id=assessor_id)
@@ -113,14 +114,14 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
             funcionarios_qs = funcionarios_qs.filter(empresa__in=empresas_qs).distinct()
         context['total_funcionarios'] = funcionarios_qs.count()
         
-        # Últimas visitas
+        # Ãšltimas visitas
         ultimas_visitas = Visita.objects.all().order_by('-data', '-horario')
         if assessor_id:
             ultimas_visitas = ultimas_visitas.filter(assessor_id=assessor_id)
         context['ultimas_visitas'] = ultimas_visitas[:5]
         context['empresas_recentes'] = empresas_qs.order_by('-id')[:5]
 
-        # Empresas no Mapa (se tiver filtro, mostra só as dele)
+        # Empresas no Mapa (se tiver filtro, mostra sÃ³ as dele)
         from django.db.models import Q
         empresas = Empresa.objects.all()
         if assessor_id:
@@ -147,7 +148,7 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
             })
         context['empresas_mapa'] = json.dumps(empresas_mapa)
         
-        # Métrica p/ Gráfico de Colunas: Funcionários Atendidos nos últimos 6 meses
+        # MÃ©trica p/ GrÃ¡fico de Colunas: FuncionÃ¡rios Atendidos nos Ãºltimos 6 meses
         grafico_labels = []
         grafico_data = []
         
@@ -175,7 +176,7 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Gráfico de Rosca: Status das Empresas
+        # GrÃ¡fico de Rosca: Status das Empresas
         empresas_qs = Empresa.objects.all()
         if assessor_id:
             empresas_qs = empresas_qs.filter(assessor_id=assessor_id)
@@ -188,7 +189,7 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         context['rosca_inativas'] = inativas
         context['rosca_negociacao'] = negociacao
         
-        # Conversão de Clientes (mês atual)
+        # ConversÃ£o de Clientes (mÃªs atual)
         conversoes_mes = empresas_qs.filter(
             data_conversao__year=hoje.year,
             data_conversao__month=hoje.month
@@ -259,7 +260,7 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
         context['user_initials'] = iniciais
         context['user_foto_url'] = user.foto.url if user.foto else None
         
-        # Filtros de Visitas do Mês para Assessor
+        # Filtros de Visitas do MÃªs para Assessor
         from django.utils import timezone
         import datetime
         import calendar
@@ -292,11 +293,11 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
         from .models import Funcionario
         context['total_funcionarios'] = Funcionario.objects.filter(empresa__in=empresas).distinct().count()
         
-        # Métrica p/ Gráfico de Pizza: Contatoes Atendidos nos últimos 6 meses
+        # MÃ©trica p/ GrÃ¡fico de Pizza: Contatoes Atendidos nos Ãºltimos 6 meses
         grafico_labels = []
         grafico_data = []
         
-        # Começamos do mês atual caindo até 4 meses atrás (Total 5)
+        # ComeÃ§amos do mÃªs atual caindo atÃ© 4 meses atrÃ¡s (Total 5)
         for i in range(4, -1, -1):
             mes = hoje.month - i
             ano = hoje.year
@@ -312,7 +313,7 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
             total_empresas_visitadas = len(empresas_ids)
             
             # Formatando o Nome do mes
-            nome_mes = calendar.month_abbr[mes]  # ex: 'Jan', 'Feb' (Nota: por padrão pt-BR de locale, não tem no Django sem Babel, usaremos um mapa fixo p/ BR se preferível mas calendar é ok)
+            nome_mes = calendar.month_abbr[mes]  # ex: 'Jan', 'Feb' (Nota: por padrÃ£o pt-BR de locale, nÃ£o tem no Django sem Babel, usaremos um mapa fixo p/ BR se preferÃ­vel mas calendar Ã© ok)
             meses_ptbr = {1:'Jan', 2:'Fev', 3:'Mar', 4:'Abr', 5:'Mai', 6:'Jun', 7:'Jul', 8:'Ago', 9:'Set', 10:'Out', 11:'Nov', 12:'Dez'}
             nome_mes_br = meses_ptbr.get(mes, '')
             
@@ -322,7 +323,7 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
         
-        # Gráfico de Rosca: Status das Empresas (Para o Assessor)
+        # GrÃ¡fico de Rosca: Status das Empresas (Para o Assessor)
         empresas_qs = empresas
         
         ativas = empresas_qs.filter(status='A').count()
@@ -333,7 +334,7 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
         context['rosca_inativas'] = inativas
         context['rosca_negociacao'] = negociacao
         
-        # Conversão de Clientes (mês atual)
+        # ConversÃ£o de Clientes (mÃªs atual)
         conversoes_mes = empresas_qs.filter(
             data_conversao__year=hoje.year,
             data_conversao__month=hoje.month
@@ -361,16 +362,40 @@ class AssessorCreateView(AdminRequiredMixin, CreateView):
     template_name = 'core/assessor_form.html'
     success_url = reverse_lazy('core:assessor_list')
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
     def form_valid(self, form):
-        # Antes de salvar no banco, definimos que este usuário É um assessor
-        form.instance.is_assessor = True 
-        return super().form_valid(form)
+        from django.db import transaction, IntegrityError
+        form.instance.is_assessor = True
+        try:
+            with transaction.atomic():
+                return super().form_valid(form)
+        except IntegrityError:
+            form.add_error('username', 'Já existe um usuário com esse nome de usuário.')
+            return self.form_invalid(form)
 
 class AssessorUpdateView(AdminRequiredMixin, UpdateView):
     model = CustomUser
     form_class = AssessorForm
     template_name = 'core/assessor_form.html'
     success_url = reverse_lazy('core:assessor_list')
+
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs['user'] = self.request.user
+        return kwargs
+
+    def form_valid(self, form):
+        from django.db import transaction, IntegrityError
+        try:
+            with transaction.atomic():
+                return super().form_valid(form)
+        except IntegrityError:
+            form.add_error('username', 'Já existe um usuário com esse nome de usuário.')
+            return self.form_invalid(form)
 
 class AssessorDeleteView(AdminRequiredMixin, DeleteView):
     model = CustomUser
@@ -407,7 +432,7 @@ class EmpresaListView(LoginRequiredMixin, ListView):
             qs = qs.filter(cidade__icontains=cidade)
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            # Retorna apenas as empresas que esse assessor está designado como titular ou autorizado
+            # Retorna apenas as empresas que esse assessor estÃ¡ designado como titular ou autorizado
             from django.db.models import Q
             qs = qs.filter(Q(assessor=user) | Q(assessores_autorizados=user)).distinct()
         return qs
@@ -468,7 +493,7 @@ class VisitaListView(LoginRequiredMixin, ListView):
         status_filter = self.request.GET.get('status')
         data_str = self.request.GET.get('data')
         
-        # Se for passado um status, filtremos para as de todo o mês atual
+        # Se for passado um status, filtremos para as de todo o mÃªs atual
         if status_filter:
             hoje = timezone.now().date()
             self.data_alvo = None # Marca como nulo para usarmos no Context
@@ -502,7 +527,7 @@ class VisitaListView(LoginRequiredMixin, ListView):
         
         data_alvo = getattr(self, 'data_alvo', None)
         if hasattr(self, 'status_filtro_ativo') and self.status_filtro_ativo:
-            # Sendo status ativo, a exibição será mensal. Passaremos hoje apenas como base de calendário
+            # Sendo status ativo, a exibiÃ§Ã£o serÃ¡ mensal. Passaremos hoje apenas como base de calendÃ¡rio
             data_alvo = timezone.now().date()
             context['is_monthly_status'] = True
         else:
@@ -512,7 +537,7 @@ class VisitaListView(LoginRequiredMixin, ListView):
         context['dia_anterior'] = data_alvo - datetime.timedelta(days=1)
         context['proximo_dia'] = data_alvo + datetime.timedelta(days=1)
         
-        # Obter a lista de dias que contém visitas atreladas a este usuário (Para o Flatpickr)
+        # Obter a lista de dias que contÃ©m visitas atreladas a este usuÃ¡rio (Para o Flatpickr)
         if user.is_superuser or getattr(user, 'is_admin', False):
             visitas = Visita.objects.all()
         else:
@@ -557,7 +582,7 @@ class AgendaView(LoginRequiredMixin, TemplateView):
         else:
             visitas = Visita.objects.filter(assessor=user).order_by('data', 'horario')
             
-        periodo = self.request.GET.get('periodo', 'mes') # Por padrão foca no mês atual
+        periodo = self.request.GET.get('periodo', 'mes') # Por padrÃ£o foca no mÃªs atual
         context['periodo'] = periodo
         
         if periodo == 'dia':
@@ -569,7 +594,7 @@ class AgendaView(LoginRequiredMixin, TemplateView):
             
         context['todas_visitas'] = visitas
         
-        # Visitas da barra lateral (sempre do dia selecionado no calendário)
+        # Visitas da barra lateral (sempre do dia selecionado no calendÃ¡rio)
         visitas_para_hoje = Visita.objects.filter(data=hoje).order_by('data', 'horario')
         if assessor_id and (user.is_superuser or getattr(user, 'is_admin', False)):
             visitas_para_hoje = visitas_para_hoje.filter(assessor_id=assessor_id)
@@ -606,7 +631,7 @@ class VisitaCreateView(LoginRequiredMixin, CreateView):
 
     def form_valid(self, form):
         user = self.request.user
-        # Se for assessor criando, força que ele seja o assessor da visita
+        # Se for assessor criando, forÃ§a que ele seja o assessor da visita
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
             form.instance.assessor = user
         return super().form_valid(form)
@@ -659,7 +684,7 @@ class VisitasAPIView(LoginRequiredMixin, View):
             if assessor_id:
                 visitas = visitas.filter(assessor_id=assessor_id)
         else:
-            # Mostramos no calendário SOMENTE as visitas marcadas especificamente para ele
+            # Mostramos no calendÃ¡rio SOMENTE as visitas marcadas especificamente para ele
             visitas = Visita.objects.filter(assessor=user)
 
         events = []
@@ -683,7 +708,7 @@ class VisitasAPIView(LoginRequiredMixin, View):
         
         return JsonResponse(events, safe=False)
 
-# -- MÓDULO DO CONSULTOR (RELATÓRIO PWA/DESKTOP) --
+# -- MÃ“DULO DO CONSULTOR (RELATÃ“RIO PWA/DESKTOP) --
 class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
     model = Visita
     form_class = RelatorioVisitaForm
@@ -717,7 +742,7 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
                 opcoes_list = []
 
             resposta_salva = respostas.get(p.id, '')
-            # Para lista_suspensa, a resposta salva é "A, B, C" — convertemos para lista
+            # Para lista_suspensa, a resposta salva Ã© "A, B, C" â€” convertemos para lista
             resposta_lista = [v.strip() for v in resposta_salva.split(',')] if (p.tipo_resposta == 'lista_suspensa' and resposta_salva) else []
 
             context_perguntas.append({
@@ -743,7 +768,7 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
         perguntas = PerguntaRelatorio.objects.filter(ativa=True)
         for p in perguntas:
             if p.tipo_resposta == 'lista_suspensa':
-                # Múltipla seleção: getlist retorna lista de valores selecionados
+                # MÃºltipla seleÃ§Ã£o: getlist retorna lista de valores selecionados
                 valores = self.request.POST.getlist(f'pergunta_{p.id}')
                 resposta_texto = ', '.join(v for v in valores if v)
             else:
@@ -755,7 +780,7 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
             )
         return response
 
-# -- CRUD FUNCIONÁRIO --
+# -- CRUD FUNCIONÃRIO --
 class FuncionarioListView(LoginRequiredMixin, ListView):
     model = Funcionario
     template_name = 'core/funcionario_list.html'
@@ -793,7 +818,7 @@ class FuncionarioListView(LoginRequiredMixin, ListView):
 def exportar_empresas(request, formato):
     formato = (formato or '').lower()
     if formato not in ['csv', 'xlsx', 'pdf']:
-        messages.error(request, 'Formato de exportação inválido.')
+        messages.error(request, 'Formato de exportaÃ§Ã£o invÃ¡lido.')
         return redirect('core:empresa_list')
 
     # Reutiliza os mesmos filtros da listagem
@@ -816,7 +841,7 @@ def exportar_empresas(request, formato):
         from django.db.models import Q as _Q
         qs = qs.filter(_Q(assessor=user) | _Q(assessores_autorizados=user)).distinct()
 
-    STATUS_MAP = {'A': 'Ativo', 'I': 'Inativo', 'N': 'Em Negociação'}
+    STATUS_MAP = {'A': 'Ativo', 'I': 'Inativo', 'N': 'Em NegociaÃ§Ã£o'}
     rows = [{
         'nome':      e.nome,
         'cnpj_cpf':  e.cnpj_cpf or '',
@@ -865,7 +890,7 @@ def exportar_empresas(request, formato):
                             leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
     styles = getSampleStyleSheet()
     story = [
-        Paragraph('Relatório de Empresas', styles['Title']),
+        Paragraph('RelatÃ³rio de Empresas', styles['Title']),
         Spacer(1, 12),
     ]
 
@@ -915,7 +940,7 @@ def _funcionarios_queryset_export(request):
 def exportar_funcionarios(request, formato):
     formato = (formato or '').lower()
     if formato not in ['csv', 'xlsx', 'pdf']:
-        messages.error(request, 'Formato de exportação inválido.')
+        messages.error(request, 'Formato de exportaÃ§Ã£o invÃ¡lido.')
         return redirect('core:funcionario_list')
 
     qs = _funcionarios_queryset_export(request)
@@ -961,7 +986,7 @@ def exportar_funcionarios(request, formato):
     doc = SimpleDocTemplate(output, pagesize=landscape(A4), leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
     styles = getSampleStyleSheet()
     story = [
-        Paragraph('Relatório de Funcionários', styles['Title']),
+        Paragraph('RelatÃ³rio de FuncionÃ¡rios', styles['Title']),
         Spacer(1, 12),
     ]
 
@@ -1023,7 +1048,7 @@ import traceback
 @login_required
 def importar_empresas(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_admin', False)):
-        messages.error(request, 'Sem permissão.')
+        messages.error(request, 'Sem permissÃ£o.')
         return redirect('core:empresa_list')
 
     if request.method == 'POST' and request.FILES.get('arquivo_importacao'):
@@ -1034,7 +1059,7 @@ def importar_empresas(request):
             elif arquivo.name.endswith('.xlsx'):
                 df = pd.read_excel(arquivo)
             else:
-                messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
+                messages.error(request, "Formato nÃ£o suportado. Use .csv ou .xlsx")
                 return redirect('core:empresa_list')
                 
             required_cols = ['nome', 'telefone', 'email', 'status', 'assessor_username']
@@ -1042,7 +1067,7 @@ def importar_empresas(request):
             columns = df.columns.str.strip().str.lower()
             
             if not all(col in columns for col in required_cols):
-                messages.error(request, f"Arquivo não possui todas as colunas obrigatórias: {required_cols}")
+                messages.error(request, f"Arquivo nÃ£o possui todas as colunas obrigatÃ³rias: {required_cols}")
                 return redirect('core:empresa_list')
             
             sucesso = 0
@@ -1055,14 +1080,14 @@ def importar_empresas(request):
                     username = str(row['assessor_username']).strip() if pd.notna(row['assessor_username']) else ''
                     assessor_obj = CustomUser.objects.filter(username=username, is_assessor=True).first() if username else None
                     
-                    Empresa.objects.update_or_create(
+                    empresa, _ = Empresa.objects.update_or_create(
                         nome=nome_val,
                         defaults={
                             'cnpj_cpf': str(row['cnpj_cpf']).strip() if 'cnpj_cpf' in columns and pd.notna(row['cnpj_cpf']) else '',
                             'telefone': str(row['telefone']) if pd.notna(row['telefone']) else '',
                             'email': str(row['email']) if pd.notna(row['email']) else '',
                             'status': {
-                                'ativo': 'A', 'inativo': 'I', 'em negociação': 'N', 'em negociacao': 'N',
+                                'ativo': 'A', 'inativo': 'I', 'em negociaÃ§Ã£o': 'N', 'em negociacao': 'N',
                                 'a': 'A', 'i': 'I', 'n': 'N'
                             }.get(str(row['status']).strip().lower(), 'A') if pd.notna(row['status']) else 'A',
                             'assessor': assessor_obj,
@@ -1076,6 +1101,8 @@ def importar_empresas(request):
                             'longitude': str(row['longitude']).strip() if 'longitude' in columns and pd.notna(row['longitude']) else None
                         }
                     )
+                    if empresa.preencher_endereco_pelo_cep():
+                        empresa.save(update_fields=['cep', 'rua', 'bairro', 'cidade', 'estado'])
                     sucesso += 1
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
@@ -1090,7 +1117,7 @@ def importar_empresas(request):
 @login_required
 def importar_funcionarios(request):
     if not (request.user.is_superuser or getattr(request.user, 'is_admin', False)):
-        messages.error(request, 'Sem permissão.')
+        messages.error(request, 'Sem permissÃ£o.')
         return redirect('core:contato_list')
 
     if request.method == 'POST' and request.FILES.get('arquivo_importacao'):
@@ -1101,14 +1128,14 @@ def importar_funcionarios(request):
             elif arquivo.name.endswith('.xlsx'):
                 df = pd.read_excel(arquivo)
             else:
-                messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
+                messages.error(request, "Formato nÃ£o suportado. Use .csv ou .xlsx")
                 return redirect('core:contato_list')
                 
             required_cols = ['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email']
             columns = df.columns.str.strip().str.lower()
             
             if not all(col in columns for col in required_cols):
-                messages.error(request, f"Arquivo não possui todas as colunas obrigatórias: {required_cols}")
+                messages.error(request, f"Arquivo nÃ£o possui todas as colunas obrigatÃ³rias: {required_cols}")
                 return redirect('core:contato_list')
             
             sucesso = 0
@@ -1139,14 +1166,14 @@ def importar_funcionarios(request):
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
                     continue
-            messages.success(request, f"{sucesso} funcionários importados com sucesso!")
+            messages.success(request, f"{sucesso} funcionÃ¡rios importados com sucesso!")
         except Exception as e:
             traceback.print_exc()
             messages.error(request, f"Erro ao processar arquivo: {str(e)}")
             
     return redirect('core:contato_list')
 
-# -- MÓDULO DE PERGUNTAS (RELATÓRIO DE VISITA) --
+# -- MÃ“DULO DE PERGUNTAS (RELATÃ“RIO DE VISITA) --
 class PerguntaListView(AdminRequiredMixin, ListView):
     model = PerguntaRelatorio
     template_name = 'core/pergunta_list.html'
@@ -1170,7 +1197,7 @@ class PerguntaDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('core:pergunta_list')
 
 # ==========================================
-# MÓDULO DE PERMISSÕES E GRUPOS
+# MÃ“DULO DE PERMISSÃ•ES E GRUPOS
 # ==========================================
 class GroupListView(AdminRequiredMixin, ListView):
     model = Group
@@ -1191,7 +1218,7 @@ class GroupCreateView(AdminRequiredMixin, CreateView):
     success_url = reverse_lazy('core:group_list')
     
     def form_valid(self, form):
-        messages.success(self.request, "Grupo de permissões criado com sucesso!")
+        messages.success(self.request, "Grupo de permissÃµes criado com sucesso!")
         return super().form_valid(form)
 
 class GroupUpdateView(AdminRequiredMixin, UpdateView):
@@ -1201,7 +1228,7 @@ class GroupUpdateView(AdminRequiredMixin, UpdateView):
     success_url = reverse_lazy('core:group_list')
 
     def form_valid(self, form):
-        messages.success(self.request, "Grupo de permissões atualizado com sucesso!")
+        messages.success(self.request, "Grupo de permissÃµes atualizado com sucesso!")
         return super().form_valid(form)
 
 class GroupDeleteView(AdminRequiredMixin, DeleteView):
@@ -1210,11 +1237,11 @@ class GroupDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('core:group_list')
     
     def delete(self, request, *args, **kwargs):
-        messages.success(self.request, "Grupo excluído com sucesso.")
+        messages.success(self.request, "Grupo excluÃ­do com sucesso.")
         return super().delete(request, *args, **kwargs)
 
 # ==========================================
-# MÓDULO DE USUÁRIOS ADMINISTRADORES
+# MÃ“DULO DE USUÃRIOS ADMINISTRADORES
 # ==========================================
 class AdminUserListView(AdminRequiredMixin, ListView):
     model = CustomUser
@@ -1235,8 +1262,17 @@ class AdminUserCreateView(AdminRequiredMixin, CreateView):
     success_url = reverse_lazy('core:admin_user_list')
     
     def form_valid(self, form):
+        from django.db import transaction
+        # ForÃ§amos que o usuÃ¡rio criado por aqui seja administrador
+        form.instance.is_admin = True
+        try:
+            with transaction.atomic():
+                response = super().form_valid(form)
+        except IntegrityError:
+            form.add_error("username", "JÃ¡ existe um usuÃ¡rio com esse nome de usuÃ¡rio.")
+            return self.form_invalid(form)
         messages.success(self.request, "Administrador criado com sucesso!")
-        return super().form_valid(form)
+        return response
 class AdminUserUpdateView(AdminRequiredMixin, UpdateView):
     model = CustomUser
     form_class = AdminUserForm
@@ -1244,8 +1280,15 @@ class AdminUserUpdateView(AdminRequiredMixin, UpdateView):
     success_url = reverse_lazy('core:admin_user_list')
 
     def form_valid(self, form):
+        from django.db import transaction
+        try:
+            with transaction.atomic():
+                response = super().form_valid(form)
+        except IntegrityError:
+            form.add_error("username", "JÃ¡ existe um usuÃ¡rio com esse nome de usuÃ¡rio.")
+            return self.form_invalid(form)
         messages.success(self.request, "Administrador atualizado com sucesso!")
-        return super().form_valid(form)
+        return response
 
 class AdminUserDeleteView(AdminRequiredMixin, DeleteView):
     model = CustomUser
@@ -1253,7 +1296,7 @@ class AdminUserDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('core:admin_user_list')
     
     def delete(self, request, *args, **kwargs):
-        messages.success(self.request, "Administrador excluído com sucesso.")
+        messages.success(self.request, "Administrador excluÃ­do com sucesso.")
         return super().delete(request, *args, **kwargs)
 
 @login_required
@@ -1279,14 +1322,14 @@ def download_modelo_empresas(request):
     # Exemplo
     ws.append([
         'Empresa Exemplo', '00.000.000/0001-00', '(11) 99999-9999', 'contato@exemplo.com', 'Ativo',
-        'admin', '01001-000', 'Praça da Sé', '100', 'Sé', 'São Paulo', 'SP', '-23.550520', '-46.633308'
+        'admin', '01001-000', 'PraÃ§a da SÃ©', '100', 'SÃ©', 'SÃ£o Paulo', 'SP', '-23.550520', '-46.633308'
     ])
 
-    # Validação de Dados para a coluna Status (E)
-    dv = DataValidation(type="list", formula1='"Ativo,Inativo,Em Negociação"', allow_blank=True)
-    dv.error = 'Escolha um status válido da lista'
-    dv.errorTitle = 'Status Inválido'
-    dv.prompt = 'Escolha: Ativo, Inativo ou Em Negociação'
+    # ValidaÃ§Ã£o de Dados para a coluna Status (E)
+    dv = DataValidation(type="list", formula1='"Ativo,Inativo,Em NegociaÃ§Ã£o"', allow_blank=True)
+    dv.error = 'Escolha um status vÃ¡lido da lista'
+    dv.errorTitle = 'Status InvÃ¡lido'
+    dv.prompt = 'Escolha: Ativo, Inativo ou Em NegociaÃ§Ã£o'
     dv.promptTitle = 'Escolha o Status'
 
     ws.add_data_validation(dv)
@@ -1311,7 +1354,7 @@ def download_modelo_funcionarios(request):
     output = io.BytesIO()
     wb = Workbook()
     ws = wb.active
-    ws.title = "Funcionários"
+    ws.title = "FuncionÃ¡rios"
 
     cols = ['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email']
 
@@ -1319,7 +1362,7 @@ def download_modelo_funcionarios(request):
 
     # Linha de exemplo
     ws.append([
-        'João da Silva', 'Empresa Exemplo',
+        'JoÃ£o da Silva', 'Empresa Exemplo',
         'TI', 'Analista', '(11) 98888-7777', 'joao@exemplo.com'
     ])
 

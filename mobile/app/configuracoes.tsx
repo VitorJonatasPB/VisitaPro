@@ -1,5 +1,15 @@
 import React, { useState, useEffect } from 'react';
-import { StyleSheet, Text, View, Switch, TouchableOpacity, ScrollView, Alert, TextInput, ActivityIndicator } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  Switch,
+  TouchableOpacity,
+  ScrollView,
+  Alert,
+  TextInput,
+  ActivityIndicator,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as Location from 'expo-location';
@@ -10,15 +20,10 @@ import { reportBug } from '@/services/api';
 export default function ConfiguracoesScreen() {
   const router = useRouter();
 
-  // Preferências mockadas
   const [temaEscuro, setTemaEscuro] = useState(true);
   const [fonteGrade, setFonteGrande] = useState(false);
-
-  // Permissões
   const [gpsAuth, setGpsAuth] = useState(false);
   const [cameraAuth, setCameraAuth] = useState(false);
-
-  // Form de report
   const [bugTexto, setBugTexto] = useState('');
   const [enviandoBug, setEnviandoBug] = useState(false);
 
@@ -63,8 +68,6 @@ export default function ConfiguracoesScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.content}>
-        
-        {/* Aparência */}
         <Text style={styles.sectionTitle}>Aparência</Text>
         <View style={styles.card}>
           <View style={styles.rowItem}>
@@ -72,9 +75,9 @@ export default function ConfiguracoesScreen() {
               <IconSymbol name="moon.fill" size={20} color="#F8FAFC" />
               <Text style={styles.rowText}>Modo Escuro</Text>
             </View>
-            <Switch 
-              value={temaEscuro} 
-              onValueChange={setTemaEscuro} 
+            <Switch
+              value={temaEscuro}
+              onValueChange={setTemaEscuro}
               trackColor={{ false: '#334155', true: '#3B82F6' }}
             />
           </View>
@@ -84,15 +87,14 @@ export default function ConfiguracoesScreen() {
               <IconSymbol name="textformat.size" size={20} color="#F8FAFC" />
               <Text style={styles.rowText}>Fonte Grande</Text>
             </View>
-            <Switch 
-              value={fonteGrade} 
-              onValueChange={setFonteGrande} 
+            <Switch
+              value={fonteGrade}
+              onValueChange={setFonteGrande}
               trackColor={{ false: '#334155', true: '#3B82F6' }}
             />
           </View>
         </View>
 
-        {/* Permissões */}
         <Text style={styles.sectionTitle}>Permissões do App</Text>
         <View style={styles.card}>
           <View style={styles.rowItem}>
@@ -116,21 +118,25 @@ export default function ConfiguracoesScreen() {
           </View>
         </View>
 
-        {/* Legal e Termos */}
         <Text style={styles.sectionTitle}>Legal</Text>
         <View style={styles.card}>
-          <TouchableOpacity style={styles.rowItem} onPress={() => Alert.alert('Termos de Uso', 'Documento em construção.')}>
+          <TouchableOpacity
+            style={styles.rowItem}
+            onPress={() => Alert.alert('Termos de Uso', 'Documento em construção.')}
+          >
             <Text style={styles.rowText}>Termos de Uso</Text>
             <IconSymbol name="chevron.right" size={16} color="#94A3B8" />
           </TouchableOpacity>
           <View style={styles.divider} />
-          <TouchableOpacity style={styles.rowItem} onPress={() => Alert.alert('Política de Privacidade', 'Documento em construção.')}>
+          <TouchableOpacity
+            style={styles.rowItem}
+            onPress={() => Alert.alert('Política de Privacidade', 'Documento em construção.')}
+          >
             <Text style={styles.rowText}>Política de Privacidade</Text>
             <IconSymbol name="chevron.right" size={16} color="#94A3B8" />
           </TouchableOpacity>
         </View>
 
-        {/* Reportar Erro */}
         <Text style={styles.sectionTitle}>Encontrou algum erro?</Text>
         <View style={styles.card}>
           <TextInput
@@ -142,17 +148,20 @@ export default function ConfiguracoesScreen() {
             value={bugTexto}
             onChangeText={setBugTexto}
           />
-          <TouchableOpacity 
-            style={[styles.bugBtn, enviandoBug && { opacity: 0.6 }]} 
-            onPress={handleEnviarErro} 
+          <TouchableOpacity
+            style={[styles.bugBtn, enviandoBug && { opacity: 0.6 }]}
+            onPress={handleEnviarErro}
             disabled={enviandoBug}
           >
-            {enviandoBug ? <ActivityIndicator color="#FFF" /> : <Text style={styles.bugBtnText}>Reportar Problema</Text>}
+            {enviandoBug ? (
+              <ActivityIndicator color="#FFF" />
+            ) : (
+              <Text style={styles.bugBtnText}>Reportar Problema</Text>
+            )}
           </TouchableOpacity>
         </View>
 
         <Text style={styles.versionLabel}>VisitasPro App Versão 1.0.0</Text>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -160,9 +169,9 @@ export default function ConfiguracoesScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -184,7 +193,14 @@ const styles = StyleSheet.create({
   },
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#F8FAFC' },
   content: { padding: 20, paddingBottom: 60 },
-  sectionTitle: { fontSize: 16, color: '#94A3B8', fontWeight: 'bold', marginBottom: 12, marginLeft: 4, marginTop: 16 },
+  sectionTitle: {
+    fontSize: 16,
+    color: '#94A3B8',
+    fontWeight: 'bold',
+    marginBottom: 12,
+    marginLeft: 4,
+    marginTop: 16,
+  },
   card: {
     backgroundColor: '#1E293B',
     borderRadius: 16,
@@ -225,5 +241,5 @@ const styles = StyleSheet.create({
     marginBottom: 16,
   },
   bugBtnText: { color: '#FFF', fontWeight: 'bold', fontSize: 15 },
-  versionLabel: { textAlign: 'center', marginTop: 30, color: '#64748B', fontSize: 13 }
+  versionLabel: { textAlign: 'center', marginTop: 30, color: '#64748B', fontSize: 13 },
 });

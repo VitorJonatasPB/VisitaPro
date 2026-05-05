@@ -1,5 +1,15 @@
 import React, { useState, useEffect, useCallback } from 'react';
-import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
+import {
+  StyleSheet,
+  Text,
+  View,
+  TextInput,
+  TouchableOpacity,
+  Image,
+  ActivityIndicator,
+  Alert,
+  ScrollView,
+} from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import * as ImagePicker from 'expo-image-picker';
@@ -11,8 +21,6 @@ export default function PerfilScreen() {
   const [user, setUser] = useState<UserAPI | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
-
-  // Campos editáveis
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [telefone, setTelefone] = useState('');
@@ -42,7 +50,7 @@ export default function PerfilScreen() {
       const response = await updatePerfil({
         first_name: firstName,
         last_name: lastName,
-        telefone: telefone,
+        telefone,
       });
       setUser(response);
       Alert.alert('Sucesso', 'Perfil atualizado com sucesso!');
@@ -97,13 +105,12 @@ export default function PerfilScreen() {
     );
   }
 
-  const fotoUri = user?.foto 
-    ? (user.foto.startsWith('http') ? user.foto : `${API_BASE_URL}${user.foto}`) 
+  const fotoUri = user?.foto
+    ? (user.foto.startsWith('http') ? user.foto : `${API_BASE_URL}${user.foto}`)
     : `https://ui-avatars.com/api/?name=${user?.first_name || 'User'}&background=3B82F6&color=fff`;
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
-      {/* Header */}
       <View style={styles.header}>
         <TouchableOpacity onPress={() => router.back()} style={styles.backBtn}>
           <IconSymbol name="chevron.left" size={18} color="#94A3B8" />
@@ -114,8 +121,6 @@ export default function PerfilScreen() {
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* Foto de Perfil */}
         <View style={styles.avatarSection}>
           <View style={styles.avatarWrapper}>
             <Image source={{ uri: fotoUri }} style={styles.avatar} />
@@ -131,20 +136,18 @@ export default function PerfilScreen() {
           </TouchableOpacity>
         </View>
 
-        {/* Informações Fixas */}
         <View style={styles.infoCard}>
           <Text style={styles.infoLabel}>Usuário</Text>
           <Text style={styles.infoValue}>{user?.username}</Text>
-          
+
           <View style={styles.divider} />
-          
+
           <Text style={styles.infoLabel}>E-mail</Text>
           <Text style={styles.infoValue}>{user?.email || 'Não informado'}</Text>
         </View>
 
-        {/* Formulário de Edição */}
         <Text style={styles.sectionTitle}>Editar Informações</Text>
-        
+
         <View style={styles.fieldContainer}>
           <Text style={styles.label}>Nome</Text>
           <TextInput
@@ -179,9 +182,8 @@ export default function PerfilScreen() {
           />
         </View>
 
-        {/* Action Button */}
-        <TouchableOpacity 
-          style={[styles.saveBtn, saving && styles.saveBtnDisabled]} 
+        <TouchableOpacity
+          style={[styles.saveBtn, saving && styles.saveBtnDisabled]}
           onPress={handleSalvar}
           disabled={saving}
         >
@@ -191,7 +193,6 @@ export default function PerfilScreen() {
             <Text style={styles.saveBtnText}>Salvar Alterações</Text>
           )}
         </TouchableOpacity>
-
       </ScrollView>
     </SafeAreaView>
   );
@@ -201,9 +202,9 @@ const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   scrollContent: { padding: 20, paddingBottom: 60 },
-  header: { 
-    flexDirection: 'row', 
-    alignItems: 'center', 
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: 20,
     paddingTop: 10,
@@ -226,14 +227,16 @@ const styles = StyleSheet.create({
   headerTitle: { fontSize: 20, fontWeight: 'bold', color: '#F8FAFC' },
   avatarSection: { alignItems: 'center', marginBottom: 30 },
   avatarWrapper: {
-    width: 120, height: 120, borderRadius: 60,
+    width: 120,
+    height: 120,
+    borderRadius: 60,
     backgroundColor: '#1E293B',
     marginBottom: 16,
     borderWidth: 3,
     borderColor: '#3B82F6',
     overflow: 'hidden',
     justifyContent: 'center',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   avatar: { width: '100%', height: '100%', borderRadius: 60 },
   avatarLoadingOverlay: {
@@ -267,9 +270,13 @@ const styles = StyleSheet.create({
   fieldContainer: { marginBottom: 20 },
   label: { color: '#CBD5E1', fontSize: 14, fontWeight: '600', marginBottom: 8 },
   input: {
-    backgroundColor: '#1E293B', color: '#F8FAFC', borderRadius: 12,
-    padding: 16, fontSize: 16,
-    borderWidth: 1, borderColor: 'rgba(255,255,255,0.06)',
+    backgroundColor: '#1E293B',
+    color: '#F8FAFC',
+    borderRadius: 12,
+    padding: 16,
+    fontSize: 16,
+    borderWidth: 1,
+    borderColor: 'rgba(255,255,255,0.06)',
   },
   saveBtn: {
     backgroundColor: '#3B82F6',

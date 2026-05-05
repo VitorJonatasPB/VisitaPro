@@ -18,12 +18,25 @@ class VisitaAgendaSerializer(serializers.ModelSerializer):
 
 
 class EmpresaSerializer(serializers.ModelSerializer):
+    regiao_nome = serializers.SerializerMethodField()
+
+    def get_regiao_nome(self, obj):
+        cidade = (obj.cidade or '').strip()
+        estado = (obj.estado or '').strip()
+        if cidade and estado:
+            return f'{cidade}/{estado}'
+        if cidade:
+            return cidade
+        if estado:
+            return estado
+        return 'Regiao nao informada'
+
     class Meta:
         model = Empresa
         fields = [
             'id', 'nome', 'telefone', 'email',
-            'status', 'frequencia_recomendada_dias', 'ultima_visita',
-            'latitude', 'longitude'
+            'status', 'ultima_visita', 'latitude', 'longitude',
+            'regiao_nome'
         ]
 
 
@@ -91,14 +104,27 @@ class UserSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'telefone', 'foto', 'permissoes_mobile']
-        read_only_fields = ['id', 'username', 'email']
+        fields = [
+            'id',
+            'username',
+            'first_name',
+            'last_name',
+            'email',
+            'telefone',
+            'foto',
+            'is_admin',
+            'is_superuser',
+            'is_assessor',
+            'permissoes_mobile',
+        ]
+        read_only_fields = ['id', 'username', 'email', 'is_admin', 'is_superuser', 'is_assessor']
 
     def get_permissoes_mobile(self, obj):
+        is_admin = obj.is_superuser or getattr(obj, 'is_admin', False)
         return {
-            'pode_agendar': obj.has_perm('core.add_visita'),
-            'pode_cadastrar_empresa': obj.has_perm('core.add_empresa'),
-            'pode_cadastrar_funcionario': obj.has_perm('core.add_funcionario'),
+            'pode_agendar': is_admin or getattr(obj, 'is_assessor', False) or obj.has_perm('core.add_visita'),
+            'pode_cadastrar_empresa': is_admin,
+            'pode_cadastrar_funcionario': is_admin,
         }
 
 

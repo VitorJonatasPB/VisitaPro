@@ -45,7 +45,7 @@ export async function clearTokens() {
   await AsyncStorage.removeItem('@visitaspro:refresh_token');
 }
 
-// ---------- Requisição Base ----------
+// ---------- Requisiï¿½ï¿½o Base ----------
 
 export async function request<T>(
   endpoint: string,
@@ -55,7 +55,7 @@ export async function request<T>(
   const token = await getAccessToken();
   const headers: Record<string, string> = {};
   
-  // Se não for FormData, envia JSON
+  // Se nï¿½o for FormData, envia JSON
   if (!(body instanceof FormData)) {
     headers['Content-Type'] = 'application/json';
   }
@@ -64,7 +64,7 @@ export async function request<T>(
     headers['Authorization'] = `Bearer ${token}`;
   }
 
-  // Timeout de 10 segundos para não ficar carregando infinitamente
+  // Timeout de 10 segundos para nï¿½o ficar carregando infinitamente
   const controller = new AbortController();
   const timeoutId = setTimeout(() => controller.abort(), 10000);
 
@@ -87,7 +87,7 @@ export async function request<T>(
         } catch(e) {}
       }
       const errorData = await response.json().catch(() => ({}));
-      // Retorna a mensagem de erro específica do Django ou o status HTTP
+      // Retorna a mensagem de erro especï¿½fica do Django ou o status HTTP
       const message = errorData.detail || errorData.error || `Erro no servidor (Status ${response.status})`;
       throw new Error(message);
     }
@@ -111,7 +111,7 @@ export async function request<T>(
     }
     // Repassa o erro estourado acima ou problema de rede mantendo a flag
     if (error.message?.includes('Network request failed') || error.message?.includes('Failed to fetch')) {
-      const netErr = new Error('Não foi possível conectar ao servidor. Verifique a URL da API ou sua rede.');
+      const netErr = new Error('N?o foi poss?vel conectar ao servidor. Verifique a URL da API ou sua rede.');
       (netErr as any).isNetworkError = true;
       throw netErr;
     }
@@ -119,7 +119,7 @@ export async function request<T>(
   }
 }
 
-// ---------- Autenticação ----------
+// ---------- Autenticaï¿½ï¿½o ----------
 
 export async function login(username: string, password: string): Promise<boolean> {
   const data = await request<{ access: string; refresh: string }>(
@@ -140,7 +140,6 @@ export interface EmpresaAPI {
   telefone: string | null;
   email: string | null;
   status: string;
-  frequencia_recomendada_dias: number;
   ultima_visita: string | null;
   latitude: string | null;
   longitude: string | null;
@@ -214,8 +213,8 @@ export async function fetchVisitaById(id: number): Promise<VisitaAPI> {
     if (!visita) throw err;
   }
 
-  // Se achamos a visita (seja online ou pelo cache do mês), 
-  // vamos injetar dados da Fila Offline que ainda não subiram pro Servidor!
+  // Se achamos a visita (seja online ou pelo cache do mï¿½s), 
+  // vamos injetar dados da Fila Offline que ainda nï¿½o subiram pro Servidor!
   if (visita) {
     const queue = await getQueue();
     const myQueue = queue.filter(q => q.endpoint.includes(`/api/visitas/${id}/`));
@@ -229,7 +228,7 @@ export async function fetchVisitaById(id: number): Promise<VisitaAPI> {
     });
     return visita;
   }
-  throw new Error("Visita não encontrada");
+  throw new Error("Visita n?o encontrada");
 }
 
 export async function fetchCalendarioVisitas(): Promise<string[]> {
@@ -266,7 +265,7 @@ export async function realizarCheckin(visitaId: number, lat: number, lng: number
   } catch (err: any) {
     if (err.isNetworkError) {
       await addToQueue('CHECKIN', ENDPOINTS.checkin(visitaId), 'POST', payload);
-      return { offline: true, message: 'Salvo offline. Será sincronizado automaticamente...' };
+      return { offline: true, message: 'Salvo offline. Ser? sincronizado automaticamente...' };
     }
     throw err;
   }
@@ -283,7 +282,7 @@ export async function realizarCheckout(visitaId: number, lat: number, lng: numbe
   } catch (err: any) {
     if (err.isNetworkError) {
       await addToQueue('CHECKOUT', ENDPOINTS.checkout(visitaId), 'POST', payload);
-      return { offline: true, message: 'Salvo offline. Será sincronizado automaticamente...' };
+      return { offline: true, message: 'Salvo offline. Ser? sincronizado automaticamente...' };
     }
     throw err;
   }
@@ -318,7 +317,7 @@ export async function enviarRelatorio(
 ) {
   const formData = new FormData();
   
-  // O Django pode receber string JSON em um campo do formulário multipart chamado 'payload'
+  // O Django pode receber string JSON em um campo do formulï¿½rio multipart chamado 'payload'
   const payloadStr = JSON.stringify({
     respostas,
     assinatura,
@@ -338,26 +337,26 @@ export async function enviarRelatorio(
     });
   }
 
-  // Se tem fotos, manda FormData. Se não, manda o objeto JSON comum do payload.
+  // Se tem fotos, manda FormData. Se nï¿½o, manda o objeto JSON comum do payload.
   const hasFotos = fotos && fotos.length > 0;
   const finalPayload = hasFotos ? formData : { respostas, assinatura, contatoes_atendidos: funcionarios };
 
   try {
     return await request(ENDPOINTS.responder(visitaId), 'POST', finalPayload);
   } catch (err: any) {
-    // Para FormData não conseguimos serializar com JSON puro na queue facilmente no AsyncStorage
-    // O ideal offline com imagens é salvar o URI. Como estamos em adaptação simples:
+    // Para FormData nï¿½o conseguimos serializar com JSON puro na queue facilmente no AsyncStorage
+    // O ideal offline com imagens ï¿½ salvar o URI. Como estamos em adaptaï¿½ï¿½o simples:
     if (err.isNetworkError && !hasFotos) {
       await addToQueue('RELATORIO', ENDPOINTS.responder(visitaId), 'POST', finalPayload);
-      return { offline: true, message: 'Salvo offline. Será sincronizado automaticamente...' };
+      return { offline: true, message: 'Salvo offline. Ser? sincronizado automaticamente...' };
     } else if (err.isNetworkError && hasFotos) {
-       throw new Error('Fotos não podem ser salvas offline ainda. Aguarde conexão ou envie sem fotos.');
+       throw new Error('Fotos n?o podem ser salvas offline ainda. Aguarde conex?o ou envie sem fotos.');
     }
     throw err;
   }
 }
 
-// ---------- Perfil do Usuário ----------
+// ---------- Perfil do Usuï¿½rio ----------
 
 export interface UserAPI {
   id: number;
@@ -367,6 +366,9 @@ export interface UserAPI {
   email: string;
   telefone: string | null;
   foto: string | null;
+  is_admin?: boolean;
+  is_superuser?: boolean;
+  is_assessor?: boolean;
   permissoes_mobile?: {
     pode_agendar: boolean;
     pode_cadastrar_empresa: boolean;
@@ -384,7 +386,7 @@ export async function updatePerfil(data: Partial<UserAPI>): Promise<UserAPI> {
   } catch (err: any) {
     if (err.isNetworkError) {
       await addToQueue('PERFIL' as any, ENDPOINTS.perfil, 'PATCH', data);
-      return { offline: true, message: 'Alterações no perfil salvas offline.' } as unknown as UserAPI;
+      return { offline: true, message: 'Altera??es no perfil salvas offline.' } as unknown as UserAPI;
     }
     throw err;
   }
@@ -420,7 +422,7 @@ export async function reportBug(data: BugReportAPI): Promise<any> {
   }
 }
 
-// ---------- Empresas e Funcionários Globais ----------
+// ---------- Empresas e Funcionï¿½rios Globais ----------
 
 export async function fetchEmpresasGlobais(): Promise<EmpresaAPI[]> {
   return request<EmpresaAPI[]>(ENDPOINTS.empresasGlobal, 'GET');
@@ -430,7 +432,7 @@ export async function fetchFuncionariosGlobais(): Promise<FuncionarioAPI[]> {
   return request<FuncionarioAPI[]>(ENDPOINTS.funcionariosGlobal, 'GET');
 }
 
-// ---------- Jornada Diária ----------
+// ---------- Jornada Diï¿½ria ----------
 
 export interface JornadaAPI {
   id?: number;
