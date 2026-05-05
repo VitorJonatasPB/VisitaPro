@@ -1,4 +1,4 @@
-﻿import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
@@ -63,14 +63,6 @@ export default function NovoAgendamentoScreen() {
       return;
     }
 
-    if (!user?.is_admin && !user?.is_superuser) {
-      const proximoMes = new Date(today.getFullYear(), today.getMonth() + 1, 1);
-      if (selected.getMonth() !== proximoMes.getMonth() || selected.getFullYear() !== proximoMes.getFullYear()) {
-        Alert.alert('Data inválida', 'No aplicativo, assessores só podem agendar visitas exatamente para o próximo mês.');
-        return;
-      }
-    }
-
     setSelectedDate(day.dateString);
   };
 
@@ -85,6 +77,16 @@ export default function NovoAgendamentoScreen() {
     }
     if (!horario || horario.length < 5) {
       Alert.alert('Atenção', 'Digite um horário válido (HH:MM).');
+      return;
+    }
+
+    const now = new Date();
+    const [year, month, day] = selectedDate.split('-');
+    const [hours, minutes] = horario.split(':');
+    const selectedDateTime = new Date(Number(year), Number(month) - 1, Number(day), Number(hours), Number(minutes));
+
+    if (selectedDateTime < now) {
+      Alert.alert('Data/Horário inválido', 'Não é possível agendar para um horário que já passou.');
       return;
     }
 
@@ -136,9 +138,7 @@ export default function NovoAgendamentoScreen() {
           keyboardShouldPersistTaps="handled"
         >
           <Text style={styles.infoText}>
-            {user?.is_admin || user?.is_superuser
-              ? 'Selecione a data desejada. Administradores podem agendar para qualquer data a partir de hoje.'
-              : 'Selecione a data desejada. No aplicativo, assessores podem agendar somente para o próximo mês.'}
+            Selecione a data e o horário desejados. O agendamento deve ser para uma data e horário futuros.
           </Text>
 
           <View style={styles.calendarWrapper}>

@@ -29,7 +29,7 @@ export default function NovoFuncionarioScreen() {
 
   useEffect(() => {
     if (!semPermissao) return;
-    Alert.alert('Acesso negado', 'Somente administradores podem cadastrar funcionários no aplicativo.', [
+    Alert.alert('Acesso negado', 'Você não tem permissão para cadastrar funcionários no aplicativo.', [
       { text: 'OK', onPress: () => router.back() }
     ]);
   }, [semPermissao, router]);

@@ -1,18 +1,18 @@
-﻿import React, { useState } from 'react';
+﻿import React, { useCallback, useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { fetchFuncionariosGlobais, FuncionarioAPI, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
 
 export default function FuncionariosScreen() {
-  const { data: funcionarios = [], isLoading: loading } = useQuery({
+  const { data: funcionarios = [], isLoading: loading, refetch: refetchFuncionarios } = useQuery({
     queryKey: ['funcionariosGlobal'],
     queryFn: fetchFuncionariosGlobais,
   });
 
-  const { data: user } = useQuery({
+  const { data: user, refetch: refetchPerfil } = useQuery({
     queryKey: ['userPerfil'],
     queryFn: fetchPerfil,
   });
@@ -20,6 +20,13 @@ export default function FuncionariosScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchPerfil();
+      refetchFuncionarios();
+    }, [refetchFuncionarios, refetchPerfil])
+  );
 
   const toggleExpand = (id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));

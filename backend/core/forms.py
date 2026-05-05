@@ -279,27 +279,27 @@ class VisitaForm(forms.ModelForm):
                     is_assessor=True
                 )
 
-    def clean_data(self):
-        data = self.cleaned_data.get("data")
-        if data and self.user:
-            if not getattr(self.user, "is_admin", False) and not self.user.is_superuser:
-                from django.utils import timezone
-                from django.core.exceptions import ValidationError
-
-                hoje = timezone.now().date()
-                meses_diff = (data.year - hoje.year) * 12 + data.month - hoje.month
-
-                if meses_diff != 1:
-                    raise ValidationError(
-                        "Você só pode agendar visitas exatamente para o próximo mês."
-                    )
-        return data
-
+    def clean(self):
+        cleaned_data = super().clean()
+        data = cleaned_data.get("data")
+        horario = cleaned_data.get("horario")
+        
+        if data and horario:
+            from django.utils import timezone
+            import datetime
+            from django.core.exceptions import ValidationError
+            
+            hoje_agora = timezone.now()
+            # Combina data e horario da visita em um datetime aware
+            data_hora_visita = timezone.make_aware(datetime.datetime.combine(data, horario))
+            
+            if data_hora_visita < hoje_agora:
+                raise ValidationError("Não é possível agendar uma visita para uma data ou horário no passado.")
+                
+        return cleaned_data
 
 class MultipleFileInput(forms.ClearableFileInput):
     allow_multiple_selected = True
-
-
 class MultipleFileField(forms.FileField):
     def __init__(self, *args, **kwargs):
         kwargs.setdefault(

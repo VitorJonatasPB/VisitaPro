@@ -16,13 +16,13 @@ env_name = os.environ.get("ENVIRONMENT", "")
 
 if env_name == "staning":
     load_dotenv(BASE_DIR.parent / ".env.staning")
-    print("🚀 Carregando ambiente: STANING (.env.staning)")
+    print("[INFO] Carregando ambiente: STANING (.env.staning)")
 elif env_name == "production":
     load_dotenv(BASE_DIR.parent / ".env.production")
-    print("🚀 Carregando ambiente: PRODUCTION (.env.production)")
+    print("[INFO] Carregando ambiente: PRODUCTION (.env.production)")
 else:
     load_dotenv(BASE_DIR.parent / ".env")
-    print("🚀 Carregando ambiente: DEFAULT (.env)")
+    print("[INFO] Carregando ambiente: DEFAULT (.env)")
 
 # ---------------------------------------------------------------------------
 # Segurança

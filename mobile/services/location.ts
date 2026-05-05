@@ -7,7 +7,7 @@ const JORNADA_STORAGE_KEY = '@visitaspro:jornada_estado';
 const JORNADA_WAYPOINTS_KEY = '@visitaspro:jornada_waypoints';
 
 export interface JornadaState {
-  status: 'nao_iniciada' | 'em_andamento' | 'finalizada';
+  status: 'nao_iniciada' | 'em_andamento' | 'pausada' | 'finalizada';
   km_total: number;
   last_lat?: number;
   last_lng?: number;

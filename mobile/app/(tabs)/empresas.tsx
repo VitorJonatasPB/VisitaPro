@@ -14,15 +14,16 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
 import { fetchEmpresasGlobais, EmpresaAPI, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { useRouter } from 'expo-router';
+import { useFocusEffect, useRouter } from 'expo-router';
+import { useCallback } from 'react';
 
 export default function EmpresasScreen() {
-  const { data: empresas = [], isLoading: loading } = useQuery({
+  const { data: empresas = [], isLoading: loading, refetch: refetchEmpresas } = useQuery({
     queryKey: ['empresasGlobal'],
     queryFn: fetchEmpresasGlobais,
   });
 
-  const { data: user } = useQuery({
+  const { data: user, refetch: refetchPerfil } = useQuery({
     queryKey: ['userPerfil'],
     queryFn: fetchPerfil,
   });
@@ -30,6 +31,13 @@ export default function EmpresasScreen() {
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const router = useRouter();
+
+  useFocusEffect(
+    useCallback(() => {
+      refetchPerfil();
+      refetchEmpresas();
+    }, [refetchEmpresas, refetchPerfil])
+  );
 
   const toggleExpand = (id: number) => {
     setExpandedId((prev) => (prev === id ? null : id));

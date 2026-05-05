@@ -452,8 +452,8 @@ def criar_empresa(request):
     Cria uma nova empresa via mobile.
     POST /api/empresas/nova/
     """
-    if not _is_admin(request.user):
-        return Response({'error': 'Somente administradores podem cadastrar empresas.'}, status=status.HTTP_403_FORBIDDEN)
+    if not (_is_admin(request.user) or request.user.has_perm('core.add_empresa')):
+        return Response({'error': 'Você não tem permissão para cadastrar empresas.'}, status=status.HTTP_403_FORBIDDEN)
         
     nome = request.data.get('nome')
     if not nome:
@@ -479,8 +479,8 @@ def criar_funcionario(request):
     Cria um novo funcionÃ¡rio via mobile.
     POST /api/funcionarios/novo/
     """
-    if not _is_admin(request.user):
-        return Response({'error': 'Somente administradores podem cadastrar funcionários.'}, status=status.HTTP_403_FORBIDDEN)
+    if not (_is_admin(request.user) or request.user.has_perm('core.add_funcionario')):
+        return Response({'error': 'Você não tem permissão para cadastrar funcionários.'}, status=status.HTTP_403_FORBIDDEN)
         
     nome = request.data.get('nome')
     empresa_id = request.data.get('empresa_id')

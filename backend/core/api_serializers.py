@@ -123,8 +123,8 @@ class UserSerializer(serializers.ModelSerializer):
         is_admin = obj.is_superuser or getattr(obj, 'is_admin', False)
         return {
             'pode_agendar': is_admin or getattr(obj, 'is_assessor', False) or obj.has_perm('core.add_visita'),
-            'pode_cadastrar_empresa': is_admin,
-            'pode_cadastrar_funcionario': is_admin,
+            'pode_cadastrar_empresa': is_admin or obj.has_perm('core.add_empresa'),
+            'pode_cadastrar_funcionario': is_admin or obj.has_perm('core.add_funcionario'),
         }
 
 

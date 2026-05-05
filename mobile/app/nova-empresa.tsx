@@ -21,7 +21,7 @@ export default function NovaEmpresaScreen() {
 
   useEffect(() => {
     if (!semPermissao) return;
-    Alert.alert('Acesso negado', 'Somente administradores podem cadastrar empresas no aplicativo.', [
+    Alert.alert('Acesso negado', 'Você não tem permissão para cadastrar empresas no aplicativo.', [
       { text: 'OK', onPress: () => router.back() }
     ]);
   }, [semPermissao, router]);

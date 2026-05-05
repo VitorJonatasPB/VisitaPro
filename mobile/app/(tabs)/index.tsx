@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Pressable, Alert, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Pressable, Alert, Linking, BackHandler } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -144,19 +144,21 @@ export default function AgendaScreen() {
 
 
   const handleLogout = async () => {
-    Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
-      { text: 'Cancelar', style: 'cancel' },
-      {
-        text: 'Sair',
-        style: 'destructive',
-        onPress: async () => {
-          setMenuVisible(false);
-          await stopTrackingJornada();
-          await clearTokens();
-          router.replace('/');
-        }
-      }
-    ]);
+    setMenuVisible(false);
+    
+    try {
+      await stopTrackingJornada();
+      await clearTokens();
+      
+      // Como o expo-router está travando a navegação na raiz, forçamos o fechamento do app
+      Alert.alert(
+        'Sessão Encerrada',
+        'O aplicativo será fechado para aplicar a troca de conta.\n\nPor favor, abra-o novamente para fazer o novo login.',
+        [{ text: 'Fechar App', onPress: () => BackHandler.exitApp() }]
+      );
+    } catch (e: any) {
+      Alert.alert('Erro', e?.message || 'Erro ao sair');
+    }
   };
 
   const handleIniciarJornada = async () => {
