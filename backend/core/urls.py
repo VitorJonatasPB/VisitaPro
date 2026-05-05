@@ -11,6 +11,9 @@ urlpatterns = [
     # Dashboards
     path('admin-panel/', views.DashboardAdminView.as_view(), name='dashboard_admin'),
     path('assessor-panel/', views.DashboardAssessorView.as_view(), name='dashboard_assessor'),
+    path('planejador-rota/', views.RotaPlanejadorView.as_view(), name='rota_planejador'),
+    path('planejador-rota/salvar-jornada/', views.SalvarJornadaDiaView.as_view(), name='salvar_jornada_dia'),
+    path('configuracoes/', views.ConfiguracaoUpdateView.as_view(), name='configuracoes'),
     
     # Rota raiz redireciona para login
     path('', views.CustomLoginView.as_view(), name='index'),

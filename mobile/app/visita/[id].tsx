@@ -169,10 +169,7 @@ export default function VisitaDetalheScreen() {
       return;
     }
 
-    if (!assinatura) {
-      Alert.alert('Atenção', 'A assinatura da visita é obrigatória.');
-      return;
-    }
+
 
     Alert.alert('Enviar Relatório', 'Finalizar a visita e registrar o check-out?', [
       { text: 'Cancelar', style: 'cancel' },

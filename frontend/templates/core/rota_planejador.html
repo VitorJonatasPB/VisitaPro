@@ -1,0 +1,271 @@
+{% extends 'core/base.html' %}
+{% load static %}
+
+{% block title %}Planejador de Rota - VisitaPro{% endblock %}
+
+{% block extra_css %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+<link rel="stylesheet" href="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.css" />
+<style>
+    #map { height: 600px; border-radius: 12px; margin-top: 10px; border: 1px solid #dee2e6; }
+    .route-sidebar { background: #171C29; padding: 25px; border-radius: 12px; height: 600px; overflow-y: auto; border: 1px solid rgba(255, 255, 255, 0.05); }
+    .address-input { margin-bottom: 20px; position: relative; }
+    .remove-stop { position: absolute; right: 10px; top: 38px; color: #ef4444; cursor: pointer; transition: 0.2s; z-index: 10; }
+    .remove-stop:hover { color: #dc2626; }
+    .btn-add-stop { width: 100%; border: 1px dashed #6366F1; color: #6366F1; background: transparent; padding: 12px; border-radius: 8px; margin-top: 10px; transition: 0.2s; font-weight: 500; }
+    .btn-add-stop:hover { background: rgba(99, 102, 241, 0.1); border-style: solid; }
+    .route-info { margin-top: 25px; padding: 15px; background: rgba(99, 102, 241, 0.1); border: 1px solid rgba(99, 102, 241, 0.2); border-radius: 8px; display: none; }
+    
+    .leaflet-routing-container { 
+        background: white !important; 
+        color: #333 !important; 
+        border: 1px solid #ccc !important; 
+        font-family: 'Inter', sans-serif !important; 
+        border-radius: 8px !important;
+        max-height: 300px;
+        overflow-y: auto;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="d-flex justify-content-between flex-wrap flex-md-nowrap align-items-center pt-3 pb-2 mb-3 border-bottom">
+    <h1 class="h4 fw-bold mb-0">Planejador de Rota</h1>
+</div>
+
+<div class="row">
+    <div class="col-md-4">
+        <div class="route-sidebar shadow-lg">
+            <h5 class="mb-4 fw-bold text-white">Definir Trajeto</h5>
+            
+            <div id="inputs-container">
+                <div class="address-input">
+                    <label class="form-label text-white-50 small">Origem (Empresa ou Endereço)</label>
+                    <input type="text" class="form-control stop-input" list="lista-empresas" placeholder="Digite o nome da empresa ou endereço..." id="origin">
+                </div>
+                
+                <div id="stops-container"></div>
+                
+                <div class="address-input">
+                    <label class="form-label text-white-50 small">Destino (Empresa ou Endereço)</label>
+                    <input type="text" class="form-control stop-input" list="lista-empresas" placeholder="Digite o nome da empresa ou endereço..." id="destination">
+                </div>
+            </div>
+
+            <button type="button" class="btn-add-stop" id="add-stop">
+                <i class="fas fa-plus me-2"></i> Adicionar Parada
+            </button>
+
+            <button type="button" class="btn btn-primary w-100 mt-4 py-2 fw-bold" id="calculate-route">
+                <i class="fas fa-calculator me-2"></i> Calcular Rota
+            </button>
+
+            <div class="route-info animate__animated animate__fadeIn" id="route-result">
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-white-50 small">Distância Total:</span>
+                    <span class="fw-bold text-primary" id="distancia-txt">-</span>
+                </div>
+                <div class="d-flex justify-content-between mb-2">
+                    <span class="text-white-50 small">Tempo Estimado:</span>
+                    <span class="fw-bold text-primary" id="tempo-txt">-</span>
+                </div>
+                <div class="d-flex justify-content-between">
+                    <span class="text-white-50 small">Valor do Reembolso:</span>
+                    <span class="fw-bold text-success" id="reembolso-txt">-</span>
+                </div>
+                <div class="mt-3">
+                    <label class="form-label text-white-50 small">Data da Jornada</label>
+                    <div class="input-group">
+                        <span class="input-group-text bg-dark text-white border-secondary"><i class="fas fa-calendar-alt"></i></span>
+                        <input type="date" class="form-control bg-dark text-white border-secondary" id="data-jornada" required>
+                    </div>
+                </div>
+
+                <button type="button" class="btn btn-success w-100 mt-3 py-2 fw-bold" id="btn-salvar-jornada">
+                    <i class="fas fa-check-circle me-2"></i> Definir Jornada do Dia
+                </button>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-8">
+        <div id="map" class="shadow-sm"></div>
+    </div>
+</div>
+
+<!-- Datalist para Autocomplete de Empresas -->
+<datalist id="lista-empresas"></datalist>
+{% endblock %}
+
+{% block extra_js %}
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<script src="https://unpkg.com/leaflet-routing-machine@latest/dist/leaflet-routing-machine.js"></script>
+<script>
+    // Dados das empresas passados pelo Django
+    const empresasData = {{ empresas_json|safe }};
+    const valorKmReembolso = parseFloat("{{ valor_km_reembolso|default:'0' }}".replace(',', '.'));
+
+    
+    // Popula o datalist
+    const dl = document.getElementById('lista-empresas');
+    empresasData.forEach(emp => {
+        const option = document.createElement('option');
+        option.value = emp.nome;
+        dl.appendChild(option);
+    });
+    
+    // Define a data atual como padrão no input
+    document.getElementById('data-jornada').valueAsDate = new Date();
+
+    var map = L.map('map').setView([-15.7801, -47.9292], 4);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; OpenStreetMap contributors'
+    }).addTo(map);
+
+    var control = L.Routing.control({
+        waypoints: [],
+        routeWhileDragging: false,
+        show: true,
+        language: 'pt-BR',
+        lineOptions: {
+            styles: [{color: '#6366F1', opacity: 0.8, weight: 6}]
+        }
+    }).addTo(map);
+
+    document.getElementById('add-stop').addEventListener('click', function() {
+        var container = document.getElementById('stops-container');
+        var div = document.createElement('div');
+        div.className = 'address-input';
+        div.innerHTML = `
+            <label class="form-label text-white-50 small">Parada Intermediária</label>
+            <input type="text" class="form-control stop-input" list="lista-empresas" placeholder="Empresa ou endereço...">
+            <i class="fas fa-times remove-stop" onclick="this.parentElement.remove()" title="Remover parada"></i>
+        `;
+        container.appendChild(div);
+    });
+
+    async function geocode(address) {
+        try {
+            const response = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(address)}&limit=1&countrycodes=br`);
+            const data = await response.json();
+            if (data.length > 0) {
+                return L.latLng(data[0].lat, data[0].lon);
+            }
+        } catch (e) {
+            console.error("Erro na geocodificação:", e);
+        }
+        return null;
+    }
+
+    // Função que decide se usa as coordenadas da empresa ou faz busca GPS
+    async function getCoordinates(inputValue) {
+        // Tenta encontrar pelo nome da empresa (exato ou parcial)
+        const empresa = empresasData.find(e => e.nome.toLowerCase() === inputValue.toLowerCase());
+        
+        if (empresa && empresa.lat && empresa.lng) {
+            console.log("Usando coordenadas salvas para:", empresa.nome);
+            return L.latLng(empresa.lat, empresa.lng);
+        }
+        
+        // Se não for empresa cadastrada, busca via GPS (Nominatim)
+        return await geocode(inputValue);
+    }
+
+    document.getElementById('calculate-route').addEventListener('click', async function() {
+        const inputs = document.querySelectorAll('.stop-input');
+        const waypoints = [];
+        let hasError = false;
+        
+        const btn = this;
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Processando locais...';
+
+        for (let input of inputs) {
+            const val = input.value.trim();
+            if (val !== "") {
+                input.classList.remove('is-invalid');
+                const coords = await getCoordinates(val);
+                if (coords) {
+                    waypoints.push(coords);
+                } else {
+                    input.classList.add('is-invalid');
+                    hasError = true;
+                }
+            }
+        }
+
+        if (hasError) {
+            alert("Não conseguimos localizar alguns pontos. Se for um endereço novo, tente incluir o número e a cidade.");
+        } else if (waypoints.length >= 2) {
+            control.setWaypoints(waypoints);
+            document.getElementById('route-result').style.display = 'block';
+            
+            control.on('routesfound', function(e) {
+                var routes = e.routes;
+                var summary = routes[0].summary;
+                document.getElementById('distancia-txt').innerText = (summary.totalDistance / 1000).toFixed(2) + ' km';
+                
+                var h = Math.floor(summary.totalTime / 3600);
+                var m = Math.round((summary.totalTime % 3600) / 60);
+                document.getElementById('tempo-txt').innerText = (h > 0 ? h + 'h ' : '') + m + ' min';
+
+                // Cálculo do Reembolso
+                var kmTotal = summary.totalDistance / 1000;
+                var reembolsoTotal = kmTotal * valorKmReembolso;
+                document.getElementById('reembolso-txt').innerText = 'R$ ' + reembolsoTotal.toFixed(2).replace('.', ',');
+                
+                // Salvar valor para uso posterior
+                window.currentKmTotal = kmTotal;
+            });
+        } else {
+            alert("Por favor, preencha pelo menos a Origem e o Destino.");
+        }
+
+        btn.disabled = false;
+        btn.innerHTML = '<i class="fas fa-calculator me-2"></i> Calcular Rota';
+    });
+
+    document.getElementById('btn-salvar-jornada').addEventListener('click', async function() {
+        if (!window.currentKmTotal) {
+            alert("Calcule a rota primeiro!");
+            return;
+        }
+        
+        const btn = this;
+        const originalText = btn.innerHTML;
+        const dataJornada = document.getElementById('data-jornada').value;
+        
+        btn.disabled = true;
+        btn.innerHTML = '<i class="fas fa-spinner fa-spin me-2"></i> Salvando...';
+
+        try {
+            const response = await fetch("{% url 'core:salvar_jornada_dia' %}", {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'X-CSRFToken': '{{ csrf_token }}'
+                },
+                body: JSON.stringify({
+                    km_total: window.currentKmTotal,
+                    data_jornada: dataJornada
+                })
+            });
+
+            const data = await response.json();
+            if (response.ok) {
+                alert(data.message);
+                // Opcional: redirecionar para dashboard
+                // window.location.href = "{% url 'core:dashboard_assessor' %}";
+            } else {
+                alert("Erro: " + data.message);
+            }
+        } catch (error) {
+            alert("Erro ao salvar jornada. Tente novamente.");
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = originalText;
+        }
+    });
+</script>
+{% endblock %}

@@ -70,9 +70,17 @@ class GeradorRelatorios:
             data__range=[self.data_inicio, self.data_fim],
             status='finalizada'
         )
+        distancia_total = jornadas.aggregate(
+            total_km=Sum('km_total')
+        )['total_km'] or 0.0
         distancia_media = jornadas.aggregate(
             avg_km=Avg('km_total')
         )['avg_km'] or 0.0
+        
+        from .models import Configuracao
+        config = Configuracao.get_solo()
+        valor_km_reembolso = float(config.valor_km_reembolso)
+        valor_total_reembolso = float(distancia_total) * valor_km_reembolso
         
         return {
             'total_visitas': visitas.count(),
@@ -87,6 +95,7 @@ class GeradorRelatorios:
             'media_visitas_por_empresa': round(float(media_visitas), 2),
             'total_assessores': assessores,
             'distancia_media_percorrida': round(float(distancia_media), 2),
+            'valor_total_reembolso': round(valor_total_reembolso, 2),
             'periodo': {
                 'data_inicio': self.data_inicio.isoformat(),
                 'data_fim': self.data_fim.isoformat(),
@@ -100,6 +109,10 @@ class GeradorRelatorios:
         assessores = CustomUser.objects.filter(is_assessor=True)
         if assessor_id:
             assessores = assessores.filter(id=assessor_id)
+        
+        from .models import Configuracao
+        config = Configuracao.get_solo()
+        valor_km_reembolso = float(config.valor_km_reembolso)
         
         dados = []
         
@@ -149,6 +162,7 @@ class GeradorRelatorios:
                 'empresas_visitadas': empresas_visitadas,
                 'empresas_ativas_assessor': empresas_ativas_assessor,
                 'distancia_total_km': round(float(distancia_total), 2),
+                'valor_total_reembolso': round(float(distancia_total) * valor_km_reembolso, 2),
                 'jornadas_trabalhadas': jornadas_trabalhadas,
                 'media_visitas_dia': round(float(media_visitas_dia), 2),
                 'ultima_atividade': ultima_atividade.isoformat() if ultima_atividade else None
@@ -251,6 +265,10 @@ class GeradorRelatorios:
         
         if assessor_id:
             jornadas = jornadas.filter(assessor_id=assessor_id)
+            
+        from .models import Configuracao
+        config = Configuracao.get_solo()
+        valor_km_reembolso = float(config.valor_km_reembolso)
         
         dados = []
         
@@ -269,6 +287,7 @@ class GeradorRelatorios:
                 'hora_fim': jornada.fim_time.time().isoformat() if jornada.fim_time else None,
                 'status': jornada.get_status_display(),
                 'quilometragem_total': jornada.km_total,
+                'valor_reembolso': round(jornada.km_total * valor_km_reembolso, 2),
                 'visitas_realizadas': visitas_dia,
                 'localizacao_inicio': {
                     'latitude': jornada.inicio_lat or 'N/A',

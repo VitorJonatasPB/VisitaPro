@@ -1,4 +1,4 @@
-﻿from django.shortcuts import render, redirect
+from django.shortcuts import render, redirect
 from django.contrib.auth import login, logout
 from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required, user_passes_test
@@ -9,8 +9,8 @@ from django.http import JsonResponse, HttpResponse
 from django.db import IntegrityError
 import json
 from django.conf import settings
-from .models import Empresa, Visita, CustomUser, Funcionario, PerguntaRelatorio, RespostaRelatorio
-from .forms import AssessorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, FuncionarioForm, PerguntaRelatorioForm, GroupForm
+from .models import Empresa, Visita, CustomUser, Funcionario, PerguntaRelatorio, RespostaRelatorio, Configuracao
+from .forms import AssessorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, FuncionarioForm, PerguntaRelatorioForm, GroupForm, ConfiguracaoForm
 from django.contrib.auth.models import Group
 import pandas as pd
 from django.contrib import messages
@@ -151,6 +151,8 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
         # MÃ©trica p/ GrÃ¡fico de Colunas: FuncionÃ¡rios Atendidos nos Ãºltimos 6 meses
         grafico_labels = []
         grafico_data = []
+        grafico_conversoes_data = []
+        grafico_conversoes_data = []
         
         for i in range(4, -1, -1):
             mes = hoje.month - i
@@ -173,8 +175,15 @@ class DashboardAdminView(AdminRequiredMixin, TemplateView):
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
             grafico_data.append(total_empresas_visitadas)
             
+            empresas_base_qs = Empresa.objects.all()
+            if assessor_id:
+                empresas_base_qs = empresas_base_qs.filter(assessor_id=assessor_id)
+            conversoes_mes_ano = empresas_base_qs.filter(data_conversao__year=ano, data_conversao__month=mes).count()
+            grafico_conversoes_data.append(conversoes_mes_ano)
+            
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
+        context['grafico_conversoes_data'] = json.dumps(grafico_conversoes_data)
         
         # GrÃ¡fico de Rosca: Status das Empresas
         empresas_qs = Empresa.objects.all()
@@ -219,6 +228,83 @@ class ServiceWorkerView(TemplateView):
             })
         context['empresas_mapa'] = json.dumps(empresas_mapa)
         return context
+
+
+class RotaPlanejadorView(LoginRequiredMixin, TemplateView):
+    template_name = 'core/rota_planejador.html'
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        from .models import Empresa
+        import json
+        
+        empresas = Empresa.objects.all()
+        empresas_data = []
+        for e in empresas:
+            # Montar endereço completo para exibição e busca
+            endereco = f"{e.rua or ''}, {e.numero or ''}, {e.cidade or ''} - {e.estado or ''}".strip(", ")
+            empresas_data.append({
+                'nome': e.nome,
+                'endereco': endereco,
+                'lat': float(e.latitude) if e.latitude else None,
+                'lng': float(e.longitude) if e.longitude else None
+            })
+        
+        from .models import Configuracao
+        config = Configuracao.get_solo()
+        context['valor_km_reembolso'] = float(config.valor_km_reembolso)
+        
+        context['empresas_json'] = json.dumps(empresas_data)
+        return context
+
+class SalvarJornadaDiaView(LoginRequiredMixin, View):
+    def post(self, request, *args, **kwargs):
+        try:
+            data = json.loads(request.body)
+            km_total = float(data.get('km_total', 0))
+            
+            from django.utils import timezone
+            import datetime
+            
+            data_str = data.get('data_jornada')
+            if data_str:
+                try:
+                    data_alvo = datetime.datetime.strptime(data_str, '%Y-%m-%d').date()
+                except ValueError:
+                    data_alvo = timezone.now().date()
+            else:
+                data_alvo = timezone.now().date()
+                
+            from .models import Jornada
+            
+            # Verifica se já existe jornada nessa data para o usuário
+            jornada, created = Jornada.objects.get_or_create(
+                assessor=request.user,
+                data=data_alvo,
+                defaults={'km_total': km_total, 'status': 'finalizada'}
+            )
+            
+            if not created:
+                jornada.km_total = km_total
+                jornada.status = 'finalizada'
+                jornada.save()
+                
+            return JsonResponse({'status': 'success', 'message': 'Jornada do dia salva com sucesso!'})
+        except Exception as e:
+            return JsonResponse({'status': 'error', 'message': str(e)}, status=400)
+
+class ConfiguracaoUpdateView(AdminRequiredMixin, UpdateView):
+    model = Configuracao
+    form_class = ConfiguracaoForm
+    template_name = 'core/configuracoes.html'
+    success_url = reverse_lazy('core:dashboard_admin')
+
+    def get_object(self, queryset=None):
+        return Configuracao.get_solo()
+
+    def form_valid(self, form):
+        messages.success(self.request, "Configurações atualizadas com sucesso!")
+        return super().form_valid(form)
 
 class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
     template_name = 'core/dashboard_assessor.html'
@@ -320,8 +406,15 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
             grafico_data.append(total_empresas_visitadas)
             
+            empresas_base_qs = Empresa.objects.all()
+            if assessor_id:
+                empresas_base_qs = empresas_base_qs.filter(assessor_id=assessor_id)
+            conversoes_mes_ano = empresas_base_qs.filter(data_conversao__year=ano, data_conversao__month=mes).count()
+            grafico_conversoes_data.append(conversoes_mes_ano)
+            
         context['grafico_labels'] = json.dumps(grafico_labels)
         context['grafico_data'] = json.dumps(grafico_data)
+        context['grafico_conversoes_data'] = json.dumps(grafico_conversoes_data)
         
         # GrÃ¡fico de Rosca: Status das Empresas (Para o Assessor)
         empresas_qs = empresas
@@ -369,7 +462,6 @@ class AssessorCreateView(AdminRequiredMixin, CreateView):
 
     def form_valid(self, form):
         from django.db import transaction, IntegrityError
-        form.instance.is_assessor = True
         try:
             with transaction.atomic():
                 return super().form_valid(form)
@@ -1263,8 +1355,6 @@ class AdminUserCreateView(AdminRequiredMixin, CreateView):
     
     def form_valid(self, form):
         from django.db import transaction
-        # ForÃ§amos que o usuÃ¡rio criado por aqui seja administrador
-        form.instance.is_admin = True
         try:
             with transaction.atomic():
                 response = super().form_valid(form)

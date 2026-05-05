@@ -22,10 +22,6 @@ DATA_SOURCES = {
         ),
     },
     # Exemplo de como adicionar futuras fontes:
-    # 'disciplinas': {
-    #     'label': 'Disciplinas',
-    #     'resolver': lambda visita: list(Disciplina.objects.values_list('nome', flat=True)),
-    # },
 }
 
 

@@ -201,10 +201,12 @@
       th.sortable.asc::after {
         content: '\2191';
         opacity: 1;
+        font-size: 0.8em;
       }
       th.sortable.desc::after {
         content: '\2193';
         opacity: 1;
+        font-size: 0.8em;
       }
     </style>
     {% block extra_css %}{% endblock %}
@@ -259,6 +261,9 @@
                  class="{% if 'agenda' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-calendar-alt me-2"></i> Agenda</a>
               <a href="{% url 'core:visita_list' %}"
                  class="{% if 'visita' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-list-alt me-2"></i> Visitas</a>
+              <a href="{% url 'core:rota_planejador' %}"
+                 class="{% if request.resolver_match.url_name == 'rota_planejador' %}active{% endif %}"><i class="fas fa-route me-2"></i> Planejador de Rota</a>
+
               <a href="{% url 'core:pergunta_list' %}"
                  class="{% if 'pergunta' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-file-alt me-2"></i> Formulário</a>
               
@@ -290,9 +295,14 @@
               {% endif %}
 
               <hr style="border-color: #7f8c8d" />
-              <a href="{% url 'core:logout' %}" class="text-danger"
-                ><i class="fas fa-sign-out-alt me-2"></i> Sair</a
-              >
+              {% if user.is_admin or user.is_superuser %}
+              <a href="{% url 'core:configuracoes' %}" class="{% if request.resolver_match.url_name == 'configuracoes' %}active{% endif %}">
+                <i class="fas fa-cog me-2"></i> Configurações
+              </a>
+              {% endif %}
+              <a href="{% url 'core:logout' %}" class="text-danger">
+                <i class="fas fa-sign-out-alt me-2"></i> Sair
+              </a>
             </div>
           </div>
         </nav>
@@ -313,7 +323,9 @@
               aria-label="Close"
             ></button>
           </div>
-          {% endfor %} {% endif %} {% block content %} {% endblock %}
+          {% endfor %} {% endif %} 
+          
+          {% block content %} {% endblock %}
         </main>
       </div>
     </div>
@@ -340,22 +352,14 @@
           )(getCellValue(asc ? a : b, idx), getCellValue(asc ? b : a, idx));
 
           document.querySelectorAll('th').forEach(th => {
-              // Ignore columns named 'Ações' or that just contain icons/buttons
               if (th.innerText.trim().toLowerCase() !== 'ações' && th.innerText.trim() !== '') {
                   th.classList.add('sortable');
                   th.addEventListener('click', function() {
                       const table = th.closest('table');
                       const tbody = table.querySelector('tbody');
-                      
-                      // Identify current direction
                       const isAsc = !this.classList.contains('asc');
-                      
-                      // Remove direction classes from all headers in this table
                       table.querySelectorAll('th').forEach(t => t.classList.remove('asc', 'desc'));
-                      
-                      // Set direction class to current header
                       this.classList.add(isAsc ? 'asc' : 'desc');
-                      
                       Array.from(tbody.querySelectorAll('tr'))
                           .sort(comparer(Array.from(th.parentNode.children).indexOf(th), isAsc))
                           .forEach(tr => tbody.appendChild(tr));
@@ -363,21 +367,18 @@
               }
           });
 
-          // ─── Enter → próximo campo (global, todos os formulários) ────────────
+          // Enter → próximo campo
           document.querySelectorAll('form').forEach(function(form) {
               form.addEventListener('keydown', function(e) {
                   if (e.key !== 'Enter') return;
                   const tag = e.target.tagName.toLowerCase();
                   if (tag === 'textarea' || tag === 'button' || tag === 'select') return;
-
                   e.preventDefault();
-
                   const focusaveis = Array.from(form.querySelectorAll(
                       'input:not([type="hidden"]):not([disabled]), select:not([disabled]), textarea:not([disabled])'
                   ));
                   const idx = focusaveis.indexOf(e.target);
                   if (idx === -1) return;
-
                   for (let i = idx + 1; i < focusaveis.length; i++) {
                       const proximo = focusaveis[i];
                       const abaDoProximo = proximo.closest('.tab-pane');
@@ -394,7 +395,6 @@
                   }
               });
           });
-          // ────────────────────────────────────────────────────────────────────
       });
     </script>
     {% block extra_js %}{% endblock %}

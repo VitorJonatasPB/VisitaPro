@@ -2,11 +2,10 @@ from django import forms
 from django.contrib.auth import get_user_model
 from django.db.models import Q
 from django.contrib.auth.models import Group
-from .models import Empresa, Visita, Funcionario, Disciplina, PerguntaRelatorio
+from .models import Empresa, Visita, Funcionario, Configuracao, PerguntaRelatorio
 from .data_sources import get_data_source_choices
 
 User = get_user_model()
-
 
 class GroupForm(forms.ModelForm):
     class Meta:
@@ -56,6 +55,7 @@ class AssessorForm(forms.ModelForm):
             "foto",
             "cor_mapa",
             "is_active",
+            "is_admin",
         ]
         widgets = {
             "username": forms.TextInput(attrs={"class": "form-control"}),
@@ -74,6 +74,7 @@ class AssessorForm(forms.ModelForm):
                 }
             ),
             "is_active": forms.CheckboxInput(attrs={"class": "form-check-input"}),
+            "is_admin": forms.CheckboxInput(attrs={"class": "form-check-input"}),
         }
 
     def __init__(self, *args, **kwargs):
@@ -88,6 +89,7 @@ class AssessorForm(forms.ModelForm):
             "foto",
             "cor_mapa",
             "is_active",
+            "is_admin",
             "password",
         ])
         self.fields["cor_mapa"].help_text = ""
@@ -128,7 +130,6 @@ class AssessorForm(forms.ModelForm):
 
     def save(self, commit=True):
         user = super().save(commit=False)
-        user.is_assessor = True
         if self.cleaned_data.get("password"):
             user.set_password(self.cleaned_data["password"])
         if commit:
@@ -377,17 +378,6 @@ class RelatorioVisitaForm(forms.ModelForm):
             ).order_by("nome")
 
 
-class DisciplinaForm(forms.ModelForm):
-    class Meta:
-        model = Disciplina
-        fields = ["nome"]
-        widgets = {
-            "nome": forms.TextInput(
-                attrs={"class": "form-control", "placeholder": "Nome da Disciplina"}
-            )
-        }
-
-
 class FuncionarioForm(forms.ModelForm):
     class Meta:
         model = Funcionario
@@ -441,3 +431,11 @@ class PerguntaRelatorioForm(forms.ModelForm):
         # Popula as choices de fonte_dados dinamicamente do registry
         self.fields["fonte_dados"].widget.choices = get_data_source_choices()
         self.fields["fonte_dados"].required = False
+
+class ConfiguracaoForm(forms.ModelForm):
+    class Meta:
+        model = Configuracao
+        fields = ['valor_km_reembolso']
+        widgets = {
+            'valor_km_reembolso': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+        }

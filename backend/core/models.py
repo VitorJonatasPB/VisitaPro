@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import AbstractUser
 from django.conf import settings
+from django.db.models.signals import m2m_changed
+from django.dispatch import receiver
 import requests
 
 class CustomUser(AbstractUser):
@@ -198,15 +200,6 @@ class LogAlteracao(models.Model):
     def __str__(self):
         return f"Log {self.visita.id} por {self.usuario} em {self.data}"
 
-class Disciplina(models.Model):
-    nome = models.CharField(max_length=100, unique=True)
-    
-    class Meta:
-        verbose_name = "Disciplina"
-        verbose_name_plural = "Disciplinas"
-    
-    def __str__(self):
-        return self.nome
 
 class Funcionario(models.Model):
     nome = models.CharField(max_length=150)
@@ -222,7 +215,7 @@ class Funcionario(models.Model):
     class Meta:
         verbose_name = "Funcionário"
         verbose_name_plural = "Funcionários"
-        db_table = 'core_contato'  # Mantemos o nome da tabela no banco para evitar migração
+        db_table = 'core_funcionario'  # Nome padronizado da tabela no banco
         
     def __str__(self):
         return f"{self.nome} ({self.matricula})" if self.matricula else self.nome
@@ -304,3 +297,35 @@ class Jornada(models.Model):
 
     def __str__(self):
         return f"Jornada de {self.assessor.username} em {self.data} - {self.km_total}km"
+
+@receiver(m2m_changed, sender=CustomUser.groups.through)
+def update_user_roles(sender, instance, action, **kwargs):
+    """
+    Sincroniza o campo 'is_assessor' do CustomUser com base nos seus grupos de permissões.
+    Se o usuário estiver nos grupos 'Assessores' ou 'Consultores', is_assessor = True.
+    """
+    if action in ["post_add", "post_remove", "post_clear"]:
+        is_assessor = instance.groups.filter(name__in=["Assessores", "Consultores"]).exists()
+        if instance.is_assessor != is_assessor:
+            CustomUser.objects.filter(pk=instance.pk).update(is_assessor=is_assessor)
+
+class Configuracao(models.Model):
+    valor_km_reembolso = models.DecimalField(
+        max_digits=10, 
+        decimal_places=2, 
+        default=0.00, 
+        verbose_name="Valor de Reembolso por KM"
+    )
+    atualizado_em = models.DateTimeField(auto_now=True)
+
+    class Meta:
+        verbose_name = "Configuração"
+        verbose_name_plural = "Configurações"
+
+    def __str__(self):
+        return "Configurações Globais"
+
+    @classmethod
+    def get_solo(cls):
+        obj, created = cls.objects.get_or_create(pk=1)
+        return obj
