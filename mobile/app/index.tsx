@@ -28,11 +28,6 @@ export default function LoginScreen() {
     }, [])
   );
 
-  useEffect(() => {
-    carregarCredenciais();
-    verificarBiometria();
-  }, [verificarBiometria]);
-
   const carregarCredenciais = async () => {
     try {
       const savedUser = await AsyncStorage.getItem('saved_username');
@@ -83,6 +78,11 @@ export default function LoginScreen() {
       setCheckingBiometrics(false);
     }
   }, [router]);
+
+  useEffect(() => {
+    carregarCredenciais();
+    verificarBiometria();
+  }, [verificarBiometria]);
 
   const handleLogin = async () => {
     if (!username || !password) {

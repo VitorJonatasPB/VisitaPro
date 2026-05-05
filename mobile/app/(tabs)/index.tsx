@@ -11,9 +11,9 @@ import { getJornadaState, saveJornadaState, startTrackingJornada, stopTrackingJo
 import * as Location from 'expo-location';
 
 LocaleConfig.locales['pt-br'] = {
-  monthNames: ['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
+  monthNames: ['Janeiro','Fevereiro','MarÃ§o','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'],
   monthNamesShort: ['Jan','Fev','Mar','Abr','Mai','Jun','Jul','Ago','Set','Out','Nov','Dez'],
-  dayNames: ['Domingo','Segunda','Terça','Quarta','Quinta','Sexta','Sábado'],
+  dayNames: ['Domingo','Segunda','TerÃ§a','Quarta','Quinta','Sexta','SÃ¡bado'],
   dayNamesShort: ['D','S','T','Q','Q','S','S'],
   today: 'Hoje'
 };
@@ -28,8 +28,8 @@ export default function AgendaScreen() {
   const [offline, setOffline] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
 
-  // Pesquisa e Calendário
-  const searchText = '';
+  // Pesquisa e CalendÃ¡rio
+  const [searchText, setSearchText] = useState('');
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
@@ -61,7 +61,7 @@ export default function AgendaScreen() {
           dias.forEach(d => { marcas[d] = { marked: true, dotColor: '#3B82F6' }; });
           setMarkedDates(marcas);
           
-          // Pre-fetch do mês atual para preencher nosso Cache Genérico offline
+          // Pre-fetch do mÃªs atual para preencher nosso Cache GenÃ©rico offline
           const dataAtual = new Date(selectedDate + 'T12:00:00');
           await fetchVisitasMes(dataAtual.getFullYear(), dataAtual.getMonth() + 1);
         } catch {}
@@ -75,7 +75,7 @@ export default function AgendaScreen() {
         }
         setVisitas(agendaRemota);
       } else {
-        // Se bateu sem conexão, tentaremos puxar do cache mensal que preenchemos via fetchVisitasMes
+        // Se bateu sem conexÃ£o, tentaremos puxar do cache mensal que preenchemos via fetchVisitasMes
         const dt = new Date(selectedDate + 'T12:00:00');
         const monthData = await fetchVisitasMes(dt.getFullYear(), dt.getMonth() + 1);
         if (filterMode === 'diario') {
@@ -142,6 +142,7 @@ export default function AgendaScreen() {
     carregarDados(true);
   }, [carregarDados]);
 
+
   const handleLogout = async () => {
     Alert.alert('Sair', 'Deseja realmente sair da sua conta?', [
       { text: 'Cancelar', style: 'cancel' },
@@ -150,6 +151,97 @@ export default function AgendaScreen() {
         style: 'destructive',
         onPress: async () => {
           setMenuVisible(false);
+          await stopTrackingJornada();
+          await clearTokens();
+          router.replace('/');
+        }
+      }
+    ]);
+  };
+
+  const handleIniciarJornada = async () => {
+    try {
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        Alert.alert('Atenção', 'Permissão de localização é necessária para iniciar a jornada.');
+        return;
+      }
+      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+      await iniciarJornada(loc.coords.latitude, loc.coords.longitude);
+
+      const novoEstado: JornadaState = {
+        status: 'em_andamento',
+        km_total: 0,
+        last_lat: loc.coords.latitude,
+        last_lng: loc.coords.longitude
+      };
+      setJornada(novoEstado);
+      await saveJornadaState(novoEstado);
+
+      startTrackingJornada((km) => setJornada(prev => ({ ...prev, km_total: km })));
+      Alert.alert('🚗 Jornada Iniciada', 'Dirija com segurança! O aplicativo agora registrará a distância percorrida.');
+    } catch (e: any) {
+      Alert.alert('Erro', e.message || 'Não foi possível iniciar a jornada agora.');
+    }
+  };
+
+  const handleFinalizarJornada = async () => {
+    Alert.alert(
+      '🏁 Finalizar Jornada',
+      `Total percorrido: ${jornada.km_total.toFixed(2)} km\n\nO que deseja fazer?`,
+      [
+        { text: 'Cancelar', style: 'cancel' },
+        {
+          text: '▶️ Continuar Contando',
+          onPress: () => {
+            // Tracking já ativo, apenas fecha o alerta
+          }
+        },
+        {
+          text: '⛔ Finalizar Dia',
+          style: 'destructive',
+          onPress: async () => {
+            try {
+              const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
+              await finalizarJornada(loc.coords.latitude, loc.coords.longitude, jornada.km_total);
+              await stopTrackingJornada();
+              const novoEstado: JornadaState = { status: 'finalizada', km_total: jornada.km_total };
+              setJornada(novoEstado);
+              await saveJornadaState(novoEstado);
+
+              // Gera o mapa em segundo plano sem bloquear o app
+              gerarUrlMapaTrajetoria().then(async (url) => {
+                await clearWaypoints();
+                if (url) {
+                  Alert.alert(
+                    '🗺️ Rota do Dia Disponível',
+                    'Deseja visualizar o mapa da sua trajetória de hoje?',
+                    [
+                      { text: 'Agora Não', style: 'cancel' },
+                      { text: 'Ver Mapa', onPress: () => Linking.openURL(url) },
+                    ]
+                  );
+                }
+              }).catch(() => {});
+
+              Alert.alert('🏁 Dia Finalizado', 'Sua jornada foi encerrada e enviada com sucesso!');
+            } catch (e: any) {
+              Alert.alert('Erro', e.message || 'Não foi possível finalizar a jornada agora.');
+            }
+          }
+        },
+      ]
+    );
+  };
+
+  const realizadas = visitas.filter((v) => v.status === 'realizada').length;
+  const emExecucao = visitas.filter((v) => v.checkin_time && v.status !== 'realizada').length;
+  const pendentes = visitas.filter((v) => !v.checkin_time && v.status !== 'realizada').length;
+
+  const visitasFiltradas = visitas.filter(v =>
+    searchText.trim() === '' ||
+    v.empresa_nome.toLowerCase().includes(searchText.toLowerCase())
+  );
 
   const abrirNavegacao = (visita: VisitaAPI) => {
     const lat = parseFloat(visita.empresa_lat || (visita.empresa ? visita.empresa.latitude : '') || '');
@@ -213,14 +305,14 @@ export default function AgendaScreen() {
         {offline && (
           <View style={styles.offlineBanner}>
             <IconSymbol name="wifi.slash" size={14} color="#FCD34D" />
-            <Text style={styles.offlineText}>Modo Offline – dados do último sincronismo</Text>
+            <Text style={styles.offlineText}>Modo Offline â€“ dados do Ãºltimo sincronismo</Text>
           </View>
         )}
 
         {/* Header */}
         <View style={styles.header}>
           <View style={{ flex: 1 }}>
-            <Text style={styles.greeting}>Olá, {user?.first_name || user?.username || 'Consultor'}!</Text>
+            <Text style={styles.greeting}>OlÃ¡, {user?.first_name || user?.username || 'Consultor'}!</Text>
             <Text style={styles.dateText}>{hoje}</Text>
           </View>
           <TouchableOpacity style={styles.avatarContainer} onPress={() => setMenuVisible(true)}>
@@ -234,7 +326,7 @@ export default function AgendaScreen() {
         {/* Banner de Jornada */}
         <View style={styles.jornadaContainer}>
           <View style={styles.jornadaInfo}>
-            <Text style={styles.jornadaLabel}>JORNADA DIÁRIA</Text>
+            <Text style={styles.jornadaLabel}>JORNADA DIÃRIA</Text>
             {jornada.status === 'em_andamento' ? (
               <Text style={styles.jornadaValue}>{jornada.km_total.toFixed(2)} <Text style={{fontSize: 14}}>km</Text></Text>
             ) : jornada.status === 'finalizada' ? (
@@ -254,13 +346,13 @@ export default function AgendaScreen() {
                </TouchableOpacity>
              ) : (
                <View style={styles.jornadaBtnDone}>
-                 <Text style={[styles.jornadaBtnText, {color: '#94A3B8'}]}>Concluído</Text>
+                 <Text style={[styles.jornadaBtnText, {color: '#94A3B8'}]}>ConcluÃ­do</Text>
                </View>
              )}
           </View>
         </View>
 
-        {/* Toggle Mensal / Diário */}
+        {/* Toggle Mensal / DiÃ¡rio */}
         <View style={styles.toggleContainer}>
           <TouchableOpacity
             style={[styles.toggleBtn, filterMode === 'mensal' && styles.toggleBtnActive]}
@@ -272,7 +364,7 @@ export default function AgendaScreen() {
             style={[styles.toggleBtn, filterMode === 'diario' && styles.toggleBtnActive]}
             onPress={() => setFilterMode('diario')}
           >
-            <Text style={[styles.toggleText, filterMode === 'diario' && styles.toggleTextActive]}>DIÁRIO</Text>
+            <Text style={[styles.toggleText, filterMode === 'diario' && styles.toggleTextActive]}>DIÃRIO</Text>
           </TouchableOpacity>
         </View>
 
@@ -299,7 +391,7 @@ export default function AgendaScreen() {
         {/* Header da lista de agenda */}
         <View style={styles.listHeader}>
           <Text style={styles.listHeaderTitle}>
-            {filterMode === 'mensal' ? `Mês: ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}` : (isHoje ? 'Sua Agenda Hoje' : `Agenda de ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`)}
+            {filterMode === 'mensal' ? `MÃªs: ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}` : (isHoje ? 'Sua Agenda Hoje' : `Agenda de ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`)}
           </Text>
           <View style={styles.listHeaderActions}>
             {(!user?.permissoes_mobile || user.permissoes_mobile.pode_agendar) && (
@@ -355,12 +447,12 @@ export default function AgendaScreen() {
                   {visita.status === 'realizada'
                     ? 'Finalizada'
                     : visita.checkin_time
-                      ? 'Em Execução'
+                      ? 'Em ExecuÃ§Ã£o'
                       : 'Pendente'}
                 </Text>
               </View>
 
-              {/* Botão de Navegação */}
+              {/* BotÃ£o de NavegaÃ§Ã£o */}
               <TouchableOpacity
                 style={[
                   styles.navButton,
@@ -371,7 +463,7 @@ export default function AgendaScreen() {
                 activeOpacity={0.7}
                 hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
               >
-                <Text style={styles.navButtonIcon}>🚗</Text>
+                <Text style={styles.navButtonIcon}>ðŸš—</Text>
               </TouchableOpacity>
               
             </View>
@@ -393,7 +485,7 @@ export default function AgendaScreen() {
         ))}
 
 
-        {/* Modal Calendário */}
+        {/* Modal CalendÃ¡rio */}
         <Modal
           visible={showCalendar}
           transparent
@@ -403,7 +495,7 @@ export default function AgendaScreen() {
           <Pressable style={styles.calendarOverlay} onPress={() => setShowCalendar(false)}>
             <Pressable style={styles.calendarModal} onPress={e => e.stopPropagation()}>
               <View style={styles.calendarHeaderRow}>
-                <Text style={styles.calendarTitle}>📅 Selecionar Data</Text>
+                <Text style={styles.calendarTitle}>ðŸ“… Selecionar Data</Text>
                 <TouchableOpacity onPress={() => setShowCalendar(false)}>
                   <IconSymbol name="xmark.circle.fill" size={24} color="#475569" />
                 </TouchableOpacity>
@@ -469,7 +561,7 @@ export default function AgendaScreen() {
                 onPress={() => { setMenuVisible(false); router.push('/configuracoes'); }}
               >
                 <IconSymbol name="gearshape.fill" size={20} color="#E2E8F0" />
-                <Text style={styles.menuText}>Configurações</Text>
+                <Text style={styles.menuText}>ConfiguraÃ§Ãµes</Text>
               </TouchableOpacity>
 
               <View style={styles.menuDivider} />
@@ -816,7 +908,7 @@ const styles = StyleSheet.create({
     fontSize: 15,
     padding: 0,
   },
-  // Modal Calendário
+  // Modal CalendÃ¡rio
   calendarOverlay: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.6)',
@@ -860,4 +952,3 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
-
