@@ -2,8 +2,9 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { fetchFuncionariosGlobais, FuncionarioAPI } from '@/services/api';
+import { fetchFuncionariosGlobais, FuncionarioAPI, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
+import { useRouter } from 'expo-router';
 
 export default function FuncionariosScreen() {
   const { data: funcionarios = [], isLoading: loading } = useQuery({
@@ -11,8 +12,14 @@ export default function FuncionariosScreen() {
     queryFn: fetchFuncionariosGlobais,
   });
 
+  const { data: user } = useQuery({
+    queryKey: ['userPerfil'],
+    queryFn: fetchPerfil,
+  });
+
   const [expandedId, setExpandedId] = useState<number | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
+  const router = useRouter();
 
   const toggleExpand = (id: number) => {
     setExpandedId(prev => (prev === id ? null : id));
@@ -27,7 +34,7 @@ export default function FuncionariosScreen() {
     const isExpanded = expandedId === item.id;
 
     return (
-      <TouchableOpacity 
+      <TouchableOpacity
         style={styles.card}
         activeOpacity={0.7}
         onPress={() => toggleExpand(item.id)}
@@ -37,7 +44,7 @@ export default function FuncionariosScreen() {
           <View style={{ flex: 1, marginLeft: 12 }}>
             <Text style={styles.cardTitle}>{item.nome}</Text>
             {item.matricula && (
-               <Text style={styles.cardSubtitle}>Matr√≠cula: {item.matricula}</Text>
+               <Text style={styles.cardSubtitle}>MatrÌcula: {item.matricula}</Text>
             )}
             {item.empresa_nome && (
                <Text style={[styles.cardSubtitle, { marginTop: 2, fontSize: 13, color: '#64748B' }]}>{item.empresa_nome}</Text>
@@ -65,8 +72,18 @@ export default function FuncionariosScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Funcion√°rios</Text>
-        <Text style={styles.subtitle}>Relacionados √†s suas empresas</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Funcion·rios</Text>
+          <Text style={styles.subtitle}>Relacionados ‡s suas empresas</Text>
+        </View>
+        {user?.permissoes_mobile?.pode_cadastrar_funcionario && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/novo-funcionario')}
+          >
+            <IconSymbol name="plus" size={24} color="#FFF" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.searchContainer}>
@@ -98,7 +115,7 @@ export default function FuncionariosScreen() {
           ListEmptyComponent={
             <View style={styles.center}>
               <IconSymbol name="slash.circle" size={48} color="#475569" />
-              <Text style={styles.emptyText}>Voc√™ n√£o tem funcion√°rios vinculados.</Text>
+              <Text style={styles.emptyText}>VocÍ n„o tem funcion·rios vinculados.</Text>
             </View>
           }
         />
@@ -115,6 +132,16 @@ const styles = StyleSheet.create({
   header: {
     padding: 24,
     paddingBottom: 16,
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  addButton: {
+    backgroundColor: '#10B981',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   title: {
     fontSize: 28,
@@ -135,7 +162,7 @@ const styles = StyleSheet.create({
   listContainer: {
     padding: 20,
     paddingTop: 10,
-    paddingBottom: 100, // Espa√ßo da TabBar
+    paddingBottom: 100,
   },
   searchContainer: {
     flexDirection: 'row',

@@ -1,0 +1,76 @@
+<!-- Sub-template: Performance de Assessor -->
+<div class="table-responsive">
+    <table class="table table-hover tabela-relatorio">
+        <thead>
+            <tr>
+                <th>Assessor</th>
+                <th class="text-center">Visitas</th>
+                <th class="text-center">Realizadas</th>
+                <th class="text-center">Taxa %</th>
+                <th class="text-center">Empresas</th>
+                <th class="text-center">KM Total</th>
+                <th class="text-center">Médias/Dia</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for assessor in dados.assessores %}
+            <tr>
+                <td>
+                    <strong>{{ assessor.assessor_nome }}</strong>
+                </td>
+                <td class="text-center">{{ assessor.total_visitas }}</td>
+                <td class="text-center text-success">
+                    <strong>{{ assessor.visitas_realizadas }}</strong>
+                </td>
+                <td class="text-center">
+                    <span class="badge bg-info">{{ assessor.taxa_realizacao_percentual }}%</span>
+                </td>
+                <td class="text-center">{{ assessor.empresas_visitadas }}</td>
+                <td class="text-center">{{ assessor.distancia_total_km }}</td>
+                <td class="text-center">{{ assessor.media_visitas_dia }}</td>
+            </tr>
+            <tr class="table-light">
+                <td colspan="7">
+                    <small>
+                        <strong>Empresas Ativas:</strong> {{ assessor.empresas_ativas_assessor }} | 
+                        <strong>Jornadas:</strong> {{ assessor.jornadas_trabalhadas }} | 
+                        <strong>Última atividade:</strong> 
+                        {% if assessor.ultima_atividade %}
+                            {{ assessor.ultima_atividade|date:"d/m/Y H:i" }}
+                        {% else %}
+                            -
+                        {% endif %}
+                    </small>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    Nenhum dado de performance disponível
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="row g-4 mt-4">
+    <div class="col-md-6">
+        <h6>Resumo Total</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Total de Assessores:</td>
+                <td class="text-end"><strong>{{ dados.assessores|length }}</strong></td>
+            </tr>
+            <tr>
+                <td>Total de Visitas:</td>
+                <td class="text-end">
+                    <strong>
+                        {% sum dados.assessores|dictsort:"visitas_realizadas" as total %}
+                        {{ total }}
+                    </strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

@@ -1,0 +1,218 @@
+<!-- Relatórios - Página Principal -->
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Relatórios - VisitaPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-md-6">
+            <h1 class="h2">
+                <i class="bi bi-bar-chart"></i> Relatórios
+            </h1>
+        </div>
+        <div class="col-md-6 text-end">
+            <a href="{% url 'core:novo_relatorio' %}" class="btn btn-primary">
+                <i class="bi bi-plus-circle"></i> Novo Relatório
+            </a>
+        </div>
+    </div>
+
+    <!-- Filtros -->
+    <div class="card mb-4">
+        <div class="card-body">
+            <form method="get" class="row g-3">
+                <div class="col-md-3">
+                    <label for="tipo_relatorio" class="form-label">Tipo de Relatório</label>
+                    <select id="tipo_relatorio" name="tipo" class="form-select">
+                        <option value="">Todos</option>
+                        <option value="resumo_geral">Resumo Geral</option>
+                        <option value="performance_assessor">Performance de Assessor</option>
+                        <option value="status_empresas">Status de Empresas</option>
+                        <option value="visitas_detalhadas">Visitas Detalhadas</option>
+                        <option value="jornadas">Jornadas</option>
+                        <option value="conversoes">Conversões</option>
+                        <option value="feedback_visitas">Feedback de Visitas</option>
+                    </select>
+                </div>
+                <div class="col-md-3">
+                    <label for="data_inicio" class="form-label">Data Início</label>
+                    <input type="date" id="data_inicio" name="data_inicio" class="form-control">
+                </div>
+                <div class="col-md-3">
+                    <label for="data_fim" class="form-label">Data Fim</label>
+                    <input type="date" id="data_fim" name="data_fim" class="form-control">
+                </div>
+                <div class="col-md-3 d-flex align-items-end">
+                    <button type="submit" class="btn btn-outline-secondary w-100">
+                        <i class="bi bi-search"></i> Filtrar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Lista de Relatórios -->
+    <div class="row">
+        <div class="col-12">
+            <div class="card">
+                <div class="table-responsive">
+                    <table class="table table-hover mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th>Título</th>
+                                <th>Tipo</th>
+                                <th>Formato</th>
+                                <th>Período</th>
+                                <th>Data de Geração</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for relatorio in relatorios %}
+                            <tr>
+                                <td>
+                                    <strong>{{ relatorio.titulo }}</strong>
+                                </td>
+                                <td>
+                                    <span class="badge bg-info">{{ relatorio.get_tipo_display }}</span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-secondary">{{ relatorio.formato|upper }}</span>
+                                </td>
+                                <td>
+                                    <small>
+                                        {% if relatorio.data_inicio and relatorio.data_fim %}
+                                            {{ relatorio.data_inicio|date:"d/m/Y" }} a {{ relatorio.data_fim|date:"d/m/Y" }}
+                                        {% else %}
+                                            -
+                                        {% endif %}
+                                    </small>
+                                </td>
+                                <td>
+                                    <small>{{ relatorio.criado_em|date:"d/m/Y H:i" }}</small>
+                                </td>
+                                <td>
+                                    <div class="btn-group btn-group-sm" role="group">
+                                        <a href="{% url 'core:view_relatorio' relatorio.id %}" 
+                                           class="btn btn-outline-primary" title="Visualizar">
+                                            <i class="bi bi-eye"></i>
+                                        </a>
+                                        {% if relatorio.arquivo %}
+                                        <a href="{% url 'core:download_relatorio' relatorio.id %}" 
+                                           class="btn btn-outline-success" title="Download">
+                                            <i class="bi bi-download"></i>
+                                        </a>
+                                        {% endif %}
+                                        <button type="button" class="btn btn-outline-danger" 
+                                                data-bs-toggle="modal" 
+                                                data-bs-target="#deleteModal{{ relatorio.id }}"
+                                                title="Deletar">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </div>
+
+                                    <!-- Modal de Confirmação -->
+                                    <div class="modal fade" id="deleteModal{{ relatorio.id }}" 
+                                         tabindex="-1" aria-hidden="true">
+                                        <div class="modal-dialog">
+                                            <div class="modal-content">
+                                                <div class="modal-header">
+                                                    <h5 class="modal-title">Confirmar Exclusão</h5>
+                                                    <button type="button" class="btn-close" 
+                                                            data-bs-dismiss="modal"></button>
+                                                </div>
+                                                <div class="modal-body">
+                                                    Tem certeza que deseja deletar este relatório?
+                                                </div>
+                                                <div class="modal-footer">
+                                                    <button type="button" class="btn btn-secondary" 
+                                                            data-bs-dismiss="modal">Cancelar</button>
+                                                    <a href="{% url 'core:delete_relatorio' relatorio.id %}" 
+                                                       class="btn btn-danger">
+                                                        Deletar
+                                                    </a>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% empty %}
+                            <tr>
+                                <td colspan="6" class="text-center text-muted py-4">
+                                    Nenhum relatório encontrado
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+
+            <!-- Paginação -->
+            {% if is_paginated %}
+            <nav aria-label="Paginação" class="mt-4">
+                <ul class="pagination justify-content-center">
+                    {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           href="?page=1{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                            Primeira
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           href="?page={{ page_obj.previous_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                            Anterior
+                        </a>
+                    </li>
+                    {% endif %}
+
+                    <li class="page-item active">
+                        <span class="page-link">
+                            Página {{ page_obj.number }} de {{ page_obj.paginator.num_pages }}
+                        </span>
+                    </li>
+
+                    {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" 
+                           href="?page={{ page_obj.next_page_number }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                            Próxima
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" 
+                           href="?page={{ page_obj.paginator.num_pages }}{% if request.GET.tipo %}&tipo={{ request.GET.tipo }}{% endif %}">
+                            Última
+                        </a>
+                    </li>
+                    {% endif %}
+                </ul>
+            </nav>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+    // Definir data padrão para última semana
+    document.addEventListener('DOMContentLoaded', function() {
+        const dataFimInput = document.getElementById('data_fim');
+        const dataInicioInput = document.getElementById('data_inicio');
+        
+        if (!dataFimInput.value) {
+            const hoje = new Date();
+            dataFimInput.valueAsDate = hoje;
+            
+            const semanaPassada = new Date(hoje);
+            semanaPassada.setDate(semanaPassada.getDate() - 7);
+            dataInicioInput.valueAsDate = semanaPassada;
+        }
+    });
+</script>
+{% endblock %}

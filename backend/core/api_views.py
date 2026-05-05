@@ -422,3 +422,62 @@ def finalizar_jornada(request):
     
     serializer = JornadaSerializer(jornada)
     return Response(serializer.data)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_empresa(request):
+    """
+    Cria uma nova empresa via mobile.
+    POST /api/empresas/nova/
+    """
+    if not request.user.has_perm('core.add_empresa'):
+        return Response({'error': 'Permissão negada.'}, status=status.HTTP_403_FORBIDDEN)
+        
+    nome = request.data.get('nome')
+    if not nome:
+        return Response({'error': 'Nome da empresa é obrigatório.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    empresa = Empresa.objects.create(
+        nome=nome,
+        telefone=request.data.get('telefone', ''),
+        email=request.data.get('email', ''),
+        assessor=request.user,
+        status='Em Negociação'
+    )
+    
+    # Adicionar o usuário também na lista de autorizados, caso a regra de negócio exija
+    empresa.assessores_autorizados.add(request.user)
+    
+    return Response({'status': 'empresa criada com sucesso', 'id': empresa.id}, status=status.HTTP_201_CREATED)
+
+@api_view(['POST'])
+@permission_classes([IsAuthenticated])
+def criar_funcionario(request):
+    """
+    Cria um novo funcionário via mobile.
+    POST /api/funcionarios/novo/
+    """
+    if not request.user.has_perm('core.add_funcionario'):
+        return Response({'error': 'Permissão negada.'}, status=status.HTTP_403_FORBIDDEN)
+        
+    nome = request.data.get('nome')
+    empresa_id = request.data.get('empresa_id')
+    
+    if not nome or not empresa_id:
+        return Response({'error': 'Nome e empresa_id são obrigatórios.'}, status=status.HTTP_400_BAD_REQUEST)
+        
+    try:
+        empresa = Empresa.objects.get(id=empresa_id)
+    except Empresa.DoesNotExist:
+        return Response({'error': 'Empresa não encontrada.'}, status=status.HTTP_404_NOT_FOUND)
+        
+    funcionario = Funcionario.objects.create(
+        nome=nome,
+        empresa=empresa,
+        telefone=request.data.get('telefone', ''),
+        email=request.data.get('email', ''),
+        departamento=request.data.get('departamento', ''),
+        cargo=request.data.get('cargo', '')
+    )
+    
+    return Response({'status': 'funcionário criado com sucesso', 'id': funcionario.id}, status=status.HTTP_201_CREATED)

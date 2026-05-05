@@ -1,0 +1,275 @@
+<!-- Novo Relatório -->
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}Novo Relatório - VisitaPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <div class="row mb-4">
+        <div class="col-12">
+            <h1 class="h2">
+                <i class="bi bi-file-earmark-spreadsheet"></i> Criar Novo Relatório
+            </h1>
+            <p class="text-muted">Selecione o tipo de relatório e configure os filtros desejados</p>
+        </div>
+    </div>
+
+    <form method="post" class="row g-4">
+        {% csrf_token %}
+
+        <!-- Seleção de Tipo de Relatório -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Tipo de Relatório</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_resumo" value="resumo_geral"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_resumo">
+                                    <strong>Resumo Geral</strong>
+                                    <br>
+                                    <small class="text-muted">Métricas gerais de visitas, empresas e conversões</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_performance" value="performance_assessor"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_performance">
+                                    <strong>Performance de Assessor</strong>
+                                    <br>
+                                    <small class="text-muted">Dados individuais de assessores</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_empresas" value="status_empresas"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_empresas">
+                                    <strong>Status de Empresas</strong>
+                                    <br>
+                                    <small class="text-muted">Situação atual de todas as empresas</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_visitas" value="visitas_detalhadas"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_visitas">
+                                    <strong>Visitas Detalhadas</strong>
+                                    <br>
+                                    <small class="text-muted">Informações completas de cada visita</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_jornadas" value="jornadas"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_jornadas">
+                                    <strong>Jornadas e Quilometragem</strong>
+                                    <br>
+                                    <small class="text-muted">Dados de trajetos e quilometragem</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_conversoes" value="conversoes"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_conversoes">
+                                    <strong>Taxa de Conversão</strong>
+                                    <br>
+                                    <small class="text-muted">Empresas convertidas de negociação para ativa</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-6 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="tipo"
+                                       id="tipo_feedback" value="feedback_visitas"
+                                       onchange="actualizarFiltros()">
+                                <label class="form-check-label" for="tipo_feedback">
+                                    <strong>Feedback de Visitas</strong>
+                                    <br>
+                                    <small class="text-muted">Respostas dos formulários coletados</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filtros -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Filtros</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row g-3">
+                        <div class="col-md-3">
+                            <label for="data_inicio" class="form-label">Data Início</label>
+                            <input type="date" id="data_inicio" name="data_inicio" 
+                                   class="form-control" required>
+                        </div>
+                        <div class="col-md-3">
+                            <label for="data_fim" class="form-label">Data Fim</label>
+                            <input type="date" id="data_fim" name="data_fim" 
+                                   class="form-control" required>
+                        </div>
+
+                        <div class="col-md-3" id="filtro_assessor" style="display: none;">
+                            <label for="assessor_id" class="form-label">Assessor</label>
+                            <select id="assessor_id" name="assessor_id" class="form-select">
+                                <option value="">- Todos -</option>
+                                {% for assessor in assessores %}
+                                <option value="{{ assessor.id }}">
+                                    {{ assessor.get_full_name }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3" id="filtro_empresa" style="display: none;">
+                            <label for="empresa_id" class="form-label">Empresa</label>
+                            <select id="empresa_id" name="empresa_id" class="form-select">
+                                <option value="">- Todas -</option>
+                                {% for empresa in empresas %}
+                                <option value="{{ empresa.id }}">
+                                    {{ empresa.nome }}
+                                </option>
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        <div class="col-md-3" id="filtro_status_empresa" style="display: none;">
+                            <label for="status_empresa" class="form-label">Status Empresa</label>
+                            <select id="status_empresa" name="status_empresa" class="form-select">
+                                <option value="">- Todos -</option>
+                                <option value="A">Ativa</option>
+                                <option value="I">Inativa</option>
+                                <option value="N">Em Negociação</option>
+                            </select>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Configuração de Exportação -->
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header bg-light">
+                    <h5 class="card-title mb-0">Formato de Exportação</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="formato"
+                                       id="formato_json" value="json" checked>
+                                <label class="form-check-label" for="formato_json">
+                                    <strong>JSON</strong>
+                                    <br>
+                                    <small class="text-muted">Dados estruturados</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="formato"
+                                       id="formato_csv" value="csv">
+                                <label class="form-check-label" for="formato_csv">
+                                    <strong>CSV</strong>
+                                    <br>
+                                    <small class="text-muted">Tabela em texto</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="formato"
+                                       id="formato_excel" value="excel">
+                                <label class="form-check-label" for="formato_excel">
+                                    <strong>Excel</strong>
+                                    <br>
+                                    <small class="text-muted">Planilha formatada</small>
+                                </label>
+                            </div>
+                        </div>
+                        <div class="col-md-3 mb-3">
+                            <div class="form-check form-check-lg">
+                                <input class="form-check-input" type="radio" name="formato"
+                                       id="formato_pdf" value="pdf">
+                                <label class="form-check-label" for="formato_pdf">
+                                    <strong>PDF</strong>
+                                    <br>
+                                    <small class="text-muted">Documento imprimível</small>
+                                </label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Botões -->
+        <div class="col-12">
+            <div class="d-flex gap-2 justify-content-end">
+                <a href="{% url 'core:listar_relatorios' %}" class="btn btn-secondary">
+                    <i class="bi bi-x"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-primary btn-lg">
+                    <i class="bi bi-check2"></i> Gerar Relatório
+                </button>
+            </div>
+        </div>
+    </form>
+</div>
+
+<script>
+    function actualizarFiltros() {
+        const tipo = document.querySelector('input[name="tipo"]:checked')?.value;
+        
+        // Ocultar todos os filtros
+        document.getElementById('filtro_assessor').style.display = 'none';
+        document.getElementById('filtro_empresa').style.display = 'none';
+        document.getElementById('filtro_status_empresa').style.display = 'none';
+
+        // Mostrar filtros conforme tipo
+        if (tipo === 'performance_assessor' || tipo === 'jornadas') {
+            document.getElementById('filtro_assessor').style.display = 'block';
+        }
+        if (tipo === 'status_empresas' || tipo === 'visitas_detalhadas') {
+            document.getElementById('filtro_empresa').style.display = 'block';
+            document.getElementById('filtro_status_empresa').style.display = 'block';
+        }
+    }
+
+    // Definir datas padrão (últimos 30 dias)
+    document.addEventListener('DOMContentLoaded', function() {
+        const hoje = new Date();
+        const trinta_dias_atras = new Date(hoje);
+        trinta_dias_atras.setDate(trinta_dias_atras.getDate() - 30);
+
+        document.getElementById('data_fim').valueAsDate = hoje;
+        document.getElementById('data_inicio').valueAsDate = trinta_dias_atras;
+    });
+</script>
+{% endblock %}

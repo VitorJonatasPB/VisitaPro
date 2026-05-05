@@ -1,16 +1,15 @@
   import React, { useState, useEffect, useCallback } from 'react';
 import {
   StyleSheet, Text, View, ScrollView, TouchableOpacity,
-  TextInput, ActivityIndicator, Alert, Switch, Platform, Image, Modal
+  TextInput, ActivityIndicator, Alert, Switch, Image, Modal
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import * as Location from 'expo-location';
 import * as ImagePicker from 'expo-image-picker';
 import { IconSymbol } from '@/components/ui/icon-symbol';
-import { carregarAgendaLocal, carregarPerguntasLocal, adicionarNaFila } from '@/services/storage';
+import { carregarAgendaLocal, carregarPerguntasLocal } from '@/services/storage';
 import { realizarCheckin, realizarCheckout, enviarRelatorio, VisitaAPI, PerguntaAPI, fetchFuncionariosEmpresa, FuncionarioAPI, fetchVisitaById, fetchPerguntas } from '@/services/api';
-import { processarFilaDeSincronismo } from '@/services/sync';
 import SignatureScreen from 'react-native-signature-canvas';
 import * as DocumentPicker from 'expo-document-picker';
 import * as ScreenOrientation from 'expo-screen-orientation';
@@ -48,12 +47,12 @@ export default function VisitaDetalheScreen() {
     let visitaEncontrada: VisitaAPI | undefined;
     try {
       visitaEncontrada = await fetchVisitaById(Number(id));
-    } catch (e) {
+    } catch {
       // 2. Fallback de extrema segurança pro storage local antigo
       try {
         const agenda = await carregarAgendaLocal();
         visitaEncontrada = agenda.find((v) => String(v.id) === id);
-      } catch (_) {}
+      } catch {}
     }
 
     setVisita(visitaEncontrada || null);
@@ -63,7 +62,7 @@ export default function VisitaDetalheScreen() {
     try {
       const pergsOnline = await fetchPerguntas();
       setPerguntas(pergsOnline);
-    } catch (_) {
+    } catch {
       const pergsLocal = await carregarPerguntasLocal();
       setPerguntas(pergsLocal);
     }
@@ -495,7 +494,7 @@ export default function VisitaDetalheScreen() {
                <Text style={[styles.infoValue, { lineHeight: 22, color: '#94A3B8' }]}>
                  - Certifique-se de realizar o Check-in no local exato da visita para garantir a validade do GPS.{'\n\n'}
                  - Em caso de falha de conexão, os dados são salvos no celular e enviados automaticamente na próxima vez que abrir o aplicativo conectado.{'\n\n'}
-                 - Problemas com o formulário? Relate um bug através das "Configurações".
+                 - Problemas com o formulário? Relate um bug através das Configurações.
                </Text>
              </View>
            </View>

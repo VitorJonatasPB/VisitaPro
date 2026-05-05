@@ -1,5 +1,6 @@
 from django.urls import path
 from . import views
+from . import web_relatorios_views
 
 app_name = 'core'
 
@@ -66,7 +67,18 @@ urlpatterns = [
     path('funcionarios/<int:pk>/editar/', views.FuncionarioUpdateView.as_view(), name='funcionario_update'),
     path('funcionarios/<int:pk>/excluir/', views.FuncionarioDeleteView.as_view(), name='funcionario_delete'),
 
+    # Relatórios Web
+    path('relatorios/', web_relatorios_views.RelatorioListView.as_view(), name='listar_relatorios'),
+    path('relatorios/novo/', web_relatorios_views.RelatorioCreateView.as_view(), name='novo_relatorio'),
+    path('relatorios/<int:pk>/', web_relatorios_views.RelatorioDetailView.as_view(), name='view_relatorio'),
+    path('relatorios/<int:pk>/download/', web_relatorios_views.RelatorioDownloadView.as_view(), name='download_relatorio'),
+    path('relatorios/<int:pk>/deletar/', web_relatorios_views.RelatorioDeleteView.as_view(), name='delete_relatorio'),
+
     # Imports
     path('importar/empresas/', views.importar_empresas, name='importar_empresas'),
+    path('importar/modelo/', views.download_modelo_empresas, name='download_modelo_empresas'),
     path('importar/funcionarios/', views.importar_funcionarios, name='importar_funcionarios'),
+    path('importar/modelo-funcionarios/', views.download_modelo_funcionarios, name='download_modelo_funcionarios'),
+    path('funcionarios/exportar/<str:formato>/', views.exportar_funcionarios, name='exportar_funcionarios'),
+    path('empresas/exportar/<str:formato>/', views.exportar_empresas, name='exportar_empresas'),
 ]

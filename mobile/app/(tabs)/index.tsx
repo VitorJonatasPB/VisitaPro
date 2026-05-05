@@ -1,5 +1,5 @@
 import React, { useState, useCallback } from 'react';
-import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Pressable, Alert, TextInput, Linking } from 'react-native';
+import { StyleSheet, Text, View, ScrollView, TouchableOpacity, Image, ActivityIndicator, RefreshControl, Modal, Pressable, Alert, Linking } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Calendar, LocaleConfig } from 'react-native-calendars';
@@ -7,7 +7,7 @@ import { IconSymbol } from '@/components/ui/icon-symbol';
 import { carregarAgendaLocal } from '@/services/storage';
 import { sincronizarDoServidor } from '@/services/sync';
 import { VisitaAPI, clearTokens, fetchPerfil, UserAPI, API_BASE_URL, fetchAgenda, fetchCalendarioVisitas, fetchVisitasMes, checkJornadaStatus, iniciarJornada, finalizarJornada } from '@/services/api';
-import { getJornadaState, saveJornadaState, startTrackingJornada, stopTrackingJornada, JornadaState } from '@/services/location';
+import { getJornadaState, saveJornadaState, startTrackingJornada, stopTrackingJornada, JornadaState, gerarUrlMapaTrajetoria, clearWaypoints } from '@/services/location';
 import * as Location from 'expo-location';
 
 LocaleConfig.locales['pt-br'] = {
@@ -29,8 +29,7 @@ export default function AgendaScreen() {
   const [menuVisible, setMenuVisible] = useState(false);
 
   // Pesquisa e Calendário
-  const [showSearch, setShowSearch] = useState(false);
-  const [searchText, setSearchText] = useState('');
+  const searchText = '';
   const [showCalendar, setShowCalendar] = useState(false);
   const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
   const [markedDates, setMarkedDates] = useState<Record<string, any>>({});
@@ -65,7 +64,7 @@ export default function AgendaScreen() {
           // Pre-fetch do mês atual para preencher nosso Cache Genérico offline
           const dataAtual = new Date(selectedDate + 'T12:00:00');
           await fetchVisitasMes(dataAtual.getFullYear(), dataAtual.getMonth() + 1);
-        } catch (_) {}
+        } catch {}
         
         let agendaRemota = [];
         if (filterMode === 'mensal') {
@@ -85,7 +84,7 @@ export default function AgendaScreen() {
           setVisitas(monthData);
         }
       }
-    } catch (e) {
+    } catch {
        // Em caso de erro extremo (nem cache mensal tem), tenta a base persistida antiga
        try {
          const agendaLocal = await carregarAgendaLocal();
@@ -94,7 +93,7 @@ export default function AgendaScreen() {
          } else {
            setVisitas(agendaLocal);
          }
-       } catch (e2) {
+       } catch {
          setVisitas([]);
        }
     } finally {
@@ -122,7 +121,7 @@ export default function AgendaScreen() {
       } else {
         stopTrackingJornada();
       }
-    } catch (e) {
+    } catch {
       const jLocal = await getJornadaState();
       setJornada(jLocal);
       if (jLocal.status === 'em_andamento') {
@@ -151,67 +150,6 @@ export default function AgendaScreen() {
         style: 'destructive',
         onPress: async () => {
           setMenuVisible(false);
-          await stopTrackingJornada();
-          await clearTokens();
-          router.replace('/');
-        }
-      }
-    ]);
-  };
-
-  const handleIniciarJornada = async () => {
-    try {
-      const { status } = await Location.requestForegroundPermissionsAsync();
-      if (status !== 'granted') {
-        Alert.alert('Atenção', 'Permissão de localização é necessária para iniciar a jornada.');
-        return;
-      }
-      const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-      await iniciarJornada(loc.coords.latitude, loc.coords.longitude);
-      
-      const novoEstado: JornadaState = {
-        status: 'em_andamento',
-        km_total: 0,
-        last_lat: loc.coords.latitude,
-        last_lng: loc.coords.longitude
-      };
-      setJornada(novoEstado);
-      await saveJornadaState(novoEstado);
-      
-      startTrackingJornada((km) => setJornada(prev => ({ ...prev, km_total: km })));
-      Alert.alert('🚗 Jornada Iniciada', 'Dirija com segurança! O aplicativo agora registrará a distância percorrida.');
-    } catch (e: any) {
-      Alert.alert('Erro', e.message || 'Não foi possível iniciar a jornada agora.');
-    }
-  };
-
-  const handleFinalizarJornada = async () => {
-    Alert.alert('Finalizar Dia', `Deseja encerrar o dia de trabalho? Total percorrido: ${jornada.km_total.toFixed(2)} km`, [
-      { text: 'Cancelar', style: 'cancel' },
-      { text: 'Finalizar', onPress: async () => {
-         try {
-           const loc = await Location.getCurrentPositionAsync({ accuracy: Location.Accuracy.High });
-           await finalizarJornada(loc.coords.latitude, loc.coords.longitude, jornada.km_total);
-           await stopTrackingJornada();
-           const novoEstado: JornadaState = { status: 'finalizada', km_total: jornada.km_total };
-           setJornada(novoEstado);
-           await saveJornadaState(novoEstado);
-           Alert.alert('🏁 Dia Finalizado', 'Sua jornada foi encerrada e enviada com sucesso!');
-         } catch (e: any) {
-           Alert.alert('Erro', e.message || 'Não foi possível finalizar a jornada agora.');
-         }
-      }}
-    ]);
-  };
-
-  const realizadas = visitas.filter((v) => v.status === 'realizada').length;
-  const emExecucao = visitas.filter((v) => v.checkin_time && v.status !== 'realizada').length;
-  const pendentes = visitas.filter((v) => !v.checkin_time && v.status !== 'realizada').length;
-
-  const visitasFiltradas = visitas.filter(v =>
-    searchText.trim() === '' ||
-    v.empresa_nome.toLowerCase().includes(searchText.toLowerCase())
-  );
 
   const abrirNavegacao = (visita: VisitaAPI) => {
     const lat = parseFloat(visita.empresa_lat || (visita.empresa ? visita.empresa.latitude : '') || '');
@@ -364,12 +302,14 @@ export default function AgendaScreen() {
             {filterMode === 'mensal' ? `Mês: ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { month: 'long', year: 'numeric' })}` : (isHoje ? 'Sua Agenda Hoje' : `Agenda de ${new Date(selectedDate + 'T12:00:00').toLocaleDateString('pt-BR', { day: '2-digit', month: 'short' })}`)}
           </Text>
           <View style={styles.listHeaderActions}>
-            <TouchableOpacity
-              style={styles.toolbarBtn}
-              onPress={() => router.push('/novo-agendamento')}
-            >
-              <IconSymbol name="plus" size={18} color="#FFF" />
-            </TouchableOpacity>
+            {(!user?.permissoes_mobile || user.permissoes_mobile.pode_agendar) && (
+              <TouchableOpacity
+                style={styles.toolbarBtn}
+                onPress={() => router.push('/novo-agendamento')}
+              >
+                <IconSymbol name="plus" size={18} color="#FFF" />
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               style={styles.toolbarBtn}
@@ -920,3 +860,4 @@ const styles = StyleSheet.create({
     fontSize: 15,
   },
 });
+

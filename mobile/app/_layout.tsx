@@ -38,6 +38,8 @@ export default function RootLayout() {
           <Stack.Screen name="visita/[id]" options={{ headerShown: false }} />
           <Stack.Screen name="pesquisa" options={{ headerShown: false }} />
           <Stack.Screen name="novo-agendamento" options={{ headerShown: false }} />
+          <Stack.Screen name="nova-empresa" options={{ headerShown: false }} />
+          <Stack.Screen name="novo-funcionario" options={{ headerShown: false }} />
           <Stack.Screen name="recuperar-senha" options={{ headerShown: false }} />
           <Stack.Screen name="modal" options={{ presentation: 'modal', title: 'Modal' }} />
         </Stack>

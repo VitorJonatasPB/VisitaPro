@@ -1,0 +1,77 @@
+<!-- Sub-template: Feedback das Visitas -->
+<div class="table-responsive">
+    <table class="table table-hover tabela-relatorio">
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Data Visita</th>
+                <th class="text-center">Respostas</th>
+                <th class="text-center">Completo</th>
+                <th>Observações</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for feedback in dados.feedback %}
+            <tr>
+                <td>
+                    <strong>{{ feedback.empresa_nome }}</strong>
+                </td>
+                <td>{{ feedback.data_visita|date:"d/m/Y" }}</td>
+                <td class="text-center">
+                    <span class="badge bg-info">{{ feedback.total_respostas }}</span>
+                </td>
+                <td class="text-center">
+                    {% if feedback.formulario_completo %}
+                        <span class="badge bg-success">✓ Sim</span>
+                    {% else %}
+                        <span class="badge bg-warning">✗ Não</span>
+                    {% endif %}
+                </td>
+                <td>
+                    <small>{{ feedback.observacoes|truncatewords:10 }}</small>
+                </td>
+            </tr>
+            {% if feedback.respostas %}
+            <tr class="table-light">
+                <td colspan="5">
+                    <small>
+                        <strong>Respostas:</strong><br>
+                        {% for resposta in feedback.respostas %}
+                            <div>• <strong>{{ resposta.pergunta }}</strong>: {{ resposta.resposta }}</div>
+                        {% endfor %}
+                    </small>
+                </td>
+            </tr>
+            {% endif %}
+            {% empty %}
+            <tr>
+                <td colspan="5" class="text-center text-muted py-4">
+                    Nenhum feedback encontrado
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="row g-4 mt-4">
+    <div class="col-md-6">
+        <h6>Resumo de Feedback</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Total de Visitas com Feedback:</td>
+                <td class="text-end"><strong>{{ dados.feedback|length }}</strong></td>
+            </tr>
+            <tr>
+                <td>Formulários Completos:</td>
+                <td class="text-end">
+                    <strong>
+                        {% for f in dados.feedback %}
+                            {% if f.formulario_completo %}✓{% endif %}
+                        {% endfor %}
+                    </strong>
+                </td>
+            </tr>
+        </table>
+    </div>
+</div>

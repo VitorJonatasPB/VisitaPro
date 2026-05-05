@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { View, Text, StyleSheet, FlatList, ActivityIndicator, TouchableOpacity, TextInput, Alert, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useQuery } from '@tanstack/react-query';
-import { fetchEmpresasGlobais, EmpresaAPI } from '@/services/api';
+import { fetchEmpresasGlobais, EmpresaAPI, fetchPerfil } from '@/services/api';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { useRouter } from 'expo-router';
 
@@ -10,6 +10,11 @@ export default function EmpresasScreen() {
   const { data: empresas = [], isLoading: loading } = useQuery({
     queryKey: ['empresasGlobal'],
     queryFn: fetchEmpresasGlobais,
+  });
+
+  const { data: user } = useQuery({
+    queryKey: ['userPerfil'],
+    queryFn: fetchPerfil,
   });
 
   const [expandedId, setExpandedId] = useState<number | null>(null);
@@ -122,8 +127,18 @@ export default function EmpresasScreen() {
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
-        <Text style={styles.title}>Minhas Empresas</Text>
-        <Text style={styles.subtitle}>Empresas em sua responsabilidade</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>Minhas Empresas</Text>
+          <Text style={styles.subtitle}>Empresas em sua responsabilidade</Text>
+        </View>
+        {user?.permissoes_mobile?.pode_cadastrar_empresa && (
+          <TouchableOpacity
+            style={styles.addButton}
+            onPress={() => router.push('/nova-empresa')}
+          >
+            <IconSymbol name="plus" size={24} color="#FFF" />
+          </TouchableOpacity>
+        )}
       </View>
 
       <View style={styles.searchContainer}>
@@ -166,7 +181,15 @@ export default function EmpresasScreen() {
 
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#0F172A' },
-  header: { padding: 24, paddingBottom: 16 },
+  header: { padding: 24, paddingBottom: 16, flexDirection: 'row', alignItems: 'center' },
+  addButton: {
+    backgroundColor: '#3B82F6',
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
   title: { fontSize: 28, fontWeight: 'bold', color: '#FFF', marginBottom: 4 },
   subtitle: { fontSize: 15, color: '#94A3B8' },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 20 },

@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, Image, ActivityIndicator, Alert, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -17,24 +17,24 @@ export default function PerfilScreen() {
   const [lastName, setLastName] = useState('');
   const [telefone, setTelefone] = useState('');
 
-  useEffect(() => {
-    carregarPerfil();
-  }, []);
-
-  const carregarPerfil = async () => {
+  const carregarPerfil = useCallback(async () => {
     try {
       const data = await fetchPerfil();
       setUser(data);
       setFirstName(data.first_name || '');
       setLastName(data.last_name || '');
       setTelefone(data.telefone || '');
-    } catch (err) {
+    } catch {
       Alert.alert('Erro', 'Não foi possível carregar os dados do perfil.');
       router.back();
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    carregarPerfil();
+  }, [carregarPerfil]);
 
   const handleSalvar = async () => {
     setSaving(true);

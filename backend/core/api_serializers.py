@@ -87,10 +87,19 @@ class VisitaFotoSerializer(serializers.ModelSerializer):
 
 
 class UserSerializer(serializers.ModelSerializer):
+    permissoes_mobile = serializers.SerializerMethodField()
+
     class Meta:
         model = CustomUser
-        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'telefone', 'foto']
+        fields = ['id', 'username', 'first_name', 'last_name', 'email', 'telefone', 'foto', 'permissoes_mobile']
         read_only_fields = ['id', 'username', 'email']
+
+    def get_permissoes_mobile(self, obj):
+        return {
+            'pode_agendar': obj.has_perm('core.add_visita'),
+            'pode_cadastrar_empresa': obj.has_perm('core.add_empresa'),
+            'pode_cadastrar_funcionario': obj.has_perm('core.add_funcionario'),
+        }
 
 
 class BugReportSerializer(serializers.ModelSerializer):

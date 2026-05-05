@@ -1,0 +1,68 @@
+<!-- Sub-template: Status de Empresas -->
+<div class="table-responsive">
+    <table class="table table-hover tabela-relatorio">
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th class="text-center">Status</th>
+                <th class="text-center">Visitas</th>
+                <th>Última Visita</th>
+                <th class="text-center">Funcionários</th>
+                <th class="text-center">Localização</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for empresa in dados.empresas %}
+            <tr>
+                <td>
+                    <strong>{{ empresa.empresa_nome }}</strong>
+                    {% if empresa.assessor_responsavel %}
+                    <br><small class="text-muted">{{ empresa.assessor_responsavel }}</small>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if empresa.status == 'Ativa' %}
+                        <span class="badge bg-success">{{ empresa.status }}</span>
+                    {% elif empresa.status == 'Inativa' %}
+                        <span class="badge bg-secondary">{{ empresa.status }}</span>
+                    {% else %}
+                        <span class="badge bg-warning">{{ empresa.status }}</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ empresa.total_visitas }}</td>
+                <td>
+                    {% if empresa.ultima_visita %}
+                        {{ empresa.ultima_visita|date:"d/m/Y" }}
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ empresa.funcionarios_total }}</td>
+                <td class="text-center">
+                    <small>
+                        {{ empresa.localizacao.cidade }}, {{ empresa.localizacao.estado }}
+                    </small>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="6" class="text-center text-muted py-4">
+                    Nenhuma empresa encontrada
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+<div class="row g-4 mt-4">
+    <div class="col-md-4">
+        <h6>Resumo de Status</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Total de Empresas:</td>
+                <td class="text-end"><strong>{{ dados.empresas|length }}</strong></td>
+            </tr>
+        </table>
+    </div>
+</div>

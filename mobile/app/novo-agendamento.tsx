@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { StyleSheet, Text, View, TouchableOpacity, Alert, ActivityIndicator, ScrollView, TextInput, KeyboardAvoidingView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRouter, Stack } from 'expo-router';
-import { Calendar, LocaleConfig } from 'react-native-calendars';
+import { Calendar } from 'react-native-calendars';
 import { IconSymbol } from '@/components/ui/icon-symbol';
 import { EmpresaAPI, fetchEmpresasGlobais, criarAgendamento } from '@/services/api';
 
@@ -42,24 +42,12 @@ export default function NovoAgendamentoScreen() {
   };
   
   const handleDayPress = (day: any) => {
-    const selected = new Date(day.timestamp + 12 * 3600 * 1000); // adjust time zone shift
-    
-    const atualAno = hoje.getFullYear();
-    const atualMes = hoje.getMonth();
-    
-    const selAno = selected.getFullYear();
-    const selMes = selected.getMonth();
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    const selected = new Date(day.dateString + 'T12:00:00');
 
-    // Regra: Somente mês seguinte
-    const isProximoMes = (selAno === atualAno && selMes === atualMes + 1) || 
-                         (atualMes === 11 && selAno === atualAno + 1 && selMes === 0);
-
-    if (!isProximoMes) {
-      Alert.alert(
-        'Data Inválida', 
-        'Só é permitido realizar novos agendamentos para empresas no mês seguinte.'
-      );
-      setSelectedDate('');
+    if (selected < today) {
+      Alert.alert('Data Inválida', 'Não é possível agendar para uma data que já passou.');
       return;
     }
 
@@ -113,7 +101,7 @@ export default function NovoAgendamentoScreen() {
         keyboardShouldPersistTaps="handled"
       >
         <Text style={styles.infoText}>
-          Selecione a data desejada. Lembre-se, o agendamento só está disponível para o mês seguinte.
+          Selecione a data desejada. Você pode agendar para qualquer data a partir de hoje.
         </Text>
 
         <View style={styles.calendarWrapper}>

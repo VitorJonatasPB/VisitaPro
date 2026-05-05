@@ -20,7 +20,9 @@ export const ENDPOINTS = {
   perfil: '/api/users/me/',
   bugs: '/api/bugs/',
   empresasGlobal: '/api/empresas/',
+  novaEmpresa: '/api/empresas/nova/',
   funcionariosGlobal: '/api/funcionarios/',
+  novoFuncionario: '/api/funcionarios/novo/',
   jornadaStatus: '/api/jornada/status/',
   jornadaIniciar: '/api/jornada/iniciar/',
   jornadaSincronizar: '/api/jornada/sincronizar/',
@@ -365,6 +367,11 @@ export interface UserAPI {
   email: string;
   telefone: string | null;
   foto: string | null;
+  permissoes_mobile?: {
+    pode_agendar: boolean;
+    pode_cadastrar_empresa: boolean;
+    pode_cadastrar_funcionario: boolean;
+  };
 }
 
 export async function fetchPerfil(): Promise<UserAPI> {
@@ -455,4 +462,12 @@ export async function sincronizarJornadaKm(km_total: number): Promise<JornadaAPI
 
 export async function finalizarJornada(lat: number, lng: number, km_total: number): Promise<JornadaAPI> {
   return await request<JornadaAPI>(ENDPOINTS.jornadaFinalizar, 'POST', { lat, lng, km_total });
+}
+
+export async function criarEmpresa(nome: string, telefone?: string, email?: string) {
+  return request(ENDPOINTS.novaEmpresa, 'POST', { nome, telefone, email });
+}
+
+export async function criarFuncionario(nome: string, empresa_id: number, telefone?: string, email?: string, departamento?: string, cargo?: string) {
+  return request(ENDPOINTS.novoFuncionario, 'POST', { nome, empresa_id, telefone, email, departamento, cargo });
 }

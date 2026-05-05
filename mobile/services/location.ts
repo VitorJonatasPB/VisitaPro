@@ -4,12 +4,18 @@ import { sincronizarJornadaKm } from './api';
 
 // Chave para armazenar a jornada atual offline
 const JORNADA_STORAGE_KEY = '@visitaspro:jornada_estado';
+const JORNADA_WAYPOINTS_KEY = '@visitaspro:jornada_waypoints';
 
 export interface JornadaState {
   status: 'nao_iniciada' | 'em_andamento' | 'finalizada';
   km_total: number;
   last_lat?: number;
   last_lng?: number;
+}
+
+export interface Waypoint {
+  lat: number;
+  lng: number;
 }
 
 // Retorna o estado atual salvo da jornada
@@ -31,6 +37,47 @@ export async function saveJornadaState(state: JornadaState) {
 
 export async function clearJornadaState() {
   await AsyncStorage.removeItem(JORNADA_STORAGE_KEY);
+}
+
+// Waypoints: pontos da trajetória para o mapa
+export async function getWaypoints(): Promise<Waypoint[]> {
+  try {
+    const data = await AsyncStorage.getItem(JORNADA_WAYPOINTS_KEY);
+    if (data) return JSON.parse(data);
+  } catch (e) {}
+  return [];
+}
+
+export async function addWaypoint(lat: number, lng: number) {
+  try {
+    const waypoints = await getWaypoints();
+    // Guarda no máximo 200 pontos para não explodir o armazenamento
+    if (waypoints.length >= 200) waypoints.shift();
+    waypoints.push({ lat, lng });
+    await AsyncStorage.setItem(JORNADA_WAYPOINTS_KEY, JSON.stringify(waypoints));
+  } catch (e) {}
+}
+
+export async function clearWaypoints() {
+  await AsyncStorage.removeItem(JORNADA_WAYPOINTS_KEY);
+}
+
+// Gera a URL do Google Static Maps com a rota desenhada
+export async function gerarUrlMapaTrajetoria(): Promise<string | null> {
+  const waypoints = await getWaypoints();
+  if (waypoints.length < 2) return null;
+
+  // Amostra até 20 pontos para não estourar o limite de URL da API
+  const step = Math.ceil(waypoints.length / 20);
+  const pontos = waypoints.filter((_, i) => i % step === 0);
+
+  const path = pontos.map(p => `${p.lat},${p.lng}`).join('|');
+  const inicio = `${waypoints[0].lat},${waypoints[0].lng}`;
+  const fim = `${waypoints[waypoints.length - 1].lat},${waypoints[waypoints.length - 1].lng}`;
+
+  // Usa a URL do Google Maps no navegador (não precisa de API key)
+  const url = `https://www.google.com/maps/dir/${encodeURIComponent(inicio)}/${encodeURIComponent(fim)}`;
+  return url;
 }
 
 // Helper: Distância de Haversine (em metros)
@@ -84,6 +131,8 @@ export async function startTrackingJornada(onUpdateKm: (km: number) => void) {
         state.last_lng = lng;
         
         await saveJornadaState(state);
+        // Registrar ponto da trajetória
+        await addWaypoint(lat, lng);
         onUpdateKm(state.km_total);
       }
     }

@@ -6,6 +6,7 @@ class CustomUser(AbstractUser):
     is_assessor = models.BooleanField(default=False)
     is_admin = models.BooleanField(default=False)
     foto = models.ImageField(upload_to='fotos_perfil/', null=True, blank=True)
+
     telefone = models.CharField(max_length=20, null=True, blank=True)
     cor_mapa = models.CharField(
         max_length=7, default='#3B82F6',
@@ -14,6 +15,10 @@ class CustomUser(AbstractUser):
     
     def __str__(self):
         return f"{self.username} ({self.get_full_name()})"
+        
+    class Meta:
+        verbose_name = "Usuário"
+        verbose_name_plural = "Usuários"
 
 class Empresa(models.Model):
     STATUS_CHOICES = [
@@ -40,6 +45,10 @@ class Empresa(models.Model):
     longitude = models.CharField(max_length=50, blank=True, null=True, help_text="Ex: -46.633308")
     data_conversao = models.DateField(null=True, blank=True, verbose_name="Data de Conversão", help_text="Data em que a empresa passou de 'Em Negociação' para 'Ativa'")
     
+    class Meta:
+        verbose_name = "Empresa"
+        verbose_name_plural = "Empresas"
+
     def __str__(self):
         return self.nome
 
@@ -133,6 +142,8 @@ class Visita(models.Model):
     
     class Meta:
         ordering = ['-data', '-horario']
+        verbose_name = "Visita"
+        verbose_name_plural = "Visitas"
 
     def __str__(self):
         return f"Visita {self.empresa.nome} - {self.data} ({self.consultor.username})"
@@ -141,6 +152,10 @@ class VisitaFoto(models.Model):
     visita = models.ForeignKey(Visita, on_delete=models.CASCADE, related_name='fotos')
     imagem = models.ImageField(upload_to='visitas_fotos/')
     data_upload = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        verbose_name = "Foto da Visita"
+        verbose_name_plural = "Fotos das Visitas"
 
     def __str__(self):
         return f"Foto da Visita {self.visita.id}"
@@ -151,11 +166,19 @@ class LogAlteracao(models.Model):
     data = models.DateTimeField(auto_now_add=True)
     descricao = models.TextField()
 
+    class Meta:
+        verbose_name = "Log de Alteração"
+        verbose_name_plural = "Logs de Alteração"
+
     def __str__(self):
         return f"Log {self.visita.id} por {self.usuario} em {self.data}"
 
 class Disciplina(models.Model):
     nome = models.CharField(max_length=100, unique=True)
+    
+    class Meta:
+        verbose_name = "Disciplina"
+        verbose_name_plural = "Disciplinas"
     
     def __str__(self):
         return self.nome
@@ -202,6 +225,10 @@ class PerguntaRelatorio(models.Model):
     ativa = models.BooleanField(default=True)
     criado_em = models.DateTimeField(auto_now_add=True)
 
+    class Meta:
+        verbose_name = "Pergunta do Relatório"
+        verbose_name_plural = "Perguntas do Relatório"
+
     def __str__(self):
         return self.texto
 
@@ -212,6 +239,8 @@ class RespostaRelatorio(models.Model):
 
     class Meta:
         unique_together = ('visita', 'pergunta')
+        verbose_name = "Resposta do Relatório"
+        verbose_name_plural = "Respostas do Relatório"
 
     def __str__(self):
         return f"Resposta de Visita {self.visita.id} - Pergunta: {self.pergunta.texto}"
@@ -225,6 +254,8 @@ class BugReport(models.Model):
 
     class Meta:
         ordering = ['-criado_em']
+        verbose_name = "Relatório de Bug"
+        verbose_name_plural = "Relatórios de Bug"
 
     def __str__(self):
         status = "Resolvido" if self.resolvido else "Pendente"
@@ -241,6 +272,10 @@ class Jornada(models.Model):
     fim_lng = models.CharField(max_length=50, blank=True, null=True)
     km_total = models.FloatField(default=0.0, help_text="Quilometragem total percorrida no dia")
     status = models.CharField(max_length=20, choices=[('em_andamento', 'Em Andamento'), ('finalizada', 'Finalizada')], default='em_andamento')
+
+    class Meta:
+        verbose_name = "Jornada"
+        verbose_name_plural = "Jornadas"
 
     def __str__(self):
         return f"Jornada de {self.assessor.username} em {self.data} - {self.km_total}km"

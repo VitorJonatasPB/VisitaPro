@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, Text, View, TextInput, TouchableOpacity, KeyboardAvoidingView, Platform, Dimensions, Alert, ActivityIndicator, BackHandler } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import { useRouter, useFocusEffect } from 'expo-router';
@@ -31,7 +31,7 @@ export default function LoginScreen() {
   useEffect(() => {
     carregarCredenciais();
     verificarBiometria();
-  }, []);
+  }, [verificarBiometria]);
 
   const carregarCredenciais = async () => {
     try {
@@ -49,7 +49,7 @@ export default function LoginScreen() {
     }
   };
 
-  const verificarBiometria = async () => {
+  const verificarBiometria = useCallback(async () => {
     try {
       const token = await getAccessToken();
       if (!token) {
@@ -82,7 +82,7 @@ export default function LoginScreen() {
       console.warn('Erro ao verificar biometria:', e);
       setCheckingBiometrics(false);
     }
-  };
+  }, [router]);
 
   const handleLogin = async () => {
     if (!username || !password) {

@@ -5,14 +5,16 @@ from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, View
 from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
-from django.http import JsonResponse
+from django.http import JsonResponse, HttpResponse
 import json
 from django.conf import settings
-from .models import Empresa, Visita, CustomUser, Funcionario, Disciplina, PerguntaRelatorio, RespostaRelatorio
-from .forms import AssessorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, FuncionarioForm, DisciplinaForm, PerguntaRelatorioForm, GroupForm
+from .models import Empresa, Visita, CustomUser, Funcionario, PerguntaRelatorio, RespostaRelatorio
+from .forms import AssessorForm, AdminUserForm, EmpresaForm, VisitaForm, RelatorioVisitaForm, FuncionarioForm, PerguntaRelatorioForm, GroupForm
 from django.contrib.auth.models import Group
 import pandas as pd
 from django.contrib import messages
+import csv
+import io
 
 class CustomLoginView(LoginView):
     template_name = 'core/login.html'
@@ -786,6 +788,204 @@ class FuncionarioListView(LoginRequiredMixin, ListView):
             context['empresas_list'] = Empresa.objects.filter(Q(assessor=user) | Q(visitas__assessor=user)).distinct()
         return context
 
+
+@login_required
+def exportar_empresas(request, formato):
+    formato = (formato or '').lower()
+    if formato not in ['csv', 'xlsx', 'pdf']:
+        messages.error(request, 'Formato de exportação inválido.')
+        return redirect('core:empresa_list')
+
+    # Reutiliza os mesmos filtros da listagem
+    qs = Empresa.objects.select_related('assessor').all()
+    user = request.user
+
+    nome   = request.GET.get('nome')
+    status = request.GET.get('status')
+    cidade = request.GET.get('cidade')
+    estado = request.GET.get('estado')
+    assessor_id = request.GET.get('assessor')
+
+    if nome:        qs = qs.filter(nome__icontains=nome)
+    if status:      qs = qs.filter(status=status)
+    if cidade:      qs = qs.filter(cidade__icontains=cidade)
+    if estado:      qs = qs.filter(estado__iexact=estado)
+    if assessor_id: qs = qs.filter(assessor_id=assessor_id)
+
+    if not (user.is_superuser or getattr(user, 'is_admin', False)):
+        from django.db.models import Q as _Q
+        qs = qs.filter(_Q(assessor=user) | _Q(assessores_autorizados=user)).distinct()
+
+    STATUS_MAP = {'A': 'Ativo', 'I': 'Inativo', 'N': 'Em Negociação'}
+    rows = [{
+        'nome':      e.nome,
+        'cnpj_cpf':  e.cnpj_cpf or '',
+        'telefone':  e.telefone or '',
+        'email':     e.email or '',
+        'status':    STATUS_MAP.get(e.status, e.status),
+        'assessor':  e.assessor.get_full_name() or e.assessor.username if e.assessor else '',
+        'cidade':    e.cidade or '',
+        'estado':    e.estado or '',
+    } for e in qs]
+
+    headers = ['nome', 'cnpj_cpf', 'telefone', 'email', 'status', 'assessor', 'cidade', 'estado']
+    labels  = ['Nome', 'CNPJ/CPF', 'Telefone', 'E-mail', 'Status', 'Assessor', 'Cidade', 'Estado']
+
+    if formato == 'csv':
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="empresas.csv"'
+        response.write('\ufeff')  # BOM para Excel abrir corretamente
+        writer = csv.writer(response)
+        writer.writerow(labels)
+        for r in rows:
+            writer.writerow([r[h] for h in headers])
+        return response
+
+    if formato == 'xlsx':
+        output = io.BytesIO()
+        df = pd.DataFrame([{l: r[h] for l, h in zip(labels, headers)} for r in rows])
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Empresas')
+        output.seek(0)
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="empresas.xlsx"'
+        return response
+
+    # PDF
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+
+    output = io.BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=landscape(A4),
+                            leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph('Relatório de Empresas', styles['Title']),
+        Spacer(1, 12),
+    ]
+
+    table_data = [labels]
+    for r in rows:
+        table_data.append([r[h] for h in headers])
+
+    table = Table(table_data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND',   (0, 0), (-1,  0), colors.HexColor('#2563EB')),
+        ('TEXTCOLOR',    (0, 0), (-1,  0), colors.white),
+        ('FONTNAME',     (0, 0), (-1,  0), 'Helvetica-Bold'),
+        ('FONTSIZE',     (0, 0), (-1, -1), 8),
+        ('GRID',         (0, 0), (-1, -1), 0.4, colors.grey),
+        ('VALIGN',       (0, 0), (-1, -1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.white]),
+    ]))
+    story.append(table)
+    doc.build(story)
+    output.seek(0)
+
+    response = HttpResponse(output.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="empresas.pdf"'
+    return response
+
+
+def _funcionarios_queryset_export(request):
+    qs = Funcionario.objects.select_related('empresa').all()
+    user = request.user
+
+    nome = request.GET.get('nome')
+    empresa_id = request.GET.get('empresa')
+
+    if nome:
+        qs = qs.filter(nome__icontains=nome)
+    if empresa_id:
+        qs = qs.filter(empresa_id=empresa_id)
+
+    if not (user.is_superuser or getattr(user, 'is_admin', False)):
+        from django.db.models import Q
+        qs = qs.filter(Q(empresa__assessor=user) | Q(empresa__visitas__assessor=user)).distinct()
+
+    return qs
+
+
+@login_required
+def exportar_funcionarios(request, formato):
+    formato = (formato or '').lower()
+    if formato not in ['csv', 'xlsx', 'pdf']:
+        messages.error(request, 'Formato de exportação inválido.')
+        return redirect('core:funcionario_list')
+
+    qs = _funcionarios_queryset_export(request)
+    rows = [{
+        'nome': f.nome,
+        'empresa': f.empresa.nome if f.empresa else '',
+        'departamento': f.departamento or '',
+        'cargo': f.cargo or '',
+        'telefone': f.telefone or '',
+        'email': f.email or '',
+    } for f in qs]
+
+    if formato == 'csv':
+        response = HttpResponse(content_type='text/csv; charset=utf-8')
+        response['Content-Disposition'] = 'attachment; filename="funcionarios.csv"'
+        response.write('\ufeff')
+        writer = csv.writer(response)
+        writer.writerow(['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email'])
+        for r in rows:
+            writer.writerow([r['nome'], r['empresa'], r['departamento'], r['cargo'], r['telefone'], r['email']])
+        return response
+
+    if formato == 'xlsx':
+        output = io.BytesIO()
+        df = pd.DataFrame(rows, columns=['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email'])
+        with pd.ExcelWriter(output, engine='openpyxl') as writer:
+            df.to_excel(writer, index=False, sheet_name='Funcionarios')
+        output.seek(0)
+        response = HttpResponse(
+            output.read(),
+            content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+        )
+        response['Content-Disposition'] = 'attachment; filename="funcionarios.xlsx"'
+        return response
+
+    # PDF
+    from reportlab.lib import colors
+    from reportlab.lib.pagesizes import landscape, A4
+    from reportlab.platypus import SimpleDocTemplate, Table, TableStyle, Paragraph, Spacer
+    from reportlab.lib.styles import getSampleStyleSheet
+
+    output = io.BytesIO()
+    doc = SimpleDocTemplate(output, pagesize=landscape(A4), leftMargin=20, rightMargin=20, topMargin=20, bottomMargin=20)
+    styles = getSampleStyleSheet()
+    story = [
+        Paragraph('Relatório de Funcionários', styles['Title']),
+        Spacer(1, 12),
+    ]
+
+    table_data = [['Nome', 'Empresa', 'Departamento', 'Cargo', 'Telefone', 'E-mail']]
+    for r in rows:
+        table_data.append([r['nome'], r['empresa'], r['departamento'], r['cargo'], r['telefone'], r['email']])
+
+    table = Table(table_data, repeatRows=1)
+    table.setStyle(TableStyle([
+        ('BACKGROUND', (0, 0), (-1, 0), colors.HexColor('#2563EB')),
+        ('TEXTCOLOR', (0, 0), (-1, 0), colors.white),
+        ('FONTNAME', (0, 0), (-1, 0), 'Helvetica-Bold'),
+        ('GRID', (0, 0), (-1, -1), 0.5, colors.grey),
+        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+        ('ROWBACKGROUNDS', (0, 1), (-1, -1), [colors.whitesmoke, colors.lightgrey]),
+    ]))
+    story.append(table)
+    doc.build(story)
+    output.seek(0)
+
+    response = HttpResponse(output.read(), content_type='application/pdf')
+    response['Content-Disposition'] = 'attachment; filename="funcionarios.pdf"'
+    return response
+
 class FuncionarioCreateView(AdminRequiredMixin, CreateView):
     model = Funcionario
     form_class = FuncionarioForm
@@ -858,10 +1058,20 @@ def importar_empresas(request):
                     Empresa.objects.update_or_create(
                         nome=nome_val,
                         defaults={
+                            'cnpj_cpf': str(row['cnpj_cpf']).strip() if 'cnpj_cpf' in columns and pd.notna(row['cnpj_cpf']) else '',
                             'telefone': str(row['telefone']) if pd.notna(row['telefone']) else '',
                             'email': str(row['email']) if pd.notna(row['email']) else '',
-                            'status': str(row['status']).strip().upper() if pd.notna(row['status']) else 'A',
+                            'status': {
+                                'ativo': 'A', 'inativo': 'I', 'em negociação': 'N', 'em negociacao': 'N',
+                                'a': 'A', 'i': 'I', 'n': 'N'
+                            }.get(str(row['status']).strip().lower(), 'A') if pd.notna(row['status']) else 'A',
                             'assessor': assessor_obj,
+                            'cep': str(row['cep']).strip() if 'cep' in columns and pd.notna(row['cep']) else '',
+                            'rua': str(row['rua']).strip() if 'rua' in columns and pd.notna(row['rua']) else '',
+                            'numero': str(row['numero']).strip() if 'numero' in columns and pd.notna(row['numero']) else '',
+                            'bairro': str(row['bairro']).strip() if 'bairro' in columns and pd.notna(row['bairro']) else '',
+                            'cidade': str(row['cidade']).strip() if 'cidade' in columns and pd.notna(row['cidade']) else '',
+                            'estado': str(row['estado']).strip().upper() if 'estado' in columns and pd.notna(row['estado']) else '',
                             'latitude': str(row['latitude']).strip() if 'latitude' in columns and pd.notna(row['latitude']) else None,
                             'longitude': str(row['longitude']).strip() if 'longitude' in columns and pd.notna(row['longitude']) else None
                         }
@@ -894,7 +1104,7 @@ def importar_funcionarios(request):
                 messages.error(request, "Formato não suportado. Use .csv ou .xlsx")
                 return redirect('core:contato_list')
                 
-            required_cols = ['nome', 'matricula', 'empresa', 'disciplinas', 'telefone', 'email']
+            required_cols = ['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email']
             columns = df.columns.str.strip().str.lower()
             
             if not all(col in columns for col in required_cols):
@@ -911,26 +1121,20 @@ def importar_funcionarios(request):
                     if not empresa_obj:
                         continue # Skip if school not found
                         
-                    matricula_val = str(row['matricula']).strip() if pd.notna(row['matricula']) else ''
                     nome_val = str(row['nome']).strip()
                     if not nome_val or nome_val == 'nan': continue
                     
-                    prof, created = Funcionario.objects.update_or_create(
+                    Funcionario.objects.update_or_create(
                         nome=nome_val,
-                        matricula=matricula_val,
                         empresa=empresa_obj,
                         defaults={
+                            'departamento': str(row['departamento']).strip() if pd.notna(row['departamento']) else '',
+                            'cargo': str(row['cargo']).strip() if pd.notna(row['cargo']) else '',
                             'telefone': str(row['telefone']) if pd.notna(row['telefone']) else '',
                             'email': str(row['email']) if pd.notna(row['email']) else ''
                         }
                     )
                     
-                    disciplinas_str = str(row['disciplinas']) if pd.notna(row['disciplinas']) else ''
-                    if disciplinas_str:
-                        disc_list = [d.strip() for d in disciplinas_str.split(',') if d.strip()]
-                        for d_nome in disc_list:
-                            d_obj, _ = Disciplina.objects.get_or_create(nome=d_nome)
-                            prof.disciplinas.add(d_obj)
                     sucesso += 1
                 except Exception as e:
                     print(f"Erro linha {index}: {e}")
@@ -1033,7 +1237,6 @@ class AdminUserCreateView(AdminRequiredMixin, CreateView):
     def form_valid(self, form):
         messages.success(self.request, "Administrador criado com sucesso!")
         return super().form_valid(form)
-
 class AdminUserUpdateView(AdminRequiredMixin, UpdateView):
     model = CustomUser
     form_class = AdminUserForm
@@ -1052,3 +1255,81 @@ class AdminUserDeleteView(AdminRequiredMixin, DeleteView):
     def delete(self, request, *args, **kwargs):
         messages.success(self.request, "Administrador excluído com sucesso.")
         return super().delete(request, *args, **kwargs)
+
+@login_required
+def download_modelo_empresas(request):
+    import io
+    from openpyxl import Workbook
+    from openpyxl.worksheet.datavalidation import DataValidation
+    from django.http import HttpResponse
+
+    output = io.BytesIO()
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Empresas"
+
+    cols = [
+        'nome', 'cnpj_cpf', 'telefone', 'email', 'status', 
+        'assessor_username', 'cep', 'rua', 'numero', 'bairro', 
+        'cidade', 'estado', 'latitude', 'longitude'
+    ]
+    
+    ws.append(cols)
+    
+    # Exemplo
+    ws.append([
+        'Empresa Exemplo', '00.000.000/0001-00', '(11) 99999-9999', 'contato@exemplo.com', 'Ativo',
+        'admin', '01001-000', 'Praça da Sé', '100', 'Sé', 'São Paulo', 'SP', '-23.550520', '-46.633308'
+    ])
+
+    # Validação de Dados para a coluna Status (E)
+    dv = DataValidation(type="list", formula1='"Ativo,Inativo,Em Negociação"', allow_blank=True)
+    dv.error = 'Escolha um status válido da lista'
+    dv.errorTitle = 'Status Inválido'
+    dv.prompt = 'Escolha: Ativo, Inativo ou Em Negociação'
+    dv.promptTitle = 'Escolha o Status'
+
+    ws.add_data_validation(dv)
+    dv.add('E2:E1000')
+
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(), 
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="modelo_importacao_empresas.xlsx"'
+    return response
+
+@login_required
+def download_modelo_funcionarios(request):
+    import io
+    from openpyxl import Workbook
+    from django.http import HttpResponse
+
+    output = io.BytesIO()
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "Funcionários"
+
+    cols = ['nome', 'empresa', 'departamento', 'cargo', 'telefone', 'email']
+
+    ws.append(cols)
+
+    # Linha de exemplo
+    ws.append([
+        'João da Silva', 'Empresa Exemplo',
+        'TI', 'Analista', '(11) 98888-7777', 'joao@exemplo.com'
+    ])
+
+    wb.save(output)
+    output.seek(0)
+
+    response = HttpResponse(
+        output.read(),
+        content_type='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
+    )
+    response['Content-Disposition'] = 'attachment; filename="modelo_importacao_funcionarios.xlsx"'
+    return response
+

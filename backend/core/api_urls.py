@@ -28,9 +28,11 @@ urlpatterns = [
     path('users/me/', api_views.meu_perfil, name='api-meu-perfil'),
     path('bugs/', api_views.reportar_bug, name='api-reportar-bug'),
 
-    # Listagem global do assessor
+    # Listagem global do assessor e cadastros
     path('empresas/', api_views.lista_empresas, name='api-lista-empresas'),
+    path('empresas/nova/', api_views.criar_empresa, name='api-nova-empresa'),
     path('funcionarios/', api_views.lista_funcionarios, name='api-lista-funcionarios'),
+    path('funcionarios/novo/', api_views.criar_funcionario, name='api-novo-funcionario'),
 
     # Jornada Diária
     path('jornada/status/', api_views.status_jornada, name='api-status-jornada'),

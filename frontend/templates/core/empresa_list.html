@@ -6,8 +6,8 @@
   <div class="d-grid gap-2 d-md-flex justify-content-md-end">
     {% if user.is_admin or user.is_superuser %}
     <div class="btn-group w-100 w-md-auto">
-      <a href="{% url 'core:empresa_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center">
-        <i class="fas fa-plus me-2"></i> Nova Empresa
+      <a href="{% url 'core:empresa_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center gap-2 text-nowrap">
+        <i class="fas fa-plus"></i> Nova Empresa
       </a>
       <button
         type="button"
@@ -30,6 +30,38 @@
       </ul>
     </div>
     {% endif %}
+
+    <!-- Botão Exportar (visível para todos) -->
+    <div class="btn-group w-100 w-md-auto">
+      <button type="button" class="btn btn-sm btn-primary">
+        <i class="fas fa-file-export me-2"></i> Exportar
+      </button>
+      <button
+        type="button"
+        class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split w-auto"
+        data-bs-toggle="dropdown"
+        aria-expanded="false"
+      >
+        <span class="visually-hidden">Opções de exportação</span>
+      </button>
+      <ul class="dropdown-menu dropdown-menu-end shadow">
+        <li>
+          <a class="dropdown-item" href="{% url 'core:exportar_empresas' 'csv' %}?{{ request.GET.urlencode }}">
+            <i class="fas fa-file-csv me-2 text-success"></i> Exportar CSV
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{% url 'core:exportar_empresas' 'xlsx' %}?{{ request.GET.urlencode }}">
+            <i class="fas fa-file-excel me-2 text-success"></i> Exportar Excel (.xlsx)
+          </a>
+        </li>
+        <li>
+          <a class="dropdown-item" href="{% url 'core:exportar_empresas' 'pdf' %}?{{ request.GET.urlencode }}">
+            <i class="fas fa-file-pdf me-2 text-danger"></i> Exportar PDF
+          </a>
+        </li>
+      </ul>
+    </div>
   </div>
 </div>
 
@@ -44,6 +76,7 @@
           <option value="">Status</option>
           <option value="A" {% if request.GET.status == 'A' %}selected{% endif %}>Ativa</option>
           <option value="I" {% if request.GET.status == 'I' %}selected{% endif %}>Inativa</option>
+          <option value="N" {% if request.GET.status == 'N' %}selected{% endif %}>Em Negociação</option>
         </select>
       </div>
       <div class="col-md-2">
@@ -155,12 +188,15 @@
                         <p class="mb-1 small">A planilha (.csv ou .xlsx - Excel/Google Sheets) deve conter as seguintes colunas obrigatórias:</p>
                         <ul class="mb-0 small">
                             <li><strong>nome</strong>: Nome da empresa</li>
-                            <li><strong>telefone</strong>: Telefone de funcionario</li>
+                            <li><strong>cnpj_cpf</strong>: CNPJ ou CPF da empresa</li>
+                            <li><strong>telefone</strong>: Telefone de contato da empresa</li>
                             <li><strong>email</strong>: Email da empresa</li>
-                            <li><strong>status</strong>: A (Ativa) ou I (Inativa)</li>
+                            <li><strong>status</strong>: A (Ativa), I (Inativa) ou N (Em Negociação)</li>
                             <li><strong>assessor_username</strong>: Username do assessor responsável (deixe em branco se não houver)</li>
-                            <li><strong>latitude</strong>: (Opcional) Coordenada Y (ex: -23.550520)</li>
-                            <li><strong>longitude</strong>: (Opcional) Coordenada X (ex: -46.633308)</li>
+                            <li class="text-muted"><em>Colunas Opcionais de Endereço:</em></li>
+                            <li><strong>cep, rua, numero, bairro, cidade, estado</strong></li>
+                            <li class="text-muted"><em>Geolocalização (Opcional):</em></li>
+                            <li><strong>latitude, longitude</strong></li>
                         </ul>
                     </div>
                     <div class="mb-3">
@@ -169,7 +205,12 @@
                     </div>
                 </div>
                 <div class="modal-footer d-flex justify-content-between">
-                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                    <div>
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <a href="{% url 'core:download_modelo_empresas' %}" class="btn btn-outline-primary ms-1">
+                            <i class="fas fa-download me-1"></i> Baixar Modelo
+                        </a>
+                    </div>
                     <button type="submit" class="btn btn-primary"><i class="fas fa-upload me-1"></i> Importar</button>
                 </div>
             </form>
@@ -178,3 +219,4 @@
 </div>
 
 {% endblock %}
+

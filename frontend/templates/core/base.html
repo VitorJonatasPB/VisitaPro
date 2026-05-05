@@ -1,3 +1,4 @@
+{% load static %}
 <!doctype html>
 <html lang="pt-BR">
   <head>
@@ -212,7 +213,7 @@
     {% if user.is_authenticated %}
     <!-- Navbar Mobile (Visível apenas em telas menores) -->
     <nav class="navbar navbar-dark d-md-none px-3" style="background-color: #171C29; border-bottom: 1px solid rgba(255, 255, 255, 0.05);">
-      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_assessor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><i class="fas fa-school text-primary me-2"></i> Visitas</a>
+      <a href="{% if user.is_admin or user.is_superuser %}{% url 'core:dashboard_admin' %}{% else %}{% url 'core:dashboard_assessor' %}{% endif %}" class="navbar-brand mb-0 h1 text-decoration-none text-white"><img src="{% static 'img/logo_web.svg' %}" alt="VisitaPro Logo" style="height: 35px; object-fit: contain;"></a>
       <button class="navbar-toggler" type="button" data-bs-toggle="offcanvas" data-bs-target="#sidebarMenu" aria-controls="sidebarMenu">
         <span class="navbar-toggler-icon"></span>
       </button>
@@ -230,8 +231,8 @@
           </div>
           <div class="offcanvas-body flex-column">
             <div class="text-center mb-4 d-none d-md-block">
-              <i class="fas fa-school fa-3x mb-2 text-primary"></i>
-              <h5>Visitas Corporativas</h5>
+              <img src="{% static 'img/logo_web.svg' %}" alt="VisitaPro Logo" style="max-width: 90%; max-height: 50px; object-fit: contain; margin-bottom: 10px;">
+              <br>
               <small>{{ user.get_full_name|default:user.username }}</small>
             </div>
             
@@ -262,6 +263,10 @@
                  class="{% if 'pergunta' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-question-circle me-2"></i> Perguntas do Formulário</a>
               
               <hr class="border-secondary my-2">
+              <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Análise e Dados</small>
+              <a href="{% url 'core:listar_relatorios' %}" class="{% if 'relatorio' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chart-bar me-2"></i> Relatórios</a>
+              
+              <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Controle de Acesso</small>
               <a href="{% url 'core:admin_user_list' %}" class="{% if 'admin_user' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-user-lock me-2"></i> Usuários Admin</a>
               <a href="{% url 'core:group_list' %}" class="{% if 'group' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-shield-alt me-2"></i> Permissões e Grupos</a>
@@ -277,6 +282,11 @@
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
               <a href="{% url 'core:agenda' %}"
                  class="{% if 'agenda' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-calendar-check me-2"></i> Minha Agenda</a>
+              {% if perms.core.view_relatoriogerado %}
+              <hr class="border-secondary my-2">
+              <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Análise e Dados</small>
+              <a href="{% url 'core:listar_relatorios' %}" class="{% if 'relatorio' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chart-bar me-2"></i> Relatórios</a>
+              {% endif %}
               {% endif %}
 
               <hr style="border-color: #7f8c8d" />

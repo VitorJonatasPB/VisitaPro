@@ -1,0 +1,59 @@
+<!-- Sub-template: Visitas Detalhadas -->
+<div class="table-responsive">
+    <table class="table table-hover tabela-relatorio">
+        <thead>
+            <tr>
+                <th>Empresa</th>
+                <th>Assessor</th>
+                <th>Data/Hora</th>
+                <th class="text-center">Status</th>
+                <th class="text-center">Duração</th>
+                <th class="text-center">Pessoas</th>
+                <th class="text-center">Fotos</th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for visita in dados.visitas %}
+            <tr>
+                <td>
+                    <strong>{{ visita.empresa_nome }}</strong>
+                </td>
+                <td>{{ visita.assessor_nome }}</td>
+                <td>
+                    <small>{{ visita.data|date:"d/m/Y" }}<br>{{ visita.horario }}</small>
+                </td>
+                <td class="text-center">
+                    {% if visita.status == 'Realizada' %}
+                        <span class="badge bg-success">{{ visita.status }}</span>
+                    {% elif visita.status == 'Cancelada' %}
+                        <span class="badge bg-danger">{{ visita.status }}</span>
+                    {% else %}
+                        <span class="badge bg-warning">{{ visita.status }}</span>
+                    {% endif %}
+                </td>
+                <td class="text-center">
+                    {% if visita.duracao_minutes %}
+                        {{ visita.duracao_minutes }} min
+                    {% else %}
+                        -
+                    {% endif %}
+                </td>
+                <td class="text-center">{{ visita.funcionarios_atendidos }}</td>
+                <td class="text-center">
+                    {% if visita.fotos_quantidade > 0 %}
+                        <span class="badge bg-info">{{ visita.fotos_quantidade }}</span>
+                    {% else %}
+                        <span class="text-muted">-</span>
+                    {% endif %}
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="7" class="text-center text-muted py-4">
+                    Nenhuma visita encontrada
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>

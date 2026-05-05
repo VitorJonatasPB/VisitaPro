@@ -1,0 +1,126 @@
+<!-- Sub-template: Resumo Geral -->
+<div class="row g-4 mb-4">
+    <div class="col-md-3">
+        <div class="relatorio-metric">
+            <div class="label">Total de Visitas</div>
+            <div class="value">{{ dados.total_visitas }}</div>
+            <small class="text-muted d-block mt-2">
+                {{ dados.visitas_realizadas }} realizadas | 
+                {{ dados.visitas_agendadas }} agendadas | 
+                {{ dados.visitas_canceladas }} canceladas
+            </small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="relatorio-metric success">
+            <div class="label">Empresas Ativas</div>
+            <div class="value">{{ dados.empresas_ativas }}</div>
+            <small class="text-muted d-block mt-2">
+                De {{ dados.total_empresas }} empresas no total
+            </small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="relatorio-metric info">
+            <div class="label">Taxa de Conversão</div>
+            <div class="value">{{ dados.taxa_conversao_percentual }}%</div>
+            <small class="text-muted d-block mt-2">
+                {{ dados.empresas_negociacao }} em negociação
+            </small>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="relatorio-metric">
+            <div class="label">Assessores Ativos</div>
+            <div class="value">{{ dados.total_assessores }}</div>
+            <small class="text-muted d-block mt-2">
+                Distância média: {{ dados.distancia_media_percorrida }} km
+            </small>
+        </div>
+    </div>
+</div>
+
+<hr class="my-4">
+
+<h5 class="mb-3">Resumo Detalhado</h5>
+<div class="row g-4">
+    <div class="col-md-6">
+        <h6>Visitas</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Total de Visitas:</td>
+                <td class="text-end"><strong>{{ dados.total_visitas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Realizadas:</td>
+                <td class="text-end text-success"><strong>{{ dados.visitas_realizadas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Agendadas:</td>
+                <td class="text-end"><strong>{{ dados.visitas_agendadas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Canceladas:</td>
+                <td class="text-end text-danger"><strong>{{ dados.visitas_canceladas }}</strong></td>
+            </tr>
+            <tr class="table-light">
+                <td>Média por Empresa:</td>
+                <td class="text-end"><strong>{{ dados.media_visitas_por_empresa }}</strong></td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h6>Empresas</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Total de Empresas:</td>
+                <td class="text-end"><strong>{{ dados.total_empresas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Ativas:</td>
+                <td class="text-end text-success"><strong>{{ dados.empresas_ativas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Inativas:</td>
+                <td class="text-end text-secondary"><strong>{{ dados.empresas_inativas }}</strong></td>
+            </tr>
+            <tr>
+                <td>Em Negociação:</td>
+                <td class="text-end text-warning"><strong>{{ dados.empresas_negociacao }}</strong></td>
+            </tr>
+            <tr class="table-light">
+                <td>Taxa de Conversão:</td>
+                <td class="text-end"><strong>{{ dados.taxa_conversao_percentual }}%</strong></td>
+            </tr>
+        </table>
+    </div>
+</div>
+
+<div class="row g-4 mt-2">
+    <div class="col-md-6">
+        <h6>Quilometragem</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Distância Média Percorrida:</td>
+                <td class="text-end"><strong>{{ dados.distancia_media_percorrida }} km</strong></td>
+            </tr>
+            <tr>
+                <td>Período:</td>
+                <td class="text-end"><strong>{{ dados.periodo.dias }} dias</strong></td>
+            </tr>
+        </table>
+    </div>
+    <div class="col-md-6">
+        <h6>Período do Relatório</h6>
+        <table class="table table-sm table-borderless">
+            <tr>
+                <td>Data Início:</td>
+                <td class="text-end"><strong>{{ dados.periodo.data_inicio }}</strong></td>
+            </tr>
+            <tr>
+                <td>Data Fim:</td>
+                <td class="text-end"><strong>{{ dados.periodo.data_fim }}</strong></td>
+            </tr>
+        </table>
+    </div>
+</div>

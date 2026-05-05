@@ -1,4 +1,5 @@
- <!DOCTYPE html>
+{% load static %}
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
     <meta charset="UTF-8">
@@ -166,7 +167,7 @@
     <div class="login-wrapper">
         <!-- Lado da Marca (Gradient) -->
         <div class="login-brand">
-            <i class="fas fa-map-marked-alt brand-icon"></i>
+            <img src="{% static 'img/visitapro_app_icon_sem_fundo.png' %}" alt="VisitaPro Logo" class="brand-icon" style="height: 120px; width: auto; object-fit: contain; border-radius: 20px;">
             <h1 class="brand-title">VisitaPro</h1>
             <p class="brand-subtitle">Gestão Inteligente de Visitas</p>
         </div>

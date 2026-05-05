@@ -1,0 +1,130 @@
+<!-- Visualizar Relatório -->
+{% extends "core/base.html" %}
+{% load static %}
+
+{% block title %}{{ relatorio.titulo }} - VisitaPro{% endblock %}
+
+{% block content %}
+<div class="container-fluid py-4">
+    <!-- Cabeçalho -->
+    <div class="row mb-4">
+        <div class="col-md-8">
+            <h1 class="h2">
+                <i class="bi bi-graph-up"></i> {{ relatorio.titulo }}
+            </h1>
+            <p class="text-muted">
+                <i class="bi bi-calendar"></i>
+                {% if relatorio.data_inicio and relatorio.data_fim %}
+                    {{ relatorio.data_inicio|date:"d/m/Y" }} a {{ relatorio.data_fim|date:"d/m/Y" }}
+                {% endif %}
+                |
+                <i class="bi bi-clock"></i>
+                Gerado em {{ relatorio.criado_em|date:"d/m/Y H:i" }}
+            </p>
+        </div>
+        <div class="col-md-4 text-end">
+            <span class="badge bg-info me-2">{{ relatorio.get_tipo_display }}</span>
+            <span class="badge bg-secondary me-2">{{ relatorio.formato|upper }}</span>
+            {% if relatorio.arquivo %}
+            <a href="{% url 'core:download_relatorio' relatorio.id %}" class="btn btn-sm btn-success">
+                <i class="bi bi-download"></i> Download
+            </a>
+            {% endif %}
+            <a href="{% url 'core:listar_relatorios' %}" class="btn btn-sm btn-outline-secondary">
+                <i class="bi bi-arrow-left"></i> Voltar
+            </a>
+        </div>
+    </div>
+
+    <!-- Conteúdo do Relatório -->
+    <div class="card">
+        <div class="card-body">
+            {% if relatorio.tipo == 'resumo_geral' %}
+                {% include "core/relatorios/resumo_geral.html" %}
+            
+            {% elif relatorio.tipo == 'performance_assessor' %}
+                {% include "core/relatorios/performance_assessor.html" %}
+            
+            {% elif relatorio.tipo == 'status_empresas' %}
+                {% include "core/relatorios/status_empresas.html" %}
+            
+            {% elif relatorio.tipo == 'visitas_detalhadas' %}
+                {% include "core/relatorios/visitas_detalhadas.html" %}
+            
+            {% elif relatorio.tipo == 'jornadas' %}
+                {% include "core/relatorios/jornadas.html" %}
+            
+            {% elif relatorio.tipo == 'conversoes' %}
+                {% include "core/relatorios/conversoes.html" %}
+            
+            {% elif relatorio.tipo == 'feedback_visitas' %}
+                {% include "core/relatorios/feedback_visitas.html" %}
+            
+            {% else %}
+                <div class="alert alert-warning">
+                    <i class="bi bi-exclamation-triangle"></i>
+                    Tipo de relatório não reconhecido.
+                </div>
+            {% endif %}
+
+            {% if relatorio.descricao %}
+            <div class="mt-4 pt-4 border-top">
+                <h6>Notas:</h6>
+                <p class="text-muted">{{ relatorio.descricao }}</p>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+
+<style>
+    .relatorio-metric {
+        padding: 1.5rem;
+        background-color: #f8f9fa;
+        border-radius: 0.5rem;
+        margin-bottom: 1rem;
+    }
+
+    .relatorio-metric .label {
+        font-size: 0.875rem;
+        color: #6c757d;
+        text-transform: uppercase;
+        letter-spacing: 0.5px;
+        font-weight: 600;
+    }
+
+    .relatorio-metric .value {
+        font-size: 2rem;
+        font-weight: 700;
+        color: #1f2937;
+        margin-top: 0.5rem;
+    }
+
+    .relatorio-metric.success {
+        background-color: #d1e7dd;
+        color: #0f5132;
+    }
+
+    .relatorio-metric.danger {
+        background-color: #f8d7da;
+        color: #842029;
+    }
+
+    .relatorio-metric.info {
+        background-color: #cfe2ff;
+        color: #084298;
+    }
+
+    .tabela-relatorio {
+        font-size: 0.9rem;
+    }
+
+    .tabela-relatorio thead {
+        background-color: #e7f1ff;
+    }
+
+    .tabela-relatorio tbody tr:hover {
+        background-color: #f8f9fa;
+    }
+</style>
+{% endblock %}

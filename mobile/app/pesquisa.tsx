@@ -42,7 +42,7 @@ export default function PesquisaScreen() {
       }
     };
     loadMensal();
-  }, [periodoMode]);
+  }, [periodoMode, customMonthYear]);
 
   // Filtragem (Texto + Chips)
   const filtradas = visitas.filter((v) => {
