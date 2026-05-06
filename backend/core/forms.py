@@ -435,7 +435,8 @@ class PerguntaRelatorioForm(forms.ModelForm):
 class ConfiguracaoForm(forms.ModelForm):
     class Meta:
         model = Configuracao
-        fields = ['valor_km_reembolso']
+        fields = ['valor_km_reembolso', 'grupos_podem_alterar_responsavel']
         widgets = {
             'valor_km_reembolso': forms.NumberInput(attrs={'class': 'form-control', 'step': '0.01', 'min': '0'}),
+            'grupos_podem_alterar_responsavel': forms.CheckboxSelectMultiple(),
         }

@@ -248,13 +248,18 @@
               <a href="{% url 'core:dashboard_admin' %}"
                 class="{% if request.resolver_match.url_name == 'dashboard_admin' %}active{% endif %}"><i class="fas fa-chart-line me-2"></i> Dashboard</a
               >
+              {% if perms.core.view_empresa %}
               <a href="{% url 'core:empresa_list' %}"
                  class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Empresas</a>
+              {% endif %}
+              {% if perms.core.view_funcionario %}
               <a href="{% url 'core:funcionario_list' %}"
                  class="{% if 'funcionario' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-id-badge me-2"></i> Funcionários</a>
+              {% endif %}
               <a href="{% url 'core:assessor_list' %}"
                  class="{% if 'assessor' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-users me-2"></i> Assessores</a>
 
+              {% if perms.core.view_visita %}
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
               <a href="{% url 'core:agenda' %}"
@@ -266,6 +271,7 @@
 
               <a href="{% url 'core:pergunta_list' %}"
                  class="{% if 'pergunta' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-file-alt me-2"></i> Formulário</a>
+              {% endif %}
               
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Análise e Dados</small>
@@ -278,15 +284,21 @@
               {% else %}
               <a href="{% url 'core:dashboard_assessor' %}"
                  class="{% if request.resolver_match.url_name == 'dashboard_assessor' %}active{% endif %}"><i class="fas fa-chart-pie me-2"></i> Dashboard</a>
+              {% if perms.core.view_empresa %}
               <a href="{% url 'core:empresa_list' %}"
                  class="{% if 'empresa' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-building me-2"></i> Minhas Empresas</a>
+              {% endif %}
+              {% if perms.core.view_funcionario %}
               <a href="{% url 'core:funcionario_list' %}"
                  class="{% if 'funcionario' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-chalkboard-teacher me-2"></i> Funcionários</a>
+              {% endif %}
               
+              {% if perms.core.view_visita %}
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Módulo Visitas</small>
               <a href="{% url 'core:agenda' %}"
                  class="{% if 'agenda' in request.resolver_match.url_name %}active{% endif %}"><i class="fas fa-calendar-check me-2"></i> Minha Agenda</a>
+              {% endif %}
               {% if perms.core.view_relatoriogerado %}
               <hr class="border-secondary my-2">
               <small class="text-white-50 ms-2 fw-bold text-uppercase" style="font-size: 0.7rem;">Análise e Dados</small>

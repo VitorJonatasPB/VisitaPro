@@ -107,9 +107,11 @@
             </select>
         </form>
         {% endif %}
+        {% if perms.core.add_visita %}
         <a href="{% url 'core:visita_create' %}" class="btn btn-sm btn-primary">
             + Novo Agendamento
         </a>
+        {% endif %}
     </div>
 </div>
 
@@ -239,14 +241,17 @@
                                     </span>
                                 </td>
                                 <td class="text-end">
-                                    {% if user.is_admin or user.is_superuser %}
+                                    {% if perms.core.change_visita %}
                                         <a href="{% url 'core:visita_update' visita.id %}" class="btn btn-sm text-muted hover-white p-1" title="Editar">
                                             <i class="fas fa-pencil-alt"></i>
                                         </a>
+                                    {% endif %}
+                                    {% if perms.core.delete_visita %}
                                         <a href="{% url 'core:visita_delete' visita.id %}" class="btn btn-sm text-danger p-1" title="Excluir">
                                             <i class="far fa-times-circle"></i>
                                         </a>
-                                    {% else %}
+                                    {% endif %}
+                                    {% if not perms.core.change_visita and not perms.core.delete_visita %}
                                         {% if visita.status == 'agendada' %}
                                         <a href="{% url 'core:visita_relatorio' visita.id %}" class="btn btn-sm text-muted hover-white p-1" title="Adicionar Relatório">
                                             <i class="fas fa-file-alt"></i>
@@ -319,5 +324,19 @@
 
         calendar.render();
     });
+
+    // Se não houver ?data= na URL, redireciona usando a data LOCAL do navegador.
+    // Isso garante que "hoje" no backend bate com o relógio do computador do usuário.
+    (function() {
+        var params = new URLSearchParams(window.location.search);
+        if (!params.has('data')) {
+            var hoje = new Date();
+            var yyyy = hoje.getFullYear();
+            var mm = String(hoje.getMonth() + 1).padStart(2, '0');
+            var dd = String(hoje.getDate()).padStart(2, '0');
+            params.set('data', yyyy + '-' + mm + '-' + dd);
+            window.history.replaceState({}, '', '?' + params.toString());
+        }
+    })();
 </script>
 {% endblock %}

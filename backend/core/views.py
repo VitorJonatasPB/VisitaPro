@@ -4,7 +4,7 @@ from django.contrib.auth.views import LoginView
 from django.contrib.auth.decorators import login_required, user_passes_test
 from django.urls import reverse_lazy
 from django.views.generic import TemplateView, ListView, CreateView, UpdateView, DeleteView, View
-from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin
+from django.contrib.auth.mixins import LoginRequiredMixin, UserPassesTestMixin, PermissionRequiredMixin
 from django.http import JsonResponse, HttpResponse
 from django.db import IntegrityError
 import json
@@ -297,7 +297,7 @@ class ConfiguracaoUpdateView(AdminRequiredMixin, UpdateView):
     model = Configuracao
     form_class = ConfiguracaoForm
     template_name = 'core/configuracoes.html'
-    success_url = reverse_lazy('core:dashboard_admin')
+    success_url = reverse_lazy('core:configuracoes')
 
     def get_object(self, queryset=None):
         return Configuracao.get_solo()
@@ -379,9 +379,10 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
         from .models import Funcionario
         context['total_funcionarios'] = Funcionario.objects.filter(empresa__in=empresas).distinct().count()
         
-        # MÃ©trica p/ GrÃ¡fico de Pizza: Contatoes Atendidos nos Ãºltimos 6 meses
+        # Métrica p/ Gráfico de Pizza: Contatos Atendidos nos últimos 6 meses
         grafico_labels = []
         grafico_data = []
+        grafico_conversoes_data = []
         
         # ComeÃ§amos do mÃªs atual caindo atÃ© 4 meses atrÃ¡s (Total 5)
         for i in range(4, -1, -1):
@@ -406,9 +407,7 @@ class DashboardAssessorView(AssessorRequiredMixin, TemplateView):
             grafico_labels.append(f"{nome_mes_br}/{str(ano)[-2:]}")
             grafico_data.append(total_empresas_visitadas)
             
-            empresas_base_qs = Empresa.objects.all()
-            if assessor_id:
-                empresas_base_qs = empresas_base_qs.filter(assessor_id=assessor_id)
+            empresas_base_qs = Empresa.objects.filter(assessor=user)
             conversoes_mes_ano = empresas_base_qs.filter(data_conversao__year=ano, data_conversao__month=mes).count()
             grafico_conversoes_data.append(conversoes_mes_ano)
             
@@ -495,7 +494,8 @@ class AssessorDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('core:assessor_list')
 
 # -- CRUD EMPRESA --
-class EmpresaListView(LoginRequiredMixin, ListView):
+class EmpresaListView(PermissionRequiredMixin, ListView):
+    permission_required = 'core.view_empresa'
     model = Empresa
     template_name = 'core/empresa_list.html'
     context_object_name = 'empresas'
@@ -536,43 +536,33 @@ class EmpresaListView(LoginRequiredMixin, ListView):
             context['assessores_list'] = CustomUser.objects.filter(is_assessor=True)
         return context
 
-class EmpresaCreateView(AdminRequiredMixin, CreateView):
+class EmpresaCreateView(PermissionRequiredMixin, CreateView):
+    permission_required = 'core.add_empresa'
     model = Empresa
     form_class = EmpresaForm
     template_name = 'core/empresa_form.html'
     success_url = reverse_lazy('core:empresa_list')
 
-class EmpresaUpdateView(LoginRequiredMixin, UpdateView):
+class EmpresaUpdateView(PermissionRequiredMixin, UpdateView):
+    permission_required = 'core.change_empresa'
     model = Empresa
     form_class = EmpresaForm
     template_name = 'core/empresa_form.html'
     success_url = reverse_lazy('core:empresa_list')
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        user = self.request.user
-        if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            for field in form.fields.values():
-                field.disabled = True
-        return form
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            from django.core.exceptions import PermissionDenied
-            raise PermissionDenied("Apenas administradores podem editar.")
-        return super().post(request, *args, **kwargs)
-
-class EmpresaDeleteView(AdminRequiredMixin, DeleteView):
+class EmpresaDeleteView(PermissionRequiredMixin, DeleteView):
+    permission_required = 'core.delete_empresa'
     model = Empresa
     template_name = 'core/empresa_confirm_delete.html'
     success_url = reverse_lazy('core:empresa_list')
 
 # -- AGENDA / VISITAS --
-class AgendaView(LoginRequiredMixin, TemplateView):
+class AgendaView(PermissionRequiredMixin, TemplateView):
+    permission_required = 'core.view_visita'
     template_name = 'core/agenda.html'
 
-class VisitaListView(LoginRequiredMixin, ListView):
+class VisitaListView(PermissionRequiredMixin, ListView):
+    permission_required = 'core.view_visita'
     model = Visita
     template_name = 'core/visita_list.html'
     context_object_name = 'visitas'
@@ -641,7 +631,8 @@ class VisitaListView(LoginRequiredMixin, ListView):
         
         return context
 
-class AgendaView(LoginRequiredMixin, TemplateView):
+class AgendaView(PermissionRequiredMixin, TemplateView):
+    permission_required = 'core.view_visita'
     template_name = 'core/agenda.html'
 
     def get_context_data(self, **kwargs):
@@ -661,7 +652,9 @@ class AgendaView(LoginRequiredMixin, TemplateView):
             hoje = timezone.now().date()
             
         context['data_selecionada'] = hoje
-        context['is_hoje'] = (hoje == timezone.now().date())
+        # 'is_hoje' compara com a data que o próprio cliente enviou (via FullCalendar browser local)
+        # Se nenhuma data foi enviada, o fallback é timezone.now() do servidor
+        context['is_hoje'] = not bool(data_str) or (hoje == timezone.localdate())
         
         assessor_id = self.request.GET.get('assessor')
         
@@ -696,7 +689,8 @@ class AgendaView(LoginRequiredMixin, TemplateView):
         context['visitas_hoje'] = visitas_para_hoje
         return context
 
-class VisitaCreateView(LoginRequiredMixin, CreateView):
+class VisitaCreateView(PermissionRequiredMixin, CreateView):
+    permission_required = 'core.add_visita'
     model = Visita
     form_class = VisitaForm
     template_name = 'core/visita_form.html'
@@ -719,6 +713,7 @@ class VisitaCreateView(LoginRequiredMixin, CreateView):
         empresa_assessor_map = {e.id: e.assessor.id for e in empresas if e.assessor}
         context['empresa_assessor_map'] = json.dumps(empresa_assessor_map)
         context['is_edit'] = False
+        context['pode_alterar_responsavel'] = _pode_alterar_responsavel(user)
         return context
 
     def form_valid(self, form):
@@ -728,7 +723,8 @@ class VisitaCreateView(LoginRequiredMixin, CreateView):
             form.instance.assessor = user
         return super().form_valid(form)
 
-class VisitaUpdateView(AdminRequiredMixin, UpdateView):
+class VisitaUpdateView(PermissionRequiredMixin, UpdateView):
+    permission_required = 'core.change_visita'
     model = Visita
     form_class = VisitaForm
     template_name = 'core/visita_form.html'
@@ -750,6 +746,7 @@ class VisitaUpdateView(AdminRequiredMixin, UpdateView):
         empresa_assessor_map = {e.id: e.assessor.id for e in empresas if e.assessor}
         context['empresa_assessor_map'] = json.dumps(empresa_assessor_map)
         context['is_edit'] = True
+        context['pode_alterar_responsavel'] = _pode_alterar_responsavel(user)
 
         # Mapa de auditoria de GPS
         visita = self.get_object()
@@ -761,7 +758,8 @@ class VisitaUpdateView(AdminRequiredMixin, UpdateView):
         context['justificativa_distancia'] = visita.justificativa_distancia or ''
         return context
 
-class VisitaDeleteView(AdminRequiredMixin, DeleteView):
+class VisitaDeleteView(PermissionRequiredMixin, DeleteView):
+    permission_required = 'core.delete_visita'
     model = Visita
     template_name = 'core/visita_confirm_delete.html'
     success_url = reverse_lazy('core:agenda')
@@ -872,8 +870,9 @@ class RelatorioVisitaView(LoginRequiredMixin, UpdateView):
             )
         return response
 
-# -- CRUD FUNCIONÃRIO --
-class FuncionarioListView(LoginRequiredMixin, ListView):
+# -- CRUD FUNCIONÁRIO --
+class FuncionarioListView(PermissionRequiredMixin, ListView):
+    permission_required = 'core.view_funcionario'
     model = Funcionario
     template_name = 'core/funcionario_list.html'
     context_object_name = 'funcionarios'
@@ -892,7 +891,7 @@ class FuncionarioListView(LoginRequiredMixin, ListView):
 
         if not (user.is_superuser or getattr(user, 'is_admin', False)):
             from django.db.models import Q
-            qs = qs.filter(Q(empresa__assessor=user) | Q(empresa__visitas__assessor=user)).distinct()
+            qs = qs.filter(Q(empresa__assessor=user) | Q(empresa__assessores_autorizados=user) | Q(empresa__visitas__assessor=user)).distinct()
         return qs
 
     def get_context_data(self, **kwargs):
@@ -902,7 +901,7 @@ class FuncionarioListView(LoginRequiredMixin, ListView):
             context['empresas_list'] = Empresa.objects.all()
         else:
             from django.db.models import Q
-            context['empresas_list'] = Empresa.objects.filter(Q(assessor=user) | Q(visitas__assessor=user)).distinct()
+            context['empresas_list'] = Empresa.objects.filter(Q(assessor=user) | Q(assessores_autorizados=user) | Q(visitas__assessor=user)).distinct()
         return context
 
 
@@ -1103,34 +1102,22 @@ def exportar_funcionarios(request, formato):
     response['Content-Disposition'] = 'attachment; filename="funcionarios.pdf"'
     return response
 
-class FuncionarioCreateView(AdminRequiredMixin, CreateView):
+class FuncionarioCreateView(PermissionRequiredMixin, CreateView):
+    permission_required = 'core.add_funcionario'
     model = Funcionario
     form_class = FuncionarioForm
     template_name = 'core/funcionario_form.html'
     success_url = reverse_lazy('core:funcionario_list')
 
-class FuncionarioUpdateView(LoginRequiredMixin, UpdateView):
+class FuncionarioUpdateView(PermissionRequiredMixin, UpdateView):
+    permission_required = 'core.change_funcionario'
     model = Funcionario
     form_class = FuncionarioForm
     template_name = 'core/funcionario_form.html'
     success_url = reverse_lazy('core:funcionario_list')
 
-    def get_form(self, form_class=None):
-        form = super().get_form(form_class)
-        user = self.request.user
-        if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            for field in form.fields.values():
-                field.disabled = True
-        return form
-
-    def post(self, request, *args, **kwargs):
-        user = request.user
-        if not (user.is_superuser or getattr(user, 'is_admin', False)):
-            from django.core.exceptions import PermissionDenied
-            raise PermissionDenied("Apenas administradores podem editar.")
-        return super().post(request, *args, **kwargs)
-
-class FuncionarioDeleteView(AdminRequiredMixin, DeleteView):
+class FuncionarioDeleteView(PermissionRequiredMixin, DeleteView):
+    permission_required = 'core.delete_funcionario'
     model = Funcionario
     template_name = 'core/funcionario_confirm_delete.html'
     success_url = reverse_lazy('core:funcionario_list')
@@ -1310,7 +1297,7 @@ class GroupCreateView(AdminRequiredMixin, CreateView):
     success_url = reverse_lazy('core:group_list')
     
     def form_valid(self, form):
-        messages.success(self.request, "Grupo de permissÃµes criado com sucesso!")
+        messages.success(self.request, "Grupo de permissões criado com sucesso!")
         return super().form_valid(form)
 
 class GroupUpdateView(AdminRequiredMixin, UpdateView):
@@ -1320,7 +1307,7 @@ class GroupUpdateView(AdminRequiredMixin, UpdateView):
     success_url = reverse_lazy('core:group_list')
 
     def form_valid(self, form):
-        messages.success(self.request, "Grupo de permissÃµes atualizado com sucesso!")
+        messages.success(self.request, "Grupo de permissões atualizado com sucesso!")
         return super().form_valid(form)
 
 class GroupDeleteView(AdminRequiredMixin, DeleteView):
@@ -1329,7 +1316,7 @@ class GroupDeleteView(AdminRequiredMixin, DeleteView):
     success_url = reverse_lazy('core:group_list')
     
     def delete(self, request, *args, **kwargs):
-        messages.success(self.request, "Grupo excluÃ­do com sucesso.")
+        messages.success(self.request, "Grupo excluído com sucesso.")
         return super().delete(request, *args, **kwargs)
 
 # ==========================================

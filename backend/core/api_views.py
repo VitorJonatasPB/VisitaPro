@@ -1,11 +1,12 @@
-﻿from datetime import date
+from datetime import date
+from django.utils import timezone
 
 from rest_framework import status
 from rest_framework.decorators import api_view, permission_classes
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from django.db.models import Q
-from django.utils import timezone
+
 
 from .models import Visita, PerguntaRelatorio, RespostaRelatorio, Funcionario, VisitaFoto, Empresa
 from .api_serializers import (
@@ -46,9 +47,9 @@ def agenda_hoje(request):
         try:
             target_date = date.fromisoformat(data_str)
         except ValueError:
-            target_date = date.today()
+            target_date = timezone.localdate()
     else:
-        target_date = date.today()
+        target_date = timezone.localdate()
 
     visitas = Visita.objects.filter(assessor=request.user, data=target_date).select_related('empresa')
     serializer = VisitaAgendaSerializer(visitas, many=True)
@@ -63,7 +64,7 @@ def agenda_mes(request):
     """
     ano_str = request.query_params.get('ano')
     mes_str = request.query_params.get('mes')
-    hoje = date.today()
+    hoje = timezone.localdate()
     
     try:
         ano = int(ano_str) if ano_str else hoje.year
@@ -367,7 +368,7 @@ def criar_agendamento(request):
 @permission_classes([IsAuthenticated])
 def status_jornada(request):
     from .models import Jornada
-    hoje = date.today()
+    hoje = timezone.localdate()
     jornada = Jornada.objects.filter(assessor=request.user, data=hoje).last()
     if jornada:
         serializer = JornadaSerializer(jornada)
@@ -378,7 +379,7 @@ def status_jornada(request):
 @permission_classes([IsAuthenticated])
 def iniciar_jornada(request):
     from .models import Jornada
-    hoje = date.today()
+    hoje = timezone.localdate()
     
     # Verifica se jÃ¡ tem jornada hoje e se estÃ¡ em andamento
     jornada = Jornada.objects.filter(assessor=request.user, data=hoje).last()
@@ -401,7 +402,7 @@ def iniciar_jornada(request):
 @permission_classes([IsAuthenticated])
 def sincronizar_jornada(request):
     from .models import Jornada
-    hoje = date.today()
+    hoje = timezone.localdate()
     jornada = Jornada.objects.filter(assessor=request.user, data=hoje, status='em_andamento').last()
     
     if not jornada:
@@ -422,7 +423,7 @@ def sincronizar_jornada(request):
 def finalizar_jornada(request):
     from .models import Jornada
     from django.utils import timezone
-    hoje = date.today()
+    hoje = timezone.localdate()
     jornada = Jornada.objects.filter(assessor=request.user, data=hoje, status='em_andamento').last()
     
     if not jornada:

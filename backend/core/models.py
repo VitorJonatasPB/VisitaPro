@@ -316,6 +316,12 @@ class Configuracao(models.Model):
         default=0.00, 
         verbose_name="Valor de Reembolso por KM"
     )
+    grupos_podem_alterar_responsavel = models.ManyToManyField(
+        'auth.Group',
+        blank=True,
+        verbose_name="Grupos que podem alterar o Responsável da visita",
+        related_name='configuracoes_responsavel'
+    )
     atualizado_em = models.DateTimeField(auto_now=True)
 
     class Meta:

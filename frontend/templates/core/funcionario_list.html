@@ -6,9 +6,9 @@
 <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center pt-3 pb-2 mb-3 border-bottom">
     <h1 class="h4 fw-bold mb-3 mb-md-0">Funcionários</h1>
     <div class="d-grid gap-2 d-md-flex justify-content-md-end">
-        {% if user.is_admin or user.is_superuser %}
+        {% if perms.core.add_funcionario %}
         <div class="btn-group w-100 w-md-auto">
-      <a href="{% url 'core:funcionario_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center gap-2 text-nowrap">
+            <a href="{% url 'core:funcionario_create' %}" class="btn btn-sm btn-primary d-flex align-items-center justify-content-center gap-2 text-nowrap">
                 <i class="fas fa-plus"></i> Novo Funcionário
             </a>
             <button type="button" class="btn btn-sm btn-primary dropdown-toggle dropdown-toggle-split w-auto" data-bs-toggle="dropdown" aria-expanded="false">
@@ -68,24 +68,28 @@
                         <th>Cargo</th>
                         <th>Telefone</th>
                         <th>E-mail</th>
-                        {% if user.is_admin or user.is_superuser %}
+                        {% if perms.core.change_funcionario or perms.core.delete_funcionario %}
                         <th class="text-end">Ações</th>
                         {% endif %}
                     </tr>
                 </thead>
                 <tbody>
                     {% for funcionario in funcionarios %}
-                    <tr onclick="window.location.href='{% url 'core:funcionario_update' funcionario.id %}'" style="cursor: pointer;">
+                    <tr onclick="{% if perms.core.change_funcionario %}window.location.href='{% url 'core:funcionario_update' funcionario.id %}'{% endif %}" style="cursor: {% if perms.core.change_funcionario %}pointer{% else %}default{% endif %};">
                         <td title="{{ funcionario.nome }}"><strong>{{ funcionario.nome }}</strong></td>
                         <td title="{{ funcionario.empresa.nome }}">{{ funcionario.empresa.nome }}</td>
                         <td title="{{ funcionario.departamento|default:'-' }}">{{ funcionario.departamento|default:"-" }}</td>
                         <td title="{{ funcionario.cargo|default:'-' }}">{{ funcionario.cargo|default:"-" }}</td>
                         <td title="{{ funcionario.telefone|default:'-' }}">{{ funcionario.telefone|default:"-" }}</td>
                         <td title="{{ funcionario.email|default:'-' }}">{{ funcionario.email|default:"-" }}</td>
-                        {% if user.is_admin or user.is_superuser %}
+                        {% if perms.core.change_funcionario or perms.core.delete_funcionario %}
                         <td class="text-end">
+                            {% if perms.core.change_funcionario %}
                             <a href="{% url 'core:funcionario_update' funcionario.id %}" class="btn btn-sm btn-outline-warning" title="Editar"><i class="fas fa-edit"></i></a>
+                            {% endif %}
+                            {% if perms.core.delete_funcionario %}
                             <a href="{% url 'core:funcionario_delete' funcionario.id %}" class="btn btn-sm btn-outline-danger" title="Excluir"><i class="fas fa-trash"></i></a>
+                            {% endif %}
                         </td>
                         {% endif %}
                     </tr>
@@ -143,10 +147,3 @@
 </div>
 
 {% endblock %}
-
-
-
-
-
-
-

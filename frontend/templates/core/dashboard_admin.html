@@ -36,6 +36,7 @@
 
 <div class="row mb-2">
     <!-- Card Empresas -->
+    {% if perms.core.view_empresa %}
     <div class="col-md-6 mb-4">
         <div class="card text-white h-100 shadow border-0 position-relative card-hover-effect" style="background-color: #6c757d;">
             <div class="card-body">
@@ -50,8 +51,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 
     <!-- Card Funcionários -->
+    {% if perms.core.view_funcionario %}
     <div class="col-md-6 mb-4">
         <div class="card text-white h-100 shadow border-0 position-relative card-hover-effect" style="background-color: #495057;">
             <div class="card-body">
@@ -66,8 +69,10 @@
             </div>
         </div>
     </div>
+    {% endif %}
 </div>
 
+{% if perms.core.view_visita %}
 <div class="row">
     <!-- Card Agendadas no Mês -->
     <div class="col-md-4 mb-4">
@@ -126,6 +131,7 @@
         </div>
     </div>
 </div>
+{% endif %}
 
 <div class="row mb-4 justify-content-start">
     <!-- Card do Perfil do Assessor -->
